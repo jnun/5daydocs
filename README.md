@@ -36,6 +36,7 @@ cat DOCUMENTATION.md
 │   └── guides/         # Technical guides
 ├── scripts/            # Automation scripts
 └── work/              # Work items
+    ├── scripts/       # Work automation scripts
     ├── tasks/         # Task pipeline
     ├── bugs/          # Bug reports
     ├── designs/       # UI mockups
@@ -43,23 +44,17 @@ cat DOCUMENTATION.md
     └── data/          # Test data
 ```
 
-## Key Commands
+## Quick Commands
 
 ```bash
-# View documentation
-cat DOCUMENTATION.md
+# Create a new task (automated)
+./work/scripts/create-task.sh "Task description"
 
-# Check task pipeline
-ls work/tasks/active/    # What's being worked on
-ls work/tasks/next/      # Sprint queue
-ls work/tasks/backlog/   # Needs prioritization
-
-# Move tasks
-mv work/tasks/backlog/1-task.md work/tasks/next/    # Queue for sprint
-mv work/tasks/next/1-task.md work/tasks/active/     # Start work
-mv work/tasks/active/1-task.md work/tasks/review/   # Submit review
-mv work/tasks/review/1-task.md work/tasks/archive/  # Complete
+# Check what's being worked on
+ls work/tasks/active/
 ```
+
+See `DOCUMENTATION.md` for complete workflow guide.
 
 ## Philosophy
 

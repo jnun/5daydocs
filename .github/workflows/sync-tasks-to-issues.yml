@@ -76,7 +76,8 @@ jobs:
 
               if [ -z "$ISSUE_NUMBER" ]; then
                 # Create new issue
-                BODY="## 5-Day Docs Task
+                BODY=$(cat <<EOF
+## 5-Day Docs Task
 
 **Status**: $STATUS
 **Feature**: $FEATURE
@@ -89,7 +90,9 @@ $PROBLEM
 $CRITERIA
 
 ---
-*This issue was automatically synced from the 5-Day Docs task management system.*"
+*This issue was automatically synced from the 5-Day Docs task management system.*
+EOF
+)
 
                 gh issue create \
                   --title "$TASK_TITLE" \

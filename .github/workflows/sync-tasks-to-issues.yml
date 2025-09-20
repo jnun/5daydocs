@@ -1,0 +1,123 @@
+name: Sync Tasks to GitHub Issues
+
+on:
+  push:
+    paths:
+      - 'work/tasks/**/*.md'
+    branches:
+      - main
+
+jobs:
+  sync-tasks:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Get changed task files
+        id: changed-files
+        run: |
+          echo "files=$(git diff --name-only HEAD^ HEAD | grep -E 'work/tasks/.*\.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+      
+      - name: Sync tasks with GitHub issues
+        if: steps.changed-files.outputs.files != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for file in ${{ steps.changed-files.outputs.files }}; do
+            # Skip template files
+            if [[ "$file" == *"TEMPLATE"* ]]; then
+              continue
+            fi
+
+            # Extract task ID
+            TASK_ID=$(basename "$file" | cut -d'-' -f1)
+
+            # Check if file exists (not deleted)
+            if [ -f "$file" ]; then
+              # File exists - create or update issue
+              TASK_TITLE=$(grep '^# Task' "$file" | sed 's/# Task //')
+              FEATURE=$(grep '^\*\*Feature\*\*:' "$file" | sed 's/\*\*Feature\*\*: //' || echo "none")
+              PROBLEM=$(sed -n '/## Problem/,/## Success Criteria/p' "$file" | sed '1d;$d' || echo "No description")
+              CRITERIA=$(sed -n '/## Success Criteria/,/## Notes\|$/p' "$file" | sed '1d' || echo "No criteria defined")
+
+              # Determine status and labels based on folder
+              case "$file" in
+                *"backlog"*)
+                  LABELS="backlog,5day-task"
+                  STATUS="Backlog"
+                  ;;
+                *"next"*)
+                  LABELS="sprint,5day-task"
+                  STATUS="Sprint Queue"
+                  ;;
+                *"active"*)
+                  LABELS="in-progress,5day-task"
+                  STATUS="In Progress"
+                  ;;
+                *"review"*)
+                  LABELS="review,5day-task"
+                  STATUS="In Review"
+                  ;;
+                *"archive"*)
+                  LABELS="completed,5day-task"
+                  STATUS="Completed"
+                  ;;
+              esac
+
+              # Check if issue exists
+              ISSUE_NUMBER=$(gh issue list --state all --search "Task $TASK_ID:" --json number --jq '.[0].number')
+
+              if [ -z "$ISSUE_NUMBER" ]; then
+                # Create new issue
+                BODY="## 5-Day Docs Task
+
+**Status**: $STATUS
+**Feature**: $FEATURE
+**Task File**: \`$file\`
+
+## Problem
+$PROBLEM
+
+## Success Criteria
+$CRITERIA
+
+---
+*This issue was automatically synced from the 5-Day Docs task management system.*"
+
+                gh issue create \
+                  --title "$TASK_TITLE" \
+                  --body "$BODY" \
+                  --label "$LABELS"
+
+                echo "Created GitHub issue for task $TASK_ID"
+              else
+                # Update existing issue
+                gh issue edit $ISSUE_NUMBER --remove-label "backlog,sprint,in-progress,review,completed" 2>/dev/null || true
+                gh issue edit $ISSUE_NUMBER --add-label "$LABELS"
+
+                # Handle archiving
+                if [[ "$file" == *"archive"* ]]; then
+                  gh issue close $ISSUE_NUMBER --comment "Task completed and archived"
+                  echo "Closed issue #$ISSUE_NUMBER for completed task $TASK_ID"
+                else
+                  # Reopen if it was closed but moved out of archive
+                  gh issue reopen $ISSUE_NUMBER 2>/dev/null || true
+                  echo "Updated issue #$ISSUE_NUMBER for task $TASK_ID to status: $STATUS"
+                fi
+              fi
+            else
+              # File deleted - close issue if it exists
+              ISSUE_NUMBER=$(gh issue list --state all --search "Task $TASK_ID:" --json number --jq '.[0].number')
+              if [ -n "$ISSUE_NUMBER" ]; then
+                gh issue close $ISSUE_NUMBER --comment "Task file deleted from repository"
+                echo "Closed issue #$ISSUE_NUMBER - task file deleted"
+              fi
+            fi
+          done

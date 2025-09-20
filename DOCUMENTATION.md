@@ -352,6 +352,51 @@ After running `setup.sh`, these scripts will be available:
 | `create-bug.sh` | Create bug report | `./scripts/create-bug.sh "Description" SEVERITY` |
 | `bug-to-task.sh` | Convert bug to task | `./scripts/bug-to-task.sh BUG_ID` |
 
+## GitHub Integration (Optional)
+
+### Automatic Issue Sync
+When this repository is hosted on GitHub, the included GitHub Action (`.github/workflows/sync-tasks-to-issues.yml`) automatically:
+- Creates GitHub issues when tasks are committed to `backlog/` or `next/`
+- Updates issue labels as tasks move between folders
+- Closes issues when tasks reach `archive/`
+
+### How It Works
+Simply use your normal git workflow. The GitHub Action handles everything:
+
+```bash
+# Example workflow (replace ID and DESCRIPTION with actual values)
+# Creating a task:
+echo "# Task ID: TITLE" > work/tasks/backlog/ID-DESCRIPTION.md
+git add work/tasks/backlog/ID-DESCRIPTION.md
+git commit -m "Add task ID: DESCRIPTION"
+git push  # GitHub Action creates issue automatically
+
+# Moving through pipeline:
+git mv work/tasks/backlog/ID-DESCRIPTION.md work/tasks/active/
+git commit -m "Start task ID"
+git push  # GitHub Action updates issue label
+
+# Completing:
+git mv work/tasks/review/ID-DESCRIPTION.md work/tasks/archive/
+git commit -m "Complete task ID"
+git push  # GitHub Action closes issue
+```
+
+### Issue Labels
+The Action automatically applies these labels:
+- `5day-task` - Identifies all 5-Day Docs tasks
+- `backlog` - Tasks in backlog folder
+- `sprint` - Tasks in next folder
+- `in-progress` - Tasks in active folder
+- `review` - Tasks in review folder
+- `completed` - Tasks in archive folder (issue closed)
+
+### No Additional Tools Required
+The integration works entirely through GitHub Actions. No need to install GitHub CLI or run special commands locally.
+
+### Disabling Integration
+To disable: Simply delete `.github/workflows/sync-tasks-to-issues.yml`
+
 ## Quick Reference Commands
 
 ```bash

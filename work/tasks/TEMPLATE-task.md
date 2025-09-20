@@ -20,9 +20,9 @@
 Workflow Reminder:
 1. Start in work/tasks/backlog/
 2. Move to work/tasks/next/ during sprint planning
-3. Move to work/tasks/active/ when starting work
+3. Move to work/tasks/working/ when starting work
 4. Move to work/tasks/review/ when complete
-5. Move to work/tasks/archive/ after approval
+5. Move to work/tasks/live/ after approval
 
 If blocked, move back to work/tasks/next/
 -->

@@ -18,9 +18,9 @@ echo "# Task 1: Task Title" > work/tasks/backlog/1-task-name.md
 
 # Move tasks through pipeline
 mv work/tasks/backlog/1-task.md work/tasks/next/
-mv work/tasks/next/1-task.md work/tasks/active/
-mv work/tasks/active/1-task.md work/tasks/review/
-mv work/tasks/review/1-task.md work/tasks/archive/
+mv work/tasks/next/1-task.md work/tasks/working/
+mv work/tasks/working/1-task.md work/tasks/review/
+mv work/tasks/review/1-task.md work/tasks/live/
 ```
 
 ### Bug Management
@@ -38,7 +38,7 @@ mv work/bugs/001-bug.md work/bugs/archived/
 ### Status Checks
 ```bash
 # What's being worked on
-ls work/tasks/active/
+ls work/tasks/working/
 
 # Sprint queue
 ls work/tasks/next/
@@ -47,7 +47,7 @@ ls work/tasks/next/
 ls work/tasks/backlog/
 
 # Completed
-ls work/tasks/archive/
+ls work/tasks/live/
 ```
 
 ## File Naming Conventions
@@ -72,16 +72,18 @@ ls work/tasks/archive/
 ## Task Lifecycle
 
 ```
-backlog → next → active → review → archive
-           ↑        ↓
-           ← blocked ←
+backlog → next → working → review → live
+           ↑         ↓
+           ← blocked  ←
 ```
 
 ## Feature Status Values
 
-- **LIVE** - In production
-- **TESTING** - Built, not released
-- **BACKLOG** - Planned, not built
+- **BACKLOG** - Planned, not started
+- **NEXT** - Queued for this sprint
+- **WORKING** - Being worked on now
+- **REVIEW** - Built, awaiting approval
+- **LIVE** - In production or approved for deployment
 
 ## Bug Severity Levels
 
@@ -120,17 +122,17 @@ git commit -m "Task #1: Fix login bug"
 ### Sprint Planning
 1. Review `work/tasks/backlog/`
 2. Move selected tasks to `work/tasks/next/`
-3. Limit `work/tasks/active/` to 1-3 tasks
+3. Limit `work/tasks/working/` to 1-3 tasks
 4. Complete before taking more from `next/`
 
 ## Tips
 
 - Always check STATE.md before creating tasks
 - Always update STATE.md after creating tasks
-- Keep active tasks minimal (1-3 max)
+- Keep working tasks minimal (1-3 max)
 - Document blockers when moving backwards
 - Review folder is mandatory (no skipping)
-- Archive completed work for history
+- Move completed work to live/ for history
 
 ---
 *For complete documentation, see DOCUMENTATION.md*

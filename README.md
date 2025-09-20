@@ -1,4 +1,4 @@
-# 5-Day Docs Template
+# 5DayDocs Template
 
 A simple, folder-based documentation and task management system for software projects.
 
@@ -9,8 +9,8 @@ A simple, folder-based documentation and task management system for software pro
 cp -r /path/to/5daydocs/* /your/project/
 
 # 2. Run setup script
-chmod +x setup.sh
-./setup.sh
+chmod +x work/scripts/setup.sh
+./work/scripts/setup.sh
 
 # 3. Review the documentation
 cat DOCUMENTATION.md
@@ -18,8 +18,8 @@ cat DOCUMENTATION.md
 
 ## What's Included
 
-- **Task Management**: Folder-based workflow (backlog → next → active → review → archive)
-- **Feature Documentation**: Status-tagged capabilities (LIVE/TESTING/BACKLOG)
+- **Task Management**: Folder-based workflow (backlog → next → working → review → live)
+- **Feature Documentation**: Status-tagged capabilities (BACKLOG/NEXT/WORKING/REVIEW/LIVE)
 - **Bug Tracking**: Simple bug report system with severity levels
 - **Automation Scripts**: Bash scripts for common operations
 - **State Tracking**: Automatic ID management for tasks and bugs
@@ -30,13 +30,14 @@ cat DOCUMENTATION.md
 /
 ├── DOCUMENTATION.md     # Complete workflow guide
 ├── README.md           # This file
-├── setup.sh            # Initial setup script
 ├── docs/               # Documentation
 │   ├── features/       # Feature specifications
 │   └── guides/         # Technical guides
-├── scripts/            # Automation scripts
 └── work/              # Work items
-    ├── scripts/       # Work automation scripts
+    ├── scripts/       # 5DayDocs automation scripts
+    │   ├── setup.sh       # Initial setup script
+    │   ├── create-task.sh # Task creation helper
+    │   └── analyze-feature-alignment.sh # Feature status checker
     ├── tasks/         # Task pipeline
     ├── bugs/          # Bug reports
     ├── designs/       # UI mockups
@@ -51,7 +52,10 @@ cat DOCUMENTATION.md
 ./work/scripts/create-task.sh "Task description"
 
 # Check what's being worked on
-ls work/tasks/active/
+ls work/tasks/working/
+
+# Analyze feature/task alignment
+./work/scripts/analyze-feature-alignment.sh
 ```
 
 See `DOCUMENTATION.md` for complete workflow guide.
@@ -72,6 +76,19 @@ See `DOCUMENTATION.md` for the complete guide including:
 - Sprint planning
 - Automation scripts
 - Edge cases and FAQs
+
+## AI Assistant Instructions
+
+**IMPORTANT: If you are an AI assistant working with this codebase, follow these steps BEFORE making any changes:**
+
+1. **Read ALL CAPITAL letter files in root directory** - These contain critical project context (README.md, INDEX.md, CLAUDE.md, DOCUMENTATION.md, etc.)
+2. **Follow links mentioned in README.md and INDEX.md (if they exist)** if they are relevant to the task - These point to relevant project documentation and existing implementations
+3. **Search for existing code before creating new files** - Use search/grep to find similar functionality that might already exist
+4. **Reuse and update existing tools** - Never create duplicate functionality; always prefer updating existing code
+5. **Understand project conventions** - Match the existing code style, file naming patterns, and directory structure
+6. **Check project configuration** - Review package.json, Makefile, or equivalent files for dependencies and scripts
+
+**Remember:** Research first, code second. Understanding the existing structure prevents duplicate work and maintains consistency.
 
 ---
 *Simple, folder-based task management with clear feature documentation*

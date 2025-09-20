@@ -25,12 +25,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Create labels with colors if they don't exist
-          gh label create "5day-task" --color "0052CC" --description "Task from 5-Day Docs system" 2>/dev/null || true
+          gh label create "5day-task" --color "0052CC" --description "Task from 5DayDocs system" 2>/dev/null || true
           gh label create "backlog" --color "E4E669" --description "In backlog folder" 2>/dev/null || true
           gh label create "sprint" --color "FFA500" --description "In next folder (sprint queue)" 2>/dev/null || true
-          gh label create "in-progress" --color "0E8A16" --description "In active folder" 2>/dev/null || true
+          gh label create "in-progress" --color "0E8A16" --description "In working folder" 2>/dev/null || true
           gh label create "review" --color "C2E0C6" --description "In review folder" 2>/dev/null || true
-          gh label create "completed" --color "98FB98" --description "In archive folder" 2>/dev/null || true
+          gh label create "completed" --color "98FB98" --description "In live folder" 2>/dev/null || true
       
       - name: Get changed task files
         id: changed-files
@@ -69,17 +69,17 @@ jobs:
                   LABELS="sprint,5day-task"
                   STATUS="Sprint Queue"
                   ;;
-                *"active"*)
+                *"working"*)
                   LABELS="in-progress,5day-task"
-                  STATUS="In Progress"
+                  STATUS="Working"
                   ;;
                 *"review"*)
                   LABELS="review,5day-task"
                   STATUS="In Review"
                   ;;
-                *"archive"*)
+                *"live"*)
                   LABELS="completed,5day-task"
-                  STATUS="Completed"
+                  STATUS="Live"
                   ;;
               esac
 
@@ -88,7 +88,7 @@ jobs:
 
               if [ -z "$ISSUE_NUMBER" ]; then
                 # Create new issue
-                BODY="## 5-Day Docs Task"$'\n\n'"**Status**: $STATUS"$'\n'"**Feature**: $FEATURE"$'\n'"**Task File**: \`$file\`"$'\n\n'"## Problem"$'\n'"$PROBLEM"$'\n\n'"## Success Criteria"$'\n'"$CRITERIA"$'\n\n'"---"$'\n'"*This issue was automatically synced from the 5-Day Docs task management system.*"
+                BODY="## 5DayDocs Task"$'\n\n'"**Status**: $STATUS"$'\n'"**Feature**: $FEATURE"$'\n'"**Task File**: \`$file\`"$'\n\n'"## Problem"$'\n'"$PROBLEM"$'\n\n'"## Success Criteria"$'\n'"$CRITERIA"$'\n\n'"---"$'\n'"*This issue was automatically synced from the 5DayDocs task management system.*"
 
                 # Split labels and add them individually
                 IFS=',' read -ra LABEL_ARRAY <<< "$LABELS"
@@ -117,11 +117,11 @@ jobs:
                 done
 
                 # Handle archiving
-                if [[ "$file" == *"archive"* ]]; then
-                  gh issue close $ISSUE_NUMBER --comment "Task completed and archived"
+                if [[ "$file" == *"live"* ]]; then
+                  gh issue close $ISSUE_NUMBER --comment "Task completed and live"
                   echo "Closed issue #$ISSUE_NUMBER for completed task $TASK_ID"
                 else
-                  # Reopen if it was closed but moved out of archive
+                  # Reopen if it was closed but moved out of live
                   gh issue reopen $ISSUE_NUMBER 2>/dev/null || true
                   echo "Updated issue #$ISSUE_NUMBER for task $TASK_ID to status: $STATUS"
                 fi

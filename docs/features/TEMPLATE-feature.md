@@ -14,11 +14,13 @@
 
 ---
 
-<!-- 
+<!--
 Status Guide:
-- LIVE: Currently in production
-- TESTING: Built but not released
-- BACKLOG: Planned but not built
+- BACKLOG: Planned but not started
+- NEXT: Queued for this sprint
+- WORKING: Being worked on now
+- REVIEW: Built, awaiting approval
+- LIVE: In production or approved for deployment
 
 Tips:
 - Each capability should be a specific, testable function

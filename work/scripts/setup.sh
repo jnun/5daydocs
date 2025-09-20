@@ -9,7 +9,7 @@ set -e  # Exit on error
 FIVEDAY_SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 echo "================================================"
-echo "  5-Day Docs - Project Documentation Setup"
+echo "  5DayDocs - Project Documentation Setup"
 echo "================================================"
 echo ""
 
@@ -55,10 +55,11 @@ fi
 
 # Create directory structure
 echo "Creating directory structure..."
-mkdir -p work/tasks/{backlog,next,active,review,archive}
-mkdir -p work/{bugs/archived,designs,examples,data}
+mkdir -p work/tasks/{backlog,next,working,review,live}
+mkdir -p work/{bugs/archived,designs,examples,data,scripts}
 mkdir -p docs/{features,guides}
-mkdir -p scripts
+# DO NOT create scripts/ at root - keep all scripts in work/scripts/
+mkdir -p .github/workflows  # For GitHub Actions (optional)
 
 # Create state tracking files
 echo "Creating state tracking files..."
@@ -86,8 +87,54 @@ else
     echo "⚠ work/bugs/BUG_STATE.md already exists, skipping"
 fi
 
-# Copy DOCUMENTATION.md if it doesn't exist or in update mode
+# Copy documentation files
 echo "Setting up documentation files..."
+
+# Copy README.md if it doesn't exist
+if [ ! -f README.md ]; then
+    if [ -f "$FIVEDAY_SOURCE_DIR/README.md" ]; then
+        # Create a project-specific README with 5DayDocs reference
+        cat > README.md << README_EOF
+# Project Name
+
+This project uses [5DayDocs](https://github.com/5daydocs/5daydocs) for task and documentation management.
+
+## Quick Start
+
+See \`DOCUMENTATION.md\` for the complete workflow guide.
+
+### Common Commands
+
+\`\`\`bash
+# Create a new task
+./work/scripts/create-task.sh "Task description"
+
+# Check feature-task alignment
+./work/scripts/analyze-feature-alignment.sh
+
+# View current work
+ls work/tasks/working/
+
+# View sprint queue
+ls work/tasks/next/
+\`\`\`
+
+## Project Structure
+
+- \`work/tasks/\` - Task pipeline (backlog → next → working → review → live)
+- \`docs/features/\` - Feature documentation with status tracking
+- \`work/bugs/\` - Bug reports and tracking
+
+---
+*Powered by 5DayDocs - Simple, folder-based project management*
+README_EOF
+        echo "✓ Created project README.md"
+    fi
+else
+    echo "⚠ README.md already exists, preserving your version"
+fi
+
+# Copy DOCUMENTATION.md if it doesn't exist or in update mode
 if [ ! -f DOCUMENTATION.md ] || $UPDATE_MODE; then
     if [ -f "$FIVEDAY_SOURCE_DIR/DOCUMENTATION.md" ]; then
         cp "$FIVEDAY_SOURCE_DIR/DOCUMENTATION.md" DOCUMENTATION.md
@@ -107,6 +154,54 @@ if [ ! -f CLAUDE.md ]; then
     fi
 else
     echo "⚠ CLAUDE.md already exists, skipping"
+fi
+
+# Copy template files
+echo "Setting up template files..."
+if [ ! -f work/tasks/TEMPLATE-task.md ] || $UPDATE_MODE; then
+    if [ -f "$FIVEDAY_SOURCE_DIR/work/tasks/TEMPLATE-task.md" ]; then
+        cp "$FIVEDAY_SOURCE_DIR/work/tasks/TEMPLATE-task.md" work/tasks/
+        echo "✓ Copied task template"
+    fi
+fi
+
+if [ ! -f work/bugs/TEMPLATE-bug.md ] || $UPDATE_MODE; then
+    if [ -f "$FIVEDAY_SOURCE_DIR/work/bugs/TEMPLATE-bug.md" ]; then
+        cp "$FIVEDAY_SOURCE_DIR/work/bugs/TEMPLATE-bug.md" work/bugs/
+        echo "✓ Copied bug template"
+    fi
+fi
+
+if [ ! -f docs/features/TEMPLATE-feature.md ] || $UPDATE_MODE; then
+    if [ -f "$FIVEDAY_SOURCE_DIR/docs/features/TEMPLATE-feature.md" ]; then
+        cp "$FIVEDAY_SOURCE_DIR/docs/features/TEMPLATE-feature.md" docs/features/
+        echo "✓ Copied feature template"
+    fi
+fi
+
+# Copy scripts (all go in work/scripts/)
+echo "Setting up automation scripts..."
+if [ -f "$FIVEDAY_SOURCE_DIR/work/scripts/analyze-feature-alignment.sh" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/work/scripts/analyze-feature-alignment.sh" work/scripts/
+    chmod +x work/scripts/analyze-feature-alignment.sh
+    echo "✓ Copied analyze-feature-alignment.sh to work/scripts/"
+fi
+
+if [ -f "$FIVEDAY_SOURCE_DIR/work/scripts/create-task.sh" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/work/scripts/create-task.sh" work/scripts/
+    chmod +x work/scripts/create-task.sh
+    echo "✓ Copied create-task.sh to work/scripts/"
+fi
+
+# Copy GitHub workflows (optional)
+if [ -d "$FIVEDAY_SOURCE_DIR/.github/workflows" ] && [ ! -d .github/workflows ]; then
+    echo "Would you like to set up GitHub Actions integration? (y/n)"
+    read -r SETUP_GITHUB
+    if [[ "$SETUP_GITHUB" =~ ^[Yy]$ ]]; then
+        cp -r "$FIVEDAY_SOURCE_DIR/.github/workflows" .github/
+        echo "✓ Copied GitHub Actions workflows"
+        echo "  Remember to configure secrets in your GitHub repository settings"
+    fi
 fi
 
 # Create .gitignore if it doesn't exist
@@ -197,11 +292,12 @@ else
     echo "⚠ .gitignore already exists, skipping"
 fi
 
-# Make all scripts executable
-if ls scripts/*.sh 1> /dev/null 2>&1; then
-    chmod +x scripts/*.sh
-    echo "✓ Made all scripts executable"
+# Ensure all scripts are executable (double-check)
+echo "Verifying script permissions..."
+if [ -d work/scripts ]; then
+    find work/scripts -name "*.sh" -type f -exec chmod +x {} \;
 fi
+echo "✓ All scripts are executable"
 
 echo ""
 echo "================================================"
@@ -218,8 +314,9 @@ else
     echo "1. cd $TARGET_PATH"
     echo "2. Review DOCUMENTATION.md for detailed workflow"
     echo "3. Customize CLAUDE.md for your project's AI assistance needs"
-    echo "4. Create your first task in work/tasks/backlog/"
+    echo "4. Create your first task using: ./work/scripts/create-task.sh"
     echo "5. Track features in docs/features/"
+    echo "6. Check alignment with: ./work/scripts/analyze-feature-alignment.sh"
     echo ""
     echo "To update 5DayDocs in the future, run this setup script again."
 fi

@@ -19,6 +19,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
+
+      - name: Create labels if they don't exist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create labels with colors if they don't exist
+          gh label create "5day-task" --color "0052CC" --description "Task from 5-Day Docs system" 2>/dev/null || true
+          gh label create "backlog" --color "E4E669" --description "In backlog folder" 2>/dev/null || true
+          gh label create "sprint" --color "FFA500" --description "In next folder (sprint queue)" 2>/dev/null || true
+          gh label create "in-progress" --color "0E8A16" --description "In active folder" 2>/dev/null || true
+          gh label create "review" --color "C2E0C6" --description "In review folder" 2>/dev/null || true
+          gh label create "completed" --color "98FB98" --description "In archive folder" 2>/dev/null || true
       
       - name: Get changed task files
         id: changed-files
@@ -78,16 +90,31 @@ jobs:
                 # Create new issue
                 BODY="## 5-Day Docs Task"$'\n\n'"**Status**: $STATUS"$'\n'"**Feature**: $FEATURE"$'\n'"**Task File**: \`$file\`"$'\n\n'"## Problem"$'\n'"$PROBLEM"$'\n\n'"## Success Criteria"$'\n'"$CRITERIA"$'\n\n'"---"$'\n'"*This issue was automatically synced from the 5-Day Docs task management system.*"
 
-                gh issue create \
-                  --title "$TASK_TITLE" \
-                  --body "$BODY" \
-                  --label "$LABELS"
+                # Split labels and add them individually
+                IFS=',' read -ra LABEL_ARRAY <<< "$LABELS"
+                LABEL_ARGS=""
+                for label in "${LABEL_ARRAY[@]}"; do
+                  LABEL_ARGS="$LABEL_ARGS --label \"$label\""
+                done
+
+                eval gh issue create \
+                  --title "\"$TASK_TITLE\"" \
+                  --body "\"$BODY\"" \
+                  $LABEL_ARGS
 
                 echo "Created GitHub issue for task $TASK_ID"
               else
                 # Update existing issue
-                gh issue edit $ISSUE_NUMBER --remove-label "backlog,sprint,in-progress,review,completed" 2>/dev/null || true
-                gh issue edit $ISSUE_NUMBER --add-label "$LABELS"
+                # Remove old labels
+                for old_label in backlog sprint in-progress review completed; do
+                  gh issue edit $ISSUE_NUMBER --remove-label "$old_label" 2>/dev/null || true
+                done
+
+                # Add new labels
+                IFS=',' read -ra LABEL_ARRAY <<< "$LABELS"
+                for label in "${LABEL_ARRAY[@]}"; do
+                  gh issue edit $ISSUE_NUMBER --add-label "$label"
+                done
 
                 # Handle archiving
                 if [[ "$file" == *"archive"* ]]; then

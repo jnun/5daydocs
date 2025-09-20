@@ -1,0 +1,82 @@
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.lnk
+
+# Editor Files
+.vscode/
+.idea/
+*.sublime-*
+.nova/
+*.swp
+*.swo
+*~
+\#*\#
+.\#*
+
+# Temporary Files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.log
+.~lock.*
+
+# Shell/Script artifacts
+*.pid
+*.seed
+*.pid.lock
+nohup.out
+
+# Archive Files (if users zip up old work)
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+secrets/
+
+# Local data examples (expand as needed)
+work/data/*.csv
+work/data/*.json
+work/data/*.xml
+work/data/*.sql
+work/data/*.db
+work/data/*.sqlite
+
+# Design files (binary/large files)
+work/designs/*.psd
+work/designs/*.ai
+work/designs/*.sketch
+work/designs/*.fig
+work/designs/*.xd
+
+# AI Assistant Configuration
+# (Users should create their own CLAUDE.md for their project)
+CLAUDE.md
+
+# Documentation builds (if using doc generators)
+docs/_build/
+docs/.doctrees/
+site/
+
+# macOS Finder
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDouble
+.LSOverride
+Icon?
+._*

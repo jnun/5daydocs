@@ -2,19 +2,27 @@
 
 A simple, folder-based documentation and task management system for software projects.
 
+**Important:** The `docs/` and `work/` directories are managed by 5DayDocs. This is a language-agnostic project management tool that's fully contained within these two directories and can be integrated into any project.
+
 ## Quick Start
 
 ```bash
-# 1. Clone or copy this template to your project
-cp -r /path/to/5daydocs/* /your/project/
+# 1. Clone the repository
+git clone git@github.com:jnun/5daydocs.git
+cd 5daydocs
 
-# 2. Run setup script
-chmod +x work/scripts/setup.sh
-./work/scripts/setup.sh
+# 2. Run setup script (it will ask where to place work files)
+sh work/scripts/setup.sh
 
 # 3. Review the documentation
 cat DOCUMENTATION.md
 ```
+
+The setup script:
+- Asks where to place the work files
+- Only copies the necessary work structure (not project code)
+- Automatically sets correct permissions on scripts
+- Creates a clean working environment without unnecessary files
 
 ## What's Included
 

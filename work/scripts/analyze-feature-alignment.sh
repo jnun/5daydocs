@@ -69,10 +69,10 @@ for feature_file in docs/features/*.md; do
     echo -e "  ${CYAN}Capabilities:${NC}"
     capability_count=0
     while IFS= read -r line; do
-        if echo "$line" | grep -q '\*\*Status\*\*:'; then
+        if echo "$line" | grep -qF '**Status**:'; then
             cap_status=$(echo "$line" | sed 's/.*\*\*Status\*\*: *//' | cut -d' ' -f1)
             # Get the capability name from the previous heading
-            cap_name=$(grep -B2 "$line" "$feature_file" | grep "^##" | tail -1 | sed 's/^## *//')
+            cap_name=$(grep -FB2 "$line" "$feature_file" | grep "^##" | tail -1 | sed 's/^## *//')
             if [ ! -z "$cap_name" ]; then
                 capability_count=$((capability_count + 1))
                 echo -e "    - $cap_name: $cap_status"
@@ -132,7 +132,7 @@ for task_dir in work/tasks/{backlog,next,working,review,live}; do
         for task_file in "$task_dir"/*.md; do
             if [ -f "$task_file" ] && [[ ! "$task_file" == *"TEMPLATE"* ]]; then
                 task_id=$(basename "$task_file" .md | cut -d'-' -f1)
-                feature_ref=$(grep "^\*\*Feature\*\*:" "$task_file" 2>/dev/null | sed 's/.*: //')
+                feature_ref=$(grep -F "**Feature**:" "$task_file" 2>/dev/null | sed 's/.*: //')
 
                 if [ -z "$feature_ref" ] || [ "$feature_ref" = "none" ]; then
                     if [ $orphan_found -eq 0 ]; then

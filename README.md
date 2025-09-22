@@ -7,9 +7,9 @@ A simple, folder-based documentation and task management system for software pro
 ## Quick Start
 
 ```bash
-# 1. Clone this installer
-git clone https://github.com/yourusername/5daydocs.git /tmp/5daydocs
-cd /tmp/5daydocs
+# 1. Clone this installer in a folder that's not in your working project folder
+git clone https://github.com/yourusername/5daydocs.git
+cd /path/to/5daydocs
 
 # 2. Run setup (it will ask for YOUR project path)
 chmod +x work/scripts/setup.sh

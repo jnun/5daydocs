@@ -90,17 +90,10 @@ jobs:
                 # Create new issue
                 BODY="## 5DayDocs Task"$'\n\n'"**Status**: $STATUS"$'\n'"**Feature**: $FEATURE"$'\n'"**Task File**: \`$file\`"$'\n\n'"## Problem"$'\n'"$PROBLEM"$'\n\n'"## Success Criteria"$'\n'"$CRITERIA"$'\n\n'"---"$'\n'"*This issue was automatically synced from the 5DayDocs task management system.*"
 
-                # Split labels and add them individually
-                IFS=',' read -ra LABEL_ARRAY <<< "$LABELS"
-                LABEL_ARGS=""
-                for label in "${LABEL_ARRAY[@]}"; do
-                  LABEL_ARGS="$LABEL_ARGS --label \"$label\""
-                done
-
-                eval gh issue create \
-                  --title "\"$TASK_TITLE\"" \
-                  --body "\"$BODY\"" \
-                  $LABEL_ARGS
+                gh issue create \
+                  --title "$TASK_TITLE" \
+                  --body "$BODY" \
+                  --label "$(echo "$LABELS" | tr ',' ' ')"
 
                 echo "Created GitHub issue for task $TASK_ID"
               else

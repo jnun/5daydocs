@@ -1,5 +1,9 @@
 # Update Setup Script to Copy INDEX.md Files
 
+## Related Tasks
+- Complete task 46 first (INDEX.md files for work/ folders must exist)
+- Complete task 47 first (INDEX.md files for docs/ folders must exist)
+
 ## Problem
 Once INDEX.md files are created for work/ and docs/ folders, the setup.sh script needs to copy them to target projects during installation.
 

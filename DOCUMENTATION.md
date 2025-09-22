@@ -2,6 +2,18 @@
 
 > **Quick Reference**: See [Common Workflows](#common-workflows) to get started quickly.
 
+## Philosophy
+
+**Keep what works. Change only what's broken.**
+
+5DayDocs is intentionally simple:
+- Plain folders and markdown files
+- No databases, no apps, no complexity
+- Add only tools that demonstrably improve workflow
+- Resist feature creep
+
+If it works, don't fix it. If it's clear, don't clarify it.
+
 ## Initial Setup
 
 **First time setup after cloning/importing:**
@@ -125,6 +137,17 @@ Where:
 - BRIEF-DESCRIPTION = short summary of the task
 - RELATED-FEATURE = name of the feature file (without .md extension)
 - YYYY-MM-DD = creation date
+
+**Optional Section - Related Tasks**:
+When a task has dependencies or should be done in a specific order with other tasks, add:
+```markdown
+## Related Tasks
+- Complete task ID-X first (reason why)
+- See also task ID-Y (related work)
+- Do this before task ID-Z (which depends on this)
+```
+
+Only include this section when tasks have actual dependencies. Most tasks should be independent and can be worked in any order.
 
 **Task Flow**:
 1. Create in `work/tasks/backlog/` with next ID (check work/STATE.md)

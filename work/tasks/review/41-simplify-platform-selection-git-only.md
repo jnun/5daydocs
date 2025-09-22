@@ -10,7 +10,7 @@ Setup.sh offers Jira and Bitbucket options that aren't implemented yet. This con
 - Clear messaging that additional platforms are planned
 
 ## Testing Criteria
-- [ ] Setup only configures GitHub Issues workflow
-- [ ] No broken Jira/Bitbucket paths
-- [ ] User sees clear message about supported platforms
-- [ ] Script proceeds without platform selection or defaults to GitHub Issues
+- [x] Setup only configures GitHub Issues workflow
+- [x] No broken Jira/Bitbucket paths
+- [x] User sees clear message about supported platforms
+- [x] Script proceeds without platform selection or defaults to GitHub Issues

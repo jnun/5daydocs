@@ -1,38 +1,28 @@
-# 5DayDocs Template
+# 5DayDocs
+
+**INSTALL THIS IN YOUR PROJECT - DO NOT WORK IN THIS REPOSITORY**
 
 A simple, folder-based documentation and task management system for software projects.
-
-**Important:** The `docs/` and `work/` directories are managed by 5DayDocs. This is a language-agnostic project management tool that's fully contained within these two directories and can be integrated into any project.
 
 ## Quick Start
 
 ```bash
-# 1. Clone the repository
-git clone git@github.com:jnun/5daydocs.git
-cd 5daydocs
+# 1. Clone this installer
+git clone https://github.com/yourusername/5daydocs.git /tmp/5daydocs
+cd /tmp/5daydocs
 
-# 2. Run setup script (it will ask where to place work files)
-sh work/scripts/setup.sh
+# 2. Run setup (it will ask for YOUR project path)
+chmod +x work/scripts/setup.sh
+./work/scripts/setup.sh
 
-# 3. Review the documentation
-cat DOCUMENTATION.md
+# 3. Go to YOUR project and start working
+cd /path/to/your-project
+./work/scripts/create-task.sh "Your first task"
 ```
 
-The setup script:
-- Asks where to place the work files
-- Only copies the necessary work structure (not project code)
-- Automatically sets correct permissions on scripts
-- Creates a clean working environment without unnecessary files
+## What Gets Installed
 
-## What's Included
-
-- **Task Management**: Folder-based workflow (backlog → next → working → review → live)
-- **Feature Documentation**: Status-tagged capabilities (BACKLOG/NEXT/WORKING/REVIEW/LIVE)
-- **Bug Tracking**: Simple bug report system with severity levels
-- **Automation Scripts**: Bash scripts for common operations
-- **State Tracking**: Automatic ID management for tasks and bugs
-
-## Structure Overview
+The setup script creates this structure in YOUR project:
 
 ```
 /

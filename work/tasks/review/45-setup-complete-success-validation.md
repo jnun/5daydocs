@@ -1,5 +1,8 @@
 # Add Setup Complete Success Validation
 
+## Related Tasks
+- Do this last (validates all other setup.sh improvements)
+
 ## Problem
 Setup.sh should verify that everything was set up correctly before declaring success, and provide a clear summary of what's ready to use.
 

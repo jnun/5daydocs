@@ -101,13 +101,22 @@ fi
 # Create state tracking files
 echo "Creating state tracking files..."
 if [ ! -f work/STATE.md ]; then
-    cat > work/STATE.md << STATE_EOF
+    # Check if template exists in source directory
+    if [ -f "$FIVEDAY_SOURCE_DIR/work/templates/STATE.md.template" ]; then
+        # Copy template and replace placeholders
+        sed "s/{{DATE}}/$(date +%Y-%m-%d)/g" "$FIVEDAY_SOURCE_DIR/work/templates/STATE.md.template" > work/STATE.md
+        echo "✓ Created work/STATE.md from template"
+    else
+        # Fallback to inline generation if template doesn't exist
+        cat > work/STATE.md << STATE_EOF
 # work/STATE.md
 
 **Last Updated**: $(date +%Y-%m-%d)
-**Highest Task ID**: 0
+**5DAY_TASK_ID**: 0
+**5DAY_BUG_ID**: 0
 STATE_EOF
-    echo "✓ Created work/STATE.md"
+        echo "✓ Created work/STATE.md (fallback inline generation)"
+    fi
 else
     echo "⚠ work/STATE.md already exists, skipping"
 fi
@@ -122,16 +131,11 @@ CONFIG_EOF
     echo "✓ Created platform configuration file (work/.platform-config)"
 fi
 
-if [ ! -f work/bugs/BUG_STATE.md ]; then
-    cat > work/bugs/BUG_STATE.md << BUG_EOF
-# work/bugs/BUG_STATE.md
-
-**Last Updated**: $(date +%Y-%m-%d)
-**Highest Bug ID**: 0
-BUG_EOF
-    echo "✓ Created work/bugs/BUG_STATE.md"
-else
-    echo "⚠ work/bugs/BUG_STATE.md already exists, skipping"
+# BUG_STATE.md is now integrated into STATE.md
+# Create a migration notice if old BUG_STATE.md exists
+if [ -f work/bugs/BUG_STATE.md ]; then
+    echo "ℹ️  Note: Bug state tracking is now managed in work/STATE.md"
+    echo "  The old work/bugs/BUG_STATE.md can be removed after migration."
 fi
 
 # Copy documentation files
@@ -513,8 +517,7 @@ This is the main operational directory for 5DayDocs project management.
 
 ## Key Files
 
-- **STATE.md** - Tracks highest task ID number
-- **bugs/BUG_STATE.md** - Tracks highest bug ID number
+- **STATE.md** - Tracks highest task and bug ID numbers
 - **.platform-config** - Platform configuration (GitHub/Jira/Bitbucket)
 
 ## Usage
@@ -701,7 +704,7 @@ for dir in work/tasks/backlog work/tasks/next work/tasks/working work/tasks/revi
 done
 
 # Check required files
-for file in work/STATE.md work/bugs/BUG_STATE.md DOCUMENTATION.md; do
+for file in work/STATE.md DOCUMENTATION.md; do
     if [ ! -f "$file" ]; then
         VALIDATION_PASSED=false
         VALIDATION_ERRORS="$VALIDATION_ERRORS\n  ❌ Missing file: $file"

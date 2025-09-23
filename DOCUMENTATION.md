@@ -28,7 +28,7 @@ chmod +x 5day.sh
 
 This will:
 - Create all required directories
-- Set up state tracking files (STATE.md, BUG_STATE.md)
+- Set up state tracking file (STATE.md)
 - Make all scripts in scripts/ executable
 - Create .gitignore if needed
 - Add sample content if directories are empty
@@ -57,15 +57,15 @@ chmod +x 5day.sh
 
 **Manual setup (if setup.sh is not available):**
 ```bash
+# Example commands - replace placeholders with actual values
 # Create directory structure
 mkdir -p work/tasks/{backlog,next,working,review,live}
 mkdir -p work/{bugs/archived,designs,examples,data}
 mkdir -p docs/{features,guides}
 mkdir -p work/scripts
 
-# Create state files
-echo "# work/STATE.md\n\n**Last Updated**: $(date +%Y-%m-%d)\n**Highest Task ID**: 0" > work/STATE.md
-echo "# work/bugs/BUG_STATE.md\n\n**Last Updated**: $(date +%Y-%m-%d)\n**Highest Bug ID**: 0" > work/bugs/BUG_STATE.md
+# Create state file ($(date +%Y-%m-%d) will generate current date)
+echo "# work/STATE.md\n\n**Last Updated**: $(date +%Y-%m-%d)\n**5DAY_TASK_ID**: 0\n**5DAY_BUG_ID**: 0" > work/STATE.md
 
 # Make scripts executable
 chmod +x work/scripts/*.sh
@@ -79,6 +79,10 @@ chmod +x work/scripts/*.sh
 - When you see "ID-DESCRIPTION.md" replace ID with a number and DESCRIPTION with kebab-case text
 - All paths use forward slashes (/) even on Windows
 - Commands shown are for bash/unix shells
+
+### Why 5DAY_ Prefixes
+
+All 5DayDocs system variables use `5DAY_` prefix (like `5DAY_TASK_ID`) to prevent AI confusion with your actual project code. This ensures AI assistants never mix up our tracking with your variables.
 
 ## Naming Conventions for 5DayDocs
 
@@ -139,7 +143,7 @@ chmod +x work/scripts/*.sh
 
 Each feature gets one file in `/docs/features/` describing how it works.
 
-**Feature File Format**:
+**Feature File Format (Template - replace placeholders)**:
 ```markdown
 # Feature: FEATURE-NAME
 
@@ -165,12 +169,12 @@ Where:
 
 Each task is a file with a unique ID that moves between folders.
 
-**Task File Format**:
+**Task File Format (Template - replace placeholders)**:
 ```markdown
 # Task ID: BRIEF-DESCRIPTION
 
 **Feature**: /docs/features/RELATED-FEATURE.md (or "multiple" or "none")
-**Created**: YYYY-MM-DD
+**Created**: YYYY-MM-DD  <!-- Replace with actual date -->
 
 ## Problem
 Description of what needs to be fixed or built
@@ -180,11 +184,11 @@ Description of what needs to be fixed or built
 - [ ] Second criterion
 ```
 
-Where:
+**Placeholder meanings:**
 - ID = task number from work/STATE.md
 - BRIEF-DESCRIPTION = short summary of the task
 - RELATED-FEATURE = name of the feature file (without .md extension)
-- YYYY-MM-DD = creation date
+- YYYY-MM-DD = actual date in year-month-day format (e.g., 2024-03-15)
 
 **Optional Section - Related Tasks**:
 When a task has dependencies or should be done in a specific order with other tasks, add:
@@ -236,24 +240,25 @@ mkdir -p work/tasks/backlog work/tasks/next work/tasks/working work/tasks/review
 4. **Update work/STATE.md** with the new highest ID
 5. **Commit both files** together
 
-**Commands to execute**:
+**Example commands (replace ALL CAPS placeholders with actual values)**:
 ```bash
 # 1. Check current highest ID
 cat work/STATE.md
 
-# 2. Create task file (replace ID with actual task number, DESCRIPTION with task description)
-# Note: DESCRIPTION in filename should be kebab-case (e.g., fix-login)
-# The title inside the file can be human-readable (e.g., "Fix Login Bug")
+# 2. Create task file
+# Replace: ID with actual number, DESCRIPTION with kebab-case text
+# Example: If ID is 5, use: work/tasks/backlog/5-fix-login.md
 echo "# Task ID: Human Readable Title" > work/tasks/backlog/ID-DESCRIPTION.md
 
-# 3. Update work/STATE.md with new highest ID (this replaces the entire file)
-# Simple approach: edit work/STATE.md directly and update both date and ID
-# Or use this command (replace YYYY-MM-DD and ID with actual values):
+# 3. Update work/STATE.md
+# Replace YYYY-MM-DD with actual date (e.g., 2024-03-15)
+# Replace ID values with actual numbers
 cat > work/STATE.md << EOF
 # work/STATE.md
 
 **Last Updated**: YYYY-MM-DD
-**Highest Task ID**: ID
+**5DAY_TASK_ID**: ID
+**5DAY_BUG_ID**: CURRENT-BUG-ID
 EOF
 
 # 4. Commit both files together
@@ -267,16 +272,16 @@ git commit -m "Add task ID: DESCRIPTION"
 Bug reports are created in `work/bugs/` by users, clients, or stakeholders reporting issues.
 
 **Bug File Naming**: ID-DESCRIPTION.md
-- Use sequential numbering starting from 001 (three digits: 001, 002, ... 099, 100)
+- Use sequential integer IDs starting from 0 (just like tasks: 0, 1, 2, 3...)
 - Keep DESCRIPTION brief and kebab-case
-- Track highest bug ID in work/bugs/BUG_STATE.md (same format as work/STATE.md)
+- Track highest bug ID in work/STATE.md as 5DAY_BUG_ID
 
-**Bug Report Format**:
+**Bug Report Format (Template - replace ALL CAPS with actual values)**:
 ```markdown
 # Bug: BRIEF-DESCRIPTION
 
 **Reported By**: NAME
-**Date**: YYYY-MM-DD
+**Date**: YYYY-MM-DD  <!-- Use actual date -->
 **Severity**: Choose one: CRITICAL | HIGH | MEDIUM | LOW
 
 ## Description

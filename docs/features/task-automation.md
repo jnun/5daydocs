@@ -16,7 +16,7 @@ Automation scripts streamline common task management operations.
 **Status**: LIVE
 `setup.sh` initializes the entire project structure:
 - Creates all required directories
-- Initializes STATE.md and BUG_STATE.md
+- Initializes unified STATE.md with task and bug tracking
 - Makes scripts executable
 - Adds sample content if needed
 - Creates .gitignore

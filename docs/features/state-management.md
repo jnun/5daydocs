@@ -2,44 +2,54 @@
 
 ## Feature Status: LIVE
 
-Centralized state tracking for tasks and bugs through dedicated markdown files.
+Centralized state tracking for tasks and bugs through a unified markdown file.
 
-## Task ID Management
+## Unified State Management
 **Status**: LIVE
-`work/STATE.md` tracks task IDs:
-- Sequential integer IDs starting from 0
-- Single source of truth for next ID
+`work/STATE.md` tracks both task and bug IDs:
+- Tasks: Sequential integer IDs starting from 0
+- Bugs: Sequential integer IDs starting from 0
+- Single source of truth for all IDs
 - Prevents ID collisions
-- Updated with each new task
+- Updated with each new task or bug
 
-## Bug ID Management
+## Task ID Section
 **Status**: LIVE
-`work/bugs/BUG_STATE.md` tracks bug IDs:
-- Three-digit format (001, 002, etc.)
-- Separate sequence from tasks
-- Central tracking file
-- Updated with each new bug
+- Located in `work/STATE.md` under "Task State"
+- Sequential integers (0, 1, 2, ...)
+- Tracks highest used ID
+- Updated when creating tasks
+
+## Bug ID Section
+**Status**: LIVE
+- Located in `work/STATE.md` under "Bug State"
+- Sequential integers (0, 1, 2, ...)
+- Tracks highest used bug ID
+- Updated when creating bugs
 
 ## State File Format
 **Status**: LIVE
-Consistent markdown format for state files:
-- Last updated timestamp
-- Highest ID tracking
+Unified markdown format in `work/STATE.md`:
+- Separate sections for tasks and bugs
+- Last updated timestamp for each section
+- Highest ID tracking for each type
 - Human-readable format
 - Version controlled
 
 ## Automatic Initialization
 **Status**: LIVE
-State files created by setup.sh:
-- Creates STATE.md with ID 0
-- Creates BUG_STATE.md with ID 0
-- Sets proper initial format
+State file created by setup.sh:
+- Creates unified STATE.md from template
+- Initializes task ID at 0
+- Initializes bug ID at 0
+- Sets proper format with both sections
 - Ready for immediate use
 
 ## Manual State Updates
 **Status**: LIVE
 Clear process for maintaining state:
-- Check before creating items
-- Update after creation
+- Check STATE.md before creating items
+- Update appropriate section (Task or Bug)
+- Update timestamp and ID for that section
 - Commit together with new items
 - Single source of truth principle

@@ -17,10 +17,10 @@ if [ ! -f "work/STATE.md" ]; then
 fi
 
 # Read highest task ID and increment with error handling
-HIGHEST_ID=$(awk '/Highest Task ID/{print $NF}' work/STATE.md)
+HIGHEST_ID=$(awk '/5DAY_TASK_ID/{print $NF}' work/STATE.md)
 if [ -z "$HIGHEST_ID" ] || ! [[ "$HIGHEST_ID" =~ ^[0-9]+$ ]]; then
     echo -e "${RED}ERROR: Invalid or missing task ID in STATE.md${NC}"
-    echo "Please fix work/STATE.md manually. Expected format: 'Highest Task ID: NUMBER'"
+    echo "Please fix work/STATE.md manually. Expected format: '5DAY_TASK_ID: NUMBER'"
     exit 1
 fi
 
@@ -84,12 +84,19 @@ EOF
 LAST_UPDATED=$(date +%F)
 TEMP_STATE="work/STATE.md.tmp.$$"
 
+# Get current bug ID to preserve it
+HIGHEST_BUG_ID=$(awk '/5DAY_BUG_ID/{print $NF}' work/STATE.md)
+if [ -z "$HIGHEST_BUG_ID" ]; then
+    HIGHEST_BUG_ID="0"  # Default if not found
+fi
+
 # Create temporary file with new state
 cat << EOF > "$TEMP_STATE"
 # work/STATE.md
 
 **Last Updated**: $LAST_UPDATED
-**Highest Task ID**: $NEW_ID
+**5DAY_TASK_ID**: $NEW_ID
+**5DAY_BUG_ID**: $HIGHEST_BUG_ID
 EOF
 
 # Atomically replace STATE.md

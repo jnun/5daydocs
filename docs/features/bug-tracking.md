@@ -25,9 +25,10 @@ Bugs can be converted to tasks for tracking through the development pipeline:
 
 ## Bug State Management
 **Status**: LIVE
-Automatic ID management through `work/bugs/BUG_STATE.md`:
-- Sequential three-digit bug IDs (001, 002, etc.)
-- Central tracking of highest bug ID
+Automatic ID management through `work/STATE.md`:
+- Bug IDs tracked in unified state file
+- Sequential integer IDs (0, 1, 2, ...)
+- Central tracking in "Bug State" section
 - Prevents ID collisions
 
 ## Archival System

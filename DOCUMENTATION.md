@@ -229,50 +229,29 @@ Only include this section when tasks have actual dependencies. Most tasks should
 
 ### Creating a New Task
 
-**IMPORTANT**: Always update work/STATE.md when creating tasks!
-
-**Quick Checklist**:
-- [ ] Check work/STATE.md for current highest ID
-- [ ] Create task file with ID+1
-- [ ] Update work/STATE.md with new highest ID
-- [ ] Commit both files together
-
-**Prerequisites**: Ensure directories exist:
+**Using the 5day.sh script (recommended)**:
 ```bash
-mkdir -p work/tasks/backlog work/tasks/next work/tasks/working work/tasks/review work/tasks/live
+# After running setup.sh, use the 5day command:
+./5day.sh newtask "Task description"
 ```
 
-1. **Check work/STATE.md** for the current highest task ID
-2. **Increment the ID** by 1 for your new task
-3. **Create the task file** in `work/tasks/backlog/` with format: ID-DESCRIPTION.md (no brackets or special characters)
-4. **Update work/STATE.md** with the new highest ID
-5. **Commit both files** together
+This automatically:
+- Checks the current highest ID in `work/STATE.md`
+- Creates the task file in `work/tasks/backlog/`
+- Updates `work/STATE.md` with the new ID
+- Commits both files together
 
-**Example commands (replace ALL CAPS placeholders with actual values)**:
-```bash
-# 1. Check current highest ID
-cat work/STATE.md
+**Where things are stored**:
+- **Task IDs**: Tracked in `work/STATE.md` (contains `5DAY_TASK_ID`)
+- **New tasks**: Created in `work/tasks/backlog/` folder
+- **Task files**: Named as `ID-description.md` (e.g., `5-fix-login.md`)
+- **Task format**: Each task file contains title, feature reference, creation date, problem description, and success criteria
 
-# 2. Create task file
-# Replace: ID with actual number, DESCRIPTION with kebab-case text
-# Example: If ID is 5, use: work/tasks/backlog/5-fix-login.md
-echo "# Task ID: Human Readable Title" > work/tasks/backlog/ID-DESCRIPTION.md
-
-# 3. Update work/STATE.md
-# Replace YYYY-MM-DD with actual date (e.g., 2024-03-15)
-# Replace ID values with actual numbers
-cat > work/STATE.md << EOF
-# work/STATE.md
-
-**Last Updated**: YYYY-MM-DD
-**5DAY_TASK_ID**: ID
-**5DAY_BUG_ID**: CURRENT-BUG-ID
-EOF
-
-# 4. Commit both files together
-git add work/STATE.md work/tasks/backlog/ID-DESCRIPTION.md
-git commit -m "Add task ID: DESCRIPTION"
-```
+**Manual approach** (if you prefer):
+1. Check `work/STATE.md` for the current highest task ID
+2. Create a new file in `work/tasks/backlog/` with ID+1
+3. Update `work/STATE.md` with the new highest ID
+4. Commit both files together
 
 
 ### Bug Reports

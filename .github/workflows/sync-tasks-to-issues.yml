@@ -54,7 +54,15 @@ jobs:
             # Check if file exists (not deleted)
             if [ -f "$file" ]; then
               # File exists - create or update issue
-              TASK_TITLE=$(grep '^# Task' "$file" | sed 's/# Task //')
+              TASK_TITLE=$(grep '^# Task' "$file" | sed 's/^# Task [0-9]*: //')
+
+              # Validate title is not empty
+              if [ -z "$TASK_TITLE" ]; then
+                echo "Error: Task title is missing or invalid in $file"
+                echo "Expected format: '# Task ID: Title'"
+                exit 1
+              fi
+
               FEATURE=$(grep '^\*\*Feature\*\*:' "$file" | sed 's/\*\*Feature\*\*: //' || echo "none")
               PROBLEM=$(sed -n '/## Problem/,/## Success Criteria/p' "$file" | sed '1d;$d' || echo "No description")
               CRITERIA=$(sed -n '/## Success Criteria/,/## Notes\|$/p' "$file" | sed '1d' || echo "No criteria defined")

@@ -21,6 +21,9 @@ If it works, don't fix it. If it's clear, don't clarify it.
 # Make setup script executable and run it
 chmod +x work/scripts/setup.sh
 ./work/scripts/setup.sh
+
+# Make the 5day.sh script executable
+chmod +x 5day.sh
 ```
 
 This will:
@@ -29,6 +32,28 @@ This will:
 - Make all scripts in scripts/ executable
 - Create .gitignore if needed
 - Add sample content if directories are empty
+
+## Using the 5day.sh Script
+
+The `5day.sh` script is a convenient tool for running common 5DayDocs tasks.
+
+**Setup:**
+```bash
+# Make the script executable
+chmod +x 5day.sh
+
+# Run with ./5day.sh
+./5day.sh
+
+# Optional: Add an alias for quicker access
+# Add this to your ~/.bashrc or ~/.zshrc:
+# alias 5day='./5day.sh'
+```
+
+**What it does:**
+- Provides quick access to daily task management operations
+- Simplifies common workflows like creating tasks, moving them through stages, and checking status
+- Run `./5day.sh` without arguments to see available commands
 
 **Manual setup (if setup.sh is not available):**
 ```bash
@@ -94,7 +119,7 @@ chmod +x work/scripts/*.sh
     ├── scripts/                 # Work automation scripts
     │   ├── setup.sh             # Initial setup script
     │   ├── create-task.sh       # Task creation helper
-    │   └── analyze-feature-alignment.sh # Feature status checker
+    │   └── check-alignment.sh # Feature status checker
     ├── tasks/                   # Task management
     │   ├── backlog/             # Not prioritized
     │   ├── next/                # Sprint queue
@@ -179,7 +204,7 @@ Only include this section when tasks have actual dependencies. Most tasks should
 4. Complete work: Move to `work/tasks/review/`
 5. After approval: Move to `work/tasks/live/`
 6. If blocked: Move back to `work/tasks/next/`
-7. Run `./work/scripts/analyze-feature-alignment.sh` to check feature status
+7. Run `./work/scripts/check-alignment.sh` to check feature status
 8. Update feature doc status when capabilities go LIVE
 
 ## Common Workflows
@@ -397,7 +422,7 @@ After running `./work/scripts/setup.sh`, these scripts will be available:
 |--------|---------|-------|
 | `setup.sh` | Initial setup | `./work/scripts/setup.sh` |
 | `create-task.sh` | Create new task with auto-ID | `./work/scripts/create-task.sh "Description" [feature]` |
-| `analyze-feature-alignment.sh` | Check feature/task alignment | `./work/scripts/analyze-feature-alignment.sh` |
+| `check-alignment.sh` | Check feature/task alignment | `./work/scripts/check-alignment.sh` |
 
 ## Integration Options
 
@@ -480,7 +505,7 @@ Features track **what capabilities exist**, while tasks track **work being done*
 ### Checking Alignment
 Run the analysis script to check feature-task alignment:
 ```bash
-./work/scripts/analyze-feature-alignment.sh
+./work/scripts/check-alignment.sh
 ```
 
 This script will:

@@ -23,7 +23,7 @@ Automation scripts streamline common task management operations.
 
 ## Feature Alignment Analysis
 **Status**: LIVE
-`scripts/analyze-feature-alignment.sh` checks feature-task consistency:
+`scripts/check-alignment.sh` checks feature-task consistency:
 - Lists all features and their status
 - Shows tasks referencing each feature
 - Identifies misalignments

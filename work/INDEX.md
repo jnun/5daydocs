@@ -21,7 +21,7 @@ Bug tracking and archiving system:
 ### /scripts
 Automation and utility scripts:
 - `setup.sh` - Initial project setup
-- `analyze-feature-alignment.sh` - Feature status analysis
+- `check-alignment.sh` - Feature status analysis
 - Other project-specific automation
 
 ### /designs

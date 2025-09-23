@@ -1,6 +1,18 @@
 # 5DayDocs
+See `DOCUMENTATION.md` for complete workflow guide.
 
-**INSTALL THIS IN YOUR PROJECT - DO NOT WORK IN THIS REPOSITORY**
+**INSTALL THIS IN YOUR PROJECT TO USE IT BY RUNNING work/scripts/setup.sh**
+
+## Philosophy
+
+- **Simple**: No databases, no apps - just folders and markdown files
+- **Portable**: Works with any project, any language, any team size
+- **Transparent**: Everything is plain text and version controlled
+- **Flexible**: Adapt the workflow to your needs
+
+**Core Rule for New Features**: Before adding ANY new feature, ask:
+"Does this simplify the use of the app or create more difficulty?"
+If it doesn't clearly simplify, don't add it.
 
 A simple, folder-based documentation and task management system for software projects.
 
@@ -35,7 +47,7 @@ The setup script creates this structure in YOUR project:
     ├── scripts/       # 5DayDocs automation scripts
     │   ├── setup.sh       # Initial setup script
     │   ├── create-task.sh # Task creation helper
-    │   └── analyze-feature-alignment.sh # Feature status checker
+    │   └── check-alignment.sh # Feature status checker
     ├── tasks/         # Task pipeline
     ├── bugs/          # Bug reports
     ├── designs/       # UI mockups
@@ -52,18 +64,9 @@ The setup script creates this structure in YOUR project:
 # Check what's being worked on
 ls work/tasks/working/
 
-# Analyze feature/task alignment
-./work/scripts/analyze-feature-alignment.sh
+# Check feature/task alignment
+./work/scripts/check-alignment.sh
 ```
-
-See `DOCUMENTATION.md` for complete workflow guide.
-
-## Philosophy
-
-- **Simple**: No databases, no apps - just folders and markdown files
-- **Portable**: Works with any project, any language, any team size
-- **Transparent**: Everything is plain text and version controlled
-- **Flexible**: Adapt the workflow to your needs
 
 ## Learn More
 

@@ -1,13 +1,16 @@
 #!/bin/bash
-# setup.sh - Initialize project documentation structure
+# setup.sh - Initialize 5DayDocs project documentation structure
 # Usage: ./setup.sh
 #   Prompts for target project path and sets up 5DayDocs structure there
+#
+# Templates: Workflow templates are stored in templates/github-workflows/
+#   These are copied to the target project based on platform selection
 
 set -e  # Exit on error
 
-# Store the 5daydocs source directory (project root, two levels up from this script)
+# Store the 5daydocs source directory (project root, same directory as this script)
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-FIVEDAY_SOURCE_DIR="$( cd "$SCRIPT_DIR/../.." && pwd )"
+FIVEDAY_SOURCE_DIR="$SCRIPT_DIR"
 
 echo "================================================"
 echo "  5DayDocs - Project Documentation Setup"
@@ -236,10 +239,10 @@ fi
 
 # Copy scripts (all go in work/scripts/)
 echo "Setting up automation scripts..."
-if [ -f "$FIVEDAY_SOURCE_DIR/work/scripts/analyze-feature-alignment.sh" ]; then
-    cp "$FIVEDAY_SOURCE_DIR/work/scripts/analyze-feature-alignment.sh" work/scripts/
-    chmod +x work/scripts/analyze-feature-alignment.sh
-    echo "✓ Copied analyze-feature-alignment.sh to work/scripts/"
+if [ -f "$FIVEDAY_SOURCE_DIR/work/scripts/check-alignment.sh" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/work/scripts/check-alignment.sh" work/scripts/
+    chmod +x work/scripts/check-alignment.sh
+    echo "✓ Copied check-alignment.sh to work/scripts/"
     ((FILES_COPIED++))
     ((SCRIPTS_READY++))
 fi
@@ -250,6 +253,22 @@ if [ -f "$FIVEDAY_SOURCE_DIR/work/scripts/create-task.sh" ]; then
     echo "✓ Copied create-task.sh to work/scripts/"
     ((FILES_COPIED++))
     ((SCRIPTS_READY++))
+fi
+
+if [ -f "$FIVEDAY_SOURCE_DIR/work/scripts/create-feature.sh" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/work/scripts/create-feature.sh" work/scripts/
+    chmod +x work/scripts/create-feature.sh
+    echo "✓ Copied create-feature.sh to work/scripts/"
+    ((FILES_COPIED++))
+    ((SCRIPTS_READY++))
+fi
+
+# Copy the main 5d command script to project root
+if [ -f "$FIVEDAY_SOURCE_DIR/5d" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/5d" ./5d
+    chmod +x ./5d
+    echo "✓ Copied 5d command script to project root"
+    ((FILES_COPIED++))
 fi
 
 # Copy GitHub workflows (only for GitHub-based platforms)
@@ -485,7 +504,7 @@ This is the main operational directory for 5DayDocs project management.
 
 - **scripts/** - Automation and utility scripts
   - `create-task.sh` - Create new tasks
-  - `analyze-feature-alignment.sh` - Check feature/task alignment
+  - `check-alignment.sh` - Check feature/task alignment
   - `setup.sh` - Initialize 5DayDocs structure
 
 - **designs/** - UI mockups and design assets
@@ -741,7 +760,7 @@ else
     echo ""
     echo "🛠 Available Scripts:"
     echo "   - ./work/scripts/create-task.sh - Create new tasks"
-    echo "   - ./work/scripts/analyze-feature-alignment.sh - Check feature/task alignment"
+    echo "   - ./work/scripts/check-alignment.sh - Check feature/task alignment"
     echo ""
 
     # Platform-specific setup info
@@ -775,7 +794,7 @@ else
     echo "   $ ./work/scripts/create-task.sh \"Your first task description\""
     echo ""
     echo "   Or check feature alignment:"
-    echo "   $ ./work/scripts/analyze-feature-alignment.sh"
+    echo "   $ ./work/scripts/check-alignment.sh"
     echo ""
     echo "To update 5DayDocs in the future, run this setup script again."
 fi

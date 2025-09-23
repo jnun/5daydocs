@@ -14,9 +14,9 @@ Automation and utility scripts for the 5daydocs system.
 - Initializes state tracking files
 - Makes scripts executable
 
-### analyze-feature-alignment.sh
+### check-alignment.sh
 **Purpose:** Analyzes feature documentation and task alignment
-**Usage:** `./work/scripts/analyze-feature-alignment.sh`
+**Usage:** `./work/scripts/check-alignment.sh`
 **Output:** Reports on:
 - Feature status distribution (LIVE, TESTING, WORKING, BACKLOG)
 - Orphaned tasks without features

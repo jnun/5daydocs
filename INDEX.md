@@ -35,6 +35,7 @@ mv work/tasks/working/1-task.md work/tasks/review/    # Submit for review
 - `work/STATE.md` - Current highest task ID
 - `work/tasks/` - Your task pipeline
 - `docs/features/` - Feature documentation
+- `templates/` - Templates for GitHub/Jira/Bitbucket workflows (see templates/INDEX.md)
 
 ## No Complexity
 

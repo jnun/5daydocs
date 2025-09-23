@@ -1,5 +1,7 @@
 # Features Documentation
 
+## Feature Status: LIVE
+
 This directory contains detailed specifications for all product features.
 
 ## Feature Status Tags

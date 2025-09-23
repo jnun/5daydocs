@@ -1,4 +1,4 @@
-# Create INDEX.md Files for Docs Folders
+# Task 47: Create INDEX.md Files for Docs Folders
 
 ## Problem
 The docs/ folder and its subfolders need INDEX.md files to explain their purpose in documenting the project. These files don't currently exist.

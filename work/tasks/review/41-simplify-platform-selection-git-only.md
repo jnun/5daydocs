@@ -1,4 +1,4 @@
-# Simplify Platform Selection to Git + GitHub Issues Only
+# Task 41: Simplify Platform Selection to Git + GitHub Issues Only
 
 ## Problem
 Setup.sh offers Jira and Bitbucket options that aren't implemented yet. This confuses users and creates false expectations.

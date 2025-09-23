@@ -1,4 +1,4 @@
-# Research Bitbucket and Jira Integration Requirements
+# Task 36: Research Bitbucket and Jira Integration Requirements
 
 ## Problem
 The setup.sh script offers "Bitbucket with Jira" as an option but we don't have documentation or implementation for what this actually requires. Need to understand what files, workflows, and configuration are needed for Bitbucket+Jira integration.

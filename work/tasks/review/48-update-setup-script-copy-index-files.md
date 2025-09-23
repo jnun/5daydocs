@@ -1,4 +1,4 @@
-# Update Setup Script to Copy INDEX.md Files
+# Task 48: Update Setup Script to Copy INDEX.md Files
 
 ## Related Tasks
 - Complete task 46 first (INDEX.md files for work/ folders must exist)

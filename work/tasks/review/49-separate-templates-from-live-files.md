@@ -1,4 +1,4 @@
-# Separate Template Files from Live Project Files
+# Task 49: Separate Template Files from Live Project Files
 
 ## Problem
 We're dogfooding 5daydocs to build 5daydocs, which means our actual project files (STATE.md, task files, etc.) are mixed with what should be template files for new projects. When setup.sh runs, it needs clean templates, not our active project data.

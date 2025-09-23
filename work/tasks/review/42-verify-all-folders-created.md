@@ -1,4 +1,4 @@
-# Verify All Required Folders Are Created
+# Task 42: Verify All Required Folders Are Created
 
 ## Problem
 Need to ensure setup.sh creates ALL required folders for 5daydocs to function properly, with no missing directories that would cause errors later.

@@ -120,7 +120,7 @@ jobs:
                 DESCRIPTION=$(echo "$issue" | jq -r '.fields.description // "No description provided"')
 
                 # Create task file
-                cat > "$TASK_FILE" << EOF
+                cat > "$TASK_FILE" <<EOF
 # Task $NEW_TASK_ID: $TASK_TITLE
 
 **Feature**: none

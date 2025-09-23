@@ -1,4 +1,4 @@
-# Review bugs with GitHub Acitons that worked before changing folder structure
+# Task 55: Review bugs with GitHub Actions that worked before changing folder structure
 
 ## Problem
 When I commit to 

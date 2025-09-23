@@ -1,4 +1,4 @@
-# Setup Output Messages Show Instructions Instead of Results
+# Task 35: Setup Output Messages Show Instructions Instead of Results
 
 ## Problem
 The setup.sh completion messages tell the user to do things the script should have already done (e.g., "1. cd $TARGET_PATH" when the script could report it already changed there, "4. Create your first task using..." when scripts are already executable).

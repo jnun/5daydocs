@@ -1,4 +1,4 @@
-# Create INDEX.md Files for Work Folders
+# Task 46: Create INDEX.md Files for Work Folders
 
 ## Problem
 The work/ folder and its subfolders need INDEX.md files to explain their purpose and usage within the 5daydocs system. These files don't currently exist.

@@ -1,4 +1,4 @@
-# Document Jira Webhook Configuration
+# Task 40: Document Jira Webhook Configuration
 
 ## Problem
 Users selecting Jira integration options need clear instructions on configuring webhooks between their repository (GitHub or Bitbucket) and Jira for bidirectional sync.

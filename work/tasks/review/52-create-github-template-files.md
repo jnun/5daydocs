@@ -1,4 +1,4 @@
-# Create GitHub Issue and PR Template Files
+# Task 52: Create GitHub Issue and PR Template Files
 
 ## Problem
 The 5daydocs project should include GitHub template files (.github/ISSUE_TEMPLATE/ and .github/pull_request_template.md) that align with the 5DayDocs workflow, making it easier for users to contribute and report issues using the folder-based task management system.

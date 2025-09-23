@@ -68,14 +68,24 @@ for feature_file in docs/features/*.md; do
     # Find all capability statuses in the feature
     echo -e "  ${CYAN}Capabilities:${NC}"
     capability_count=0
+
+    # Read file and track capabilities properly
+    prev_heading=""
     while IFS= read -r line; do
-        if echo "$line" | grep -qF '**Status**:'; then
+        # Track section headings
+        if echo "$line" | grep -q "^## "; then
+            # Skip "Feature Status" heading
+            if ! echo "$line" | grep -qE "^## (Feature |Overall )?Status:"; then
+                prev_heading=$(echo "$line" | sed 's/^## *//')
+            fi
+        # Check for capability status
+        elif echo "$line" | grep -qF '**Status**:'; then
             cap_status=$(echo "$line" | sed 's/.*\*\*Status\*\*: *//' | cut -d' ' -f1)
-            # Get the capability name from the previous heading
-            cap_name=$(grep -FB2 "$line" "$feature_file" | grep "^##" | tail -1 | sed 's/^## *//')
-            if [ ! -z "$cap_name" ]; then
+            if [ ! -z "$prev_heading" ] && [ ! -z "$cap_status" ]; then
                 capability_count=$((capability_count + 1))
-                echo -e "    - $cap_name: $cap_status"
+                echo -e "    - $prev_heading: $cap_status"
+                # Clear heading to avoid duplicate output
+                prev_heading=""
             fi
         fi
     done < "$feature_file"

@@ -1,4 +1,4 @@
-# Add Dogfooding Explanation to README
+# Task 54: Add Dogfooding Explanation to README
 
 ## Problem
 The README.md doesn't clearly explain that the 5daydocs repository itself is an active example of using the 5daydocs system. This creates confusion about what files are framework templates vs. active project files.

@@ -1,4 +1,4 @@
-# Create Template Files for STATE.md and BUG_STATE.md
+# Task 50: Create Template Files for STATE.md and BUG_STATE.md
 
 ## Problem
 Our live STATE.md shows "Highest Task ID: 48" and BUG_STATE.md has our real bug counts. When setup.sh runs, it currently generates fresh STATE files starting at 0, but if we update the format of these files (add new fields, change structure), we need templates that reflect those changes without our project's data.

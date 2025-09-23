@@ -1,4 +1,4 @@
-# .gitignore Created Without User Consent
+# Task 34: .gitignore Created Without User Consent
 
 ## Problem
 The setup.sh script automatically creates a new .gitignore file if one doesn't exist, without asking the user. It should ask permission and offer to append to an existing .gitignore if present.

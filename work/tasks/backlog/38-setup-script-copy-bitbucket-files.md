@@ -1,4 +1,4 @@
-# Setup Script Copy Bitbucket Configuration Files
+# Task 38: Setup Script Copy Bitbucket Configuration Files
 
 ## Problem
 The setup.sh script currently skips all automation setup when "Bitbucket with Jira" is selected, only showing a message about skipping GitHub Actions. It should copy Bitbucket-specific configuration files.

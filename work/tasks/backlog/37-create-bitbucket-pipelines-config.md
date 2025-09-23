@@ -1,4 +1,4 @@
-# Create Bitbucket Pipelines Configuration
+# Task 37: Create Bitbucket Pipelines Configuration
 
 ## Problem
 When users select "Bitbucket with Jira" in setup.sh, no Bitbucket-specific files are created. Need to create bitbucket-pipelines.yml and related configuration.

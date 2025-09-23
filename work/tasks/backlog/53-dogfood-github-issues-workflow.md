@@ -1,4 +1,4 @@
-# Dogfood: Use GitHub Issues for 5DayDocs Project
+# Task 53: Dogfood: Use GitHub Issues for 5DayDocs Project
 
 ## Problem
 The 5daydocs project itself should use its own GitHub Issues workflow to demonstrate the system and "eat our own dogfood". This will help validate the workflow and provide a real-world example.

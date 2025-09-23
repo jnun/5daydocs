@@ -1,4 +1,4 @@
-# Improve Bug Workflow Automation
+# Task 51: Improve Bug Workflow Automation
 
 ## Problem
 Bug handling is partially implemented but lacks the automation that tasks have. Users must manually create bug files, update BUG_STATE.md, and convert bugs to tasks.

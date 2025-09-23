@@ -259,22 +259,22 @@ if [ "$PLATFORM" != "bitbucket-jira" ]; then
     # Ensure .github/workflows directory exists
     mkdir -p .github/workflows
 
-    # Copy appropriate workflow files based on platform
+    # Copy appropriate workflow files from templates based on platform
     if [ "$PLATFORM" = "github-jira" ]; then
-        # Copy Jira-related workflows
-        if [ -f "$FIVEDAY_SOURCE_DIR/.github/workflows/sync-tasks-to-jira.yml" ]; then
-            cp "$FIVEDAY_SOURCE_DIR/.github/workflows/sync-tasks-to-jira.yml" .github/workflows/
+        # Copy Jira-related workflows from templates
+        if [ -f "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-tasks-to-jira.yml" ]; then
+            cp "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-tasks-to-jira.yml" .github/workflows/
             echo "✓ Copied sync-tasks-to-jira.yml"
         fi
-        if [ -f "$FIVEDAY_SOURCE_DIR/.github/workflows/sync-jira-to-git.yml" ]; then
-            cp "$FIVEDAY_SOURCE_DIR/.github/workflows/sync-jira-to-git.yml" .github/workflows/
+        if [ -f "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-jira-to-git.yml" ]; then
+            cp "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-jira-to-git.yml" .github/workflows/
             echo "✓ Copied sync-jira-to-git.yml"
         fi
         echo "  Note: You'll need to configure Jira integration in your repository settings"
     else
-        # Copy GitHub Issues workflow
-        if [ -f "$FIVEDAY_SOURCE_DIR/.github/workflows/sync-tasks-to-issues.yml" ]; then
-            cp "$FIVEDAY_SOURCE_DIR/.github/workflows/sync-tasks-to-issues.yml" .github/workflows/
+        # Copy GitHub Issues workflow from templates
+        if [ -f "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-tasks-to-issues.yml" ]; then
+            cp "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-tasks-to-issues.yml" .github/workflows/
             echo "✓ Copied sync-tasks-to-issues.yml"
         fi
         echo "  Remember to configure secrets in your GitHub repository settings"

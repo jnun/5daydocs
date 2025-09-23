@@ -1,4 +1,4 @@
-# Ensure All Scripts Are Executable After Setup
+# Task 43: Ensure All Scripts Are Executable After Setup
 
 ## Problem
 Scripts need execute permissions to work. Setup.sh sets permissions but needs to verify all scripts in work/scripts/ are executable after copying.

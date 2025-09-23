@@ -1,4 +1,4 @@
-# Create Jira Synchronization Scripts
+# Task 39: Create Jira Synchronization Scripts
 
 ## Problem
 Both GitHub+Jira and Bitbucket+Jira options need scripts to sync tasks between the file system and Jira issues, but these scripts don't exist yet.

@@ -1,4 +1,4 @@
-# GitHub Workflow Files Not Being Copied
+# Task 33: GitHub Workflow Files Not Being Copied
 
 ## Problem
 The setup.sh script creates the .github/workflows directory but does not copy any workflow files into it, leaving it empty.

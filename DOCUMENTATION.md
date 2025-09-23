@@ -55,6 +55,29 @@ chmod +x work/scripts/*.sh
 - All paths use forward slashes (/) even on Windows
 - Commands shown are for bash/unix shells
 
+## Naming Conventions for 5DayDocs
+
+### File Naming
+- **Task files**: `ID-description.md` (kebab-case description)
+- **Feature files**: `feature-name.md` (kebab-case)
+- **Bug files**: `ID-description.md` (three-digit ID, kebab-case description)
+- **Scripts**: `script-name.sh` (kebab-case with .sh extension)
+- **Guides**: `topic-name.md` (kebab-case)
+
+### Code Style Guidelines (for scripts and examples)
+- **Variables**: `snake_case` for bash scripts, `camelCase` for JavaScript/TypeScript
+- **Functions**: `snake_case` for bash, `camelCase` for JS/TS
+- **Constants**: `SCREAMING_SNAKE_CASE` for all languages
+- **Classes/Components**: `PascalCase` (when applicable)
+- **Environment variables**: `SCREAMING_SNAKE_CASE`
+
+### Markdown Content
+- **Section headers**: Title Case for main sections, Sentence case for subsections
+- **Task titles**: Human readable title (e.g., "Fix Login Bug")
+- **Feature names**: Clear descriptive names (e.g., "User Authentication")
+- **Status values**: ALL CAPS (LIVE, TESTING, WORKING, REVIEW, BACKLOG)
+- **Severity levels**: ALL CAPS (CRITICAL, HIGH, MEDIUM, LOW)
+
 ## Project Structure
 
 ```

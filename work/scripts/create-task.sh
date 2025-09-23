@@ -29,48 +29,16 @@ NEW_ID=$((HIGHEST_ID + 1))
 # Get the task description from the command line argument
 DESCRIPTION="$1"
 if [ -z "$DESCRIPTION" ]; then
-  echo "Usage: $0 \"Brief description of the task\" [options]"
+  echo "Usage: $0 \"Brief description of the task\" [feature-name]"
   echo ""
-  echo "Options:"
-  echo "  --priority=<P0|P1|P2|P3>  Set task priority (default: P2)"
-  echo "  --assignee=<name>         Assign task to someone"
-  echo "  --feature=<feature-name>  Link to a feature"
-  echo "  --estimate=<hours>        Add time estimate"
-  echo ""
-  echo "Example:"
-  echo "  $0 \"Fix login bug\" --priority=P1 --assignee=john --estimate=4"
+  echo "Examples:"
+  echo "  $0 \"Fix login bug\""
+  echo "  $0 \"Add user authentication\" user-auth"
   exit 1
 fi
 
-# Parse optional arguments
-PRIORITY="P2"
-ASSIGNEE="unassigned"
-FEATURE="none"
-ESTIMATE=""
-
-for arg in "${@:2}"; do
-    case $arg in
-        --priority=*)
-            PRIORITY="${arg#*=}"
-            if ! [[ "$PRIORITY" =~ ^P[0-3]$ ]]; then
-                echo -e "${YELLOW}Warning: Invalid priority '$PRIORITY'. Using P2.${NC}"
-                PRIORITY="P2"
-            fi
-            ;;
-        --assignee=*)
-            ASSIGNEE="${arg#*=}"
-            ;;
-        --feature=*)
-            FEATURE="${arg#*=}"
-            ;;
-        --estimate=*)
-            ESTIMATE="${arg#*=}"
-            ;;
-        *)
-            echo -e "${YELLOW}Warning: Unknown option '$arg' ignored${NC}"
-            ;;
-    esac
-done
+# Optional feature name
+FEATURE="$2"
 # Convert to kebab-case and validate
 KEBAB_CASE_DESC=$(echo "$DESCRIPTION" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9 -]/ /g' | sed 's/  */-/g' | sed 's/^-//;s/-$//')
 
@@ -80,7 +48,7 @@ if [ ${#KEBAB_CASE_DESC} -gt 50 ]; then
     echo -e "${YELLOW}Note: Filename truncated to 50 characters${NC}"
 fi
 
-FILENAME=$(printf "%03d-%s.md" "$NEW_ID" "$KEBAB_CASE_DESC")
+FILENAME=$(printf "%d-%s.md" "$NEW_ID" "$KEBAB_CASE_DESC")
 
 # Check if file already exists (race condition protection)
 if [ -f "work/tasks/backlog/$FILENAME" ]; then
@@ -89,45 +57,27 @@ if [ -f "work/tasks/backlog/$FILENAME" ]; then
     exit 1
 fi
 
-# Create the task file with enhanced agile template
+# Create the task file with simple format matching actual usage
+if [ -n "$FEATURE" ]; then
+    FEATURE_LINE="**Feature**: /docs/features/${FEATURE}.md"
+else
+    FEATURE_LINE=""
+fi
+
 cat << EOF > work/tasks/backlog/$FILENAME
-# Task $NEW_ID: $DESCRIPTION
+# $DESCRIPTION
 
-## Metadata
-- **Priority**: $PRIORITY
-- **Assignee**: $ASSIGNEE
-- **Feature**: $FEATURE
-- **Created**: $(date +%F)
-- **Status**: BACKLOG
-$( [ -n "$ESTIMATE" ] && echo "- **Estimate**: ${ESTIMATE} hours" || echo "" )
+## Problem
+[Describe what needs to be done or fixed]
 
-## Problem Statement
-_Describe the issue or requirement that this task addresses_
+$( [ -n "$FEATURE_LINE" ] && echo -e "$FEATURE_LINE\n" || echo "" )
+## Desired Outcome
+[Describe what success looks like]
 
-[Add problem description here]
-
-## User Story
-_As a [user type], I want [goal] so that [benefit]_
-
-As a user, I want...
-
-## Success Criteria
-_Define what "done" looks like for this task_
-
-- [ ] Criterion 1
-- [ ] Criterion 2
-- [ ] Tests pass
-- [ ] Documentation updated
-
-## Technical Notes
-_Implementation details, dependencies, or technical considerations_
-
--
-
-## References
-_Links to related tasks, features, or documentation_
-
-- Related to: #
+## Testing Criteria
+- [ ] [First success criterion]
+- [ ] [Second success criterion]
+- [ ] [Additional criteria as needed]
 EOF
 
 # Atomic update of STATE.md using temporary file
@@ -165,12 +115,14 @@ echo ""
 echo -e "${GREEN}✓ Task created successfully!${NC}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo -e "Task ID:     ${GREEN}#$NEW_ID${NC}"
-echo -e "Priority:    $PRIORITY"
-echo -e "Assignee:    $ASSIGNEE"
+echo -e "Title:       $DESCRIPTION"
+if [ -n "$FEATURE" ]; then
+    echo -e "Feature:     $FEATURE"
+fi
 echo -e "Location:    work/tasks/backlog/$FILENAME"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo -e "${YELLOW}Next steps:${NC}"
-echo "1. Edit the task file to add more details"
-echo "2. Commit: git commit -m 'feat: Add task #$NEW_ID - $DESCRIPTION'"
+echo "1. Edit the task file to add problem details and criteria"
+echo "2. Commit: git commit -m 'Add task $NEW_ID: $DESCRIPTION'"
 echo "3. Move to sprint: git mv work/tasks/backlog/$FILENAME work/tasks/next/"

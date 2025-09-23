@@ -19,12 +19,11 @@ If it works, don't fix it. If it's clear, don't clarify it.
 **First time setup after cloning/importing:**
 ```bash
 # Make setup script executable and run it
-chmod +x work/scripts/setup.sh
-./work/scripts/setup.sh
-
-# Make the 5day.sh script executable
-chmod +x 5day.sh
+chmod +x setup.sh
+./setup.sh
 ```
+
+**Note:** The setup script will automatically copy and make executable the `5day.sh` command interface to your project.
 
 This will:
 - Create all required directories
@@ -35,15 +34,24 @@ This will:
 
 ## Using the 5day.sh Script
 
-The `5day.sh` script is a convenient tool for running common 5DayDocs tasks.
+The `5day.sh` script is a convenient command interface for running common 5DayDocs tasks. It's automatically copied and made executable by the setup script.
 
-**Setup:**
+**Usage:**
 ```bash
-# Make the script executable
-chmod +x 5day.sh
+# View available commands
+./5day.sh help
 
-# Run with ./5day.sh
-./5day.sh
+# Create a new task
+./5day.sh newtask "Task description"
+
+# Create a new feature document
+./5day.sh newfeature feature-name
+
+# Check task status
+./5day.sh status
+
+# Check feature alignment
+./5day.sh checkfeatures
 
 # Optional: Add an alias for quicker access
 # Add this to your ~/.bashrc or ~/.zshrc:
@@ -339,7 +347,7 @@ For teams using git branches:
 2. One branch per task in `work/tasks/working/`
 3. PR title: "Task ID: Brief Description"
 4. PR description: Link to task file and success criteria
-5. Merge to main after task moves to `archive/`
+5. Merge to main after task moves to `live/`
 6. Delete branch after merge
 
 ### Finding Things
@@ -362,7 +370,8 @@ For teams using git branches:
 # work/STATE.md
 
 **Last Updated**: YYYY-MM-DD
-**Highest Task ID**: ID
+**5DAY_TASK_ID**: ID
+**5DAY_BUG_ID**: ID
 ```
 
 **Example**:
@@ -370,7 +379,8 @@ For teams using git branches:
 # work/STATE.md
 
 **Last Updated**: 2024-01-15
-**Highest Task ID**: 42
+**5DAY_TASK_ID**: 42
+**5DAY_BUG_ID**: 7
 ```
 
 **Critical**: Count tasks by STATE.md, not by number of files. If STATE.md shows highest ID is N, next task is N+1.
@@ -421,11 +431,11 @@ chmod +x work/scripts/SCRIPT-NAME.sh
 
 ### Provided Automation Scripts
 
-After running `./work/scripts/setup.sh`, these scripts will be available:
+After running `./setup.sh`, these scripts will be available in `work/scripts/`:
 
 | Script | Purpose | Usage |
 |--------|---------|-------|
-| `setup.sh` | Initial setup | `./work/scripts/setup.sh` |
+| `setup.sh` | Initial setup (in root) | `./setup.sh` |
 | `create-task.sh` | Create new task with auto-ID | `./work/scripts/create-task.sh "Description" [feature]` |
 | `check-alignment.sh` | Check feature/task alignment | `./work/scripts/check-alignment.sh` |
 
@@ -436,7 +446,7 @@ After running `./work/scripts/setup.sh`, these scripts will be available:
 When this repository is hosted on GitHub, the included GitHub Action (`.github/workflows/sync-tasks-to-issues.yml`) automatically:
 - Creates GitHub issues when tasks are committed to `backlog/` or `next/`
 - Updates issue labels as tasks move between folders
-- Closes issues when tasks reach `archive/`
+- Closes issues when tasks reach `live/`
 
 ### Jira Kanban Board (Optional)
 
@@ -477,9 +487,9 @@ The Action automatically applies these labels:
 - `5day-task` - Identifies all 5DayDocs tasks
 - `backlog` - Tasks in backlog folder
 - `sprint` - Tasks in next folder
-- `in-progress` - Tasks in active folder
+- `in-progress` - Tasks in working folder
 - `review` - Tasks in review folder
-- `completed` - Tasks in archive folder (issue closed)
+- `completed` - Tasks in live folder (issue closed)
 
 ### No Additional Tools Required
 The integration works entirely through GitHub Actions. No need to install GitHub CLI or run special commands locally.
@@ -541,7 +551,7 @@ A: Use `**Feature**: multiple` and list features in the Problem section.
 **Q: What if a bug has no existing feature?**
 A: Create the feature doc first (as BACKLOG), then create the bug task.
 
-**Q: Can I skip review and go straight to archive?**
+**Q: Can I skip review and go straight to live?**
 A: No. All tasks must pass through review for quality control.
 
 **Q: What if I need to work on an urgent bug?**
@@ -556,13 +566,14 @@ A: After 2 weeks in `working/`, move back to `next/` and add blocker notes.
 ```bash
 # Quick fix for all scripts
 chmod +x work/scripts/*.sh
+chmod +x 5day.sh
 # Or run the setup script
-./work/scripts/setup.sh
+./setup.sh
 ```
 
 **Missing directories?** Run `./setup.sh` or create manually:
 ```bash
-mkdir -p work/tasks/{backlog,next,active,review,archive}
+mkdir -p work/tasks/{backlog,next,working,review,live}
 mkdir -p work/{bugs/archived,designs,examples,data}
 mkdir -p docs/{features,guides}
 mkdir -p work/scripts

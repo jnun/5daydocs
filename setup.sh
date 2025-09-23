@@ -98,9 +98,10 @@ if [ "$PLATFORM" != "bitbucket-jira" ]; then
     mkdir -p .github/workflows  # For GitHub Actions
 fi
 
-# Create state tracking files
-echo "Creating state tracking files..."
+# Create or update state tracking files
+echo "Managing state tracking files..."
 if [ ! -f work/STATE.md ]; then
+    # Create new STATE.md
     # Check if template exists in source directory
     if [ -f "$FIVEDAY_SOURCE_DIR/work/templates/STATE.md.template" ]; then
         # Copy template and replace placeholders
@@ -118,7 +119,58 @@ STATE_EOF
         echo "✓ Created work/STATE.md (fallback inline generation)"
     fi
 else
-    echo "⚠ work/STATE.md already exists, skipping"
+    # STATE.md exists - preserve the ID numbers during updates
+    if $UPDATE_MODE; then
+        echo "  Preserving existing STATE.md values during update..."
+
+        # Extract existing values with robust parsing and validation
+        # First extract the line, then find the first number sequence after the colon
+        EXISTING_TASK_ID=$(grep "5DAY_TASK_ID" work/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
+        EXISTING_BUG_ID=$(grep "5DAY_BUG_ID" work/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
+        # Extract date and trim whitespace
+        EXISTING_DATE=$(grep "Last Updated" work/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | sed 's/[[:space:]]*$//' | head -1)
+
+        # Validate and sanitize extracted values
+        # Ensure IDs are valid numbers, default to 0 if not
+        if [[ "$EXISTING_TASK_ID" =~ ^[0-9]+$ ]]; then
+            PRESERVE_TASK_ID=$EXISTING_TASK_ID
+        else
+            PRESERVE_TASK_ID=0
+            echo "    Warning: Invalid task ID found, using 0"
+        fi
+
+        if [[ "$EXISTING_BUG_ID" =~ ^[0-9]+$ ]]; then
+            PRESERVE_BUG_ID=$EXISTING_BUG_ID
+        else
+            PRESERVE_BUG_ID=0
+            echo "    Warning: Invalid bug ID found, using 0"
+        fi
+
+        # Validate date format (YYYY-MM-DD), use today if invalid
+        if [[ "$EXISTING_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+            PRESERVE_DATE="$EXISTING_DATE"
+        else
+            PRESERVE_DATE=$(date +%Y-%m-%d)
+            echo "    Warning: Invalid date format found, using today's date"
+        fi
+
+        echo "    Preserved Last Updated: $PRESERVE_DATE"
+        echo "    Preserved Task ID: $PRESERVE_TASK_ID"
+        echo "    Preserved Bug ID: $PRESERVE_BUG_ID"
+
+        # Simply rewrite STATE.md with preserved values
+        # No complex template logic needed
+        cat > work/STATE.md << STATE_EOF
+# work/STATE.md
+
+**Last Updated**: $PRESERVE_DATE
+**5DAY_TASK_ID**: $PRESERVE_TASK_ID
+**5DAY_BUG_ID**: $PRESERVE_BUG_ID
+STATE_EOF
+        echo "✓ Updated STATE.md while preserving values"
+    else
+        echo "⚠ work/STATE.md already exists, preserving existing file"
+    fi
 fi
 
 # Store platform configuration
@@ -267,12 +319,30 @@ if [ -f "$FIVEDAY_SOURCE_DIR/work/scripts/create-feature.sh" ]; then
     ((SCRIPTS_READY++))
 fi
 
-# Copy the main 5d command script to project root
+# Copy the main 5day.sh command script to project root
+if [ -f "$FIVEDAY_SOURCE_DIR/5day.sh" ]; then
+    if [ ! -f ./5day.sh ] || $UPDATE_MODE; then
+        cp "$FIVEDAY_SOURCE_DIR/5day.sh" ./5day.sh
+        chmod +x ./5day.sh
+        echo "✓ Copied 5day.sh command script to project root"
+        ((FILES_COPIED++))
+    else
+        echo "⚠ 5day.sh already exists, preserving your version"
+    fi
+else
+    echo "⚠ Warning: 5day.sh not found in source directory"
+fi
+
+# Also copy 5d if it exists (for backwards compatibility)
 if [ -f "$FIVEDAY_SOURCE_DIR/5d" ]; then
-    cp "$FIVEDAY_SOURCE_DIR/5d" ./5d
-    chmod +x ./5d
-    echo "✓ Copied 5d command script to project root"
-    ((FILES_COPIED++))
+    if [ ! -f ./5d ] || $UPDATE_MODE; then
+        cp "$FIVEDAY_SOURCE_DIR/5d" ./5d
+        chmod +x ./5d
+        echo "✓ Copied 5d command script to project root"
+        ((FILES_COPIED++))
+    else
+        echo "⚠ 5d already exists, preserving your version"
+    fi
 fi
 
 # Copy GitHub workflows (only for GitHub-based platforms)
@@ -686,6 +756,18 @@ if [ -d work/scripts ]; then
     fi
 fi
 
+# Also ensure 5day.sh in project root is executable
+if [ -f ./5day.sh ]; then
+    chmod +x ./5day.sh
+    echo "✓ Ensured 5day.sh is executable"
+fi
+
+# Also ensure 5d in project root is executable (if exists)
+if [ -f ./5d ]; then
+    chmod +x ./5d
+    echo "✓ Ensured 5d is executable"
+fi
+
 # Count created folders
 FOLDERS_CREATED=$(find work docs .github -type d 2>/dev/null | wc -l | tr -d ' ')
 
@@ -762,6 +844,7 @@ else
     echo "   - work/bugs/ - Bug tracking"
     echo ""
     echo "🛠 Available Scripts:"
+    echo "   - ./5day.sh - Main command interface for 5DayDocs"
     echo "   - ./work/scripts/create-task.sh - Create new tasks"
     echo "   - ./work/scripts/check-alignment.sh - Check feature/task alignment"
     echo ""
@@ -793,10 +876,13 @@ else
 
     echo "📚 Get Started Now:"
     echo ""
-    echo "   Create your first task:"
-    echo "   $ ./work/scripts/create-task.sh \"Your first task description\""
+    echo "   Use the 5day.sh command interface:"
+    echo "   $ ./5day.sh help                    # Show available commands"
+    echo "   $ ./5day.sh newtask \"Your task\"     # Create a task"
+    echo "   $ ./5day.sh status                  # Show task status"
     echo ""
-    echo "   Or check feature alignment:"
+    echo "   Or use scripts directly:"
+    echo "   $ ./work/scripts/create-task.sh \"Your first task description\""
     echo "   $ ./work/scripts/check-alignment.sh"
     echo ""
     echo "To update 5DayDocs in the future, run this setup script again."
@@ -805,6 +891,9 @@ fi
 if [ "$VALIDATION_PASSED" = true ]; then
     echo ""
     echo "🚀 5DayDocs is ready! Try creating a task now:"
+    echo "   ./5day.sh newtask \"Build user authentication\""
+    echo ""
+    echo "   Or use the traditional method:"
     echo "   ./work/scripts/create-task.sh \"Build user authentication\""
 fi
 

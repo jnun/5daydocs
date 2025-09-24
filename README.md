@@ -20,8 +20,13 @@ A simple, folder-based documentation and task management system for software pro
 
 ```bash
 # 1. Clone this installer in a folder that's not in your working project folder
-git clone https://github.com/yourusername/5daydocs.git
+git clone https://github.com/jnun/5daydocs.git
 cd /path/to/5daydocs
+
+-- or --
+
+Clone the repository as a sub module
+git submodule add https://github.com/jnun/5daydocs.git
 
 # 2. Run setup (it will ask for YOUR project path)
 chmod +x work/scripts/setup.sh

@@ -28,12 +28,12 @@ Git Repository (auto-commit new tasks)
 
 ### Key Components
 
-1. **Push Sync** (`sync-tasks-to-jira.yml`)
+1. **Push Sync** (`docs/organizational-process-assets/templates/github-workflows/sync-tasks-to-jira.yml`)
    - Triggers on every push to `work/tasks/**/*.md`
    - Updates Jira to match current Git state
    - Creates/updates/transitions tickets instantly
 
-2. **Pull Reconciliation** (`sync-jira-to-git.yml`)
+2. **Pull Reconciliation** (`docs/organizational-process-assets/templates/github-workflows/sync-jira-to-git.yml`)
    - Runs every 15 minutes (or manually)
    - Finds tickets created in Jira
    - Creates task files in Git
@@ -58,11 +58,11 @@ Follow the [Jira Kanban Setup Guide](./jira-kanban-setup.md) first to set up:
 ### Step 2: Enable Pull Reconciliation
 
 1. **Ensure both workflows are present:**
-   - `.github/workflows/sync-tasks-to-jira.yml` (push)
-   - `.github/workflows/sync-jira-to-git.yml` (pull)
+   - `docs/organizational-process-assets/templates/github-workflows/sync-tasks-to-jira.yml` (push)
+   - `docs/organizational-process-assets/templates/github-workflows/sync-jira-to-git.yml` (pull)
 
 2. **Configure the reconciliation workflow:**
-   Edit `.github/workflows/sync-jira-to-git.yml`:
+   Edit `docs/organizational-process-assets/templates/github-workflows/sync-jira-to-git.yml`:
    ```yaml
    # Line 49 - Update with your custom field ID
    TASK_ID_FIELD="customfield_10100"
@@ -234,7 +234,7 @@ This shouldn't happen, but if it does:
 
 ### Change Reconciliation Frequency
 
-Edit `.github/workflows/sync-jira-to-git.yml`:
+Edit `docs/organizational-process-assets/templates/github-workflows/sync-jira-to-git.yml`:
 ```yaml
 schedule:
   - cron: '*/5 * * * *'  # Every 5 minutes

@@ -6,7 +6,7 @@ Automation and utility scripts for the 5daydocs system.
 
 ### setup.sh
 **Purpose:** Initial project setup and configuration
-**Usage:** `./work/scripts/setup.sh`
+**Usage:** `./setup.sh`
 **Actions:**
 - Creates folder structure if missing
 - Copies template files to new project
@@ -16,7 +16,7 @@ Automation and utility scripts for the 5daydocs system.
 
 ### check-alignment.sh
 **Purpose:** Analyzes feature documentation and task alignment
-**Usage:** `./work/scripts/check-alignment.sh`
+**Usage:** `./check-alignment.sh`
 **Output:** Reports on:
 - Feature status distribution (LIVE, TESTING, WORKING, BACKLOG)
 - Orphaned tasks without features
@@ -25,7 +25,7 @@ Automation and utility scripts for the 5daydocs system.
 
 ### create-task.sh
 **Purpose:** Interactive task creation with automatic ID assignment
-**Usage:** `./work/scripts/create-task.sh`
+**Usage:** `./create-task.sh`
 **Features:**
 - Automatically reads next ID from STATE.md
 - Prompts for task title and description
@@ -37,7 +37,7 @@ Automation and utility scripts for the 5daydocs system.
 
 All scripts should be executable. If not:
 ```bash
-chmod +x work/scripts/*.sh
+chmod +x docs/organizational-process-assets/scripts/*.sh
 ```
 
 ## Script Development Guidelines
@@ -65,7 +65,7 @@ set -u  # Error on undefined variables
 
 ## Adding New Scripts
 
-1. Create script in `/work/scripts/`
+1. Create script in `/docs/organizational-process-assets/scripts/`
 2. Make executable: `chmod +x script.sh`
 3. Add documentation here with:
    - Script name
@@ -85,8 +85,8 @@ fi
 
 ### Read State File
 ```bash
-if [ -f "work/STATE.md" ]; then
-    CURRENT_ID=$(grep "ID:" work/STATE.md | awk '{print $NF}')
+if [ -f "../../../work/STATE.md" ]; then
+    CURRENT_ID=$(grep "ID:" ../../../work/STATE.md | awk '{print $NF}')
 fi
 ```
 

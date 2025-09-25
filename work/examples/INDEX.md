@@ -1,3 +1,13 @@
+# Examples
+
+## Overview
+
+This directory contains reusable code patterns, implementation examples, and reference snippets. These examples are intended to demonstrate best practices and provide a starting point for common development tasks.
+
+## Usage
+
+Use these examples as a reference when implementing new features or functionality. Copy and adapt the code snippets to fit your specific needs.
+
 # Code Examples & Snippets
 
 Reusable code patterns, implementation examples, and reference snippets.
@@ -76,11 +86,11 @@ module.exports = authenticate;
 ## Documentation Headers
 
 Every example should include:
-1. **Purpose** - What this code does
-2. **Usage** - How to implement it
-3. **Dependencies** - Required packages/libraries
-4. **Example** - Working usage example
-5. **Notes** - Important considerations
+1.  **Purpose** - What this code does
+2.  **Usage** - How to implement it
+3.  **Dependencies** - Required packages/libraries
+4.  **Example** - Working usage example
+5.  **Notes** - Important considerations
 
 ## Categories of Examples
 
@@ -145,23 +155,23 @@ Adapt for our user model...
 ## Maintenance
 
 ### Adding Examples
-1. Identify reusable pattern
-2. Extract and generalize code
-3. Add documentation header
-4. Test independently
-5. Place in appropriate subfolder
+1.  Identify reusable pattern
+2.  Extract and generalize code
+3.  Add documentation header
+4.  Test independently
+5.  Place in appropriate subfolder
 
 ### Updating Examples
-1. Test changes in isolation
-2. Update documentation
-3. Note breaking changes
-4. Reference in CHANGELOG if significant
+1.  Test changes in isolation
+2.  Update documentation
+3.  Note breaking changes
+4.  Reference in CHANGELOG if significant
 
 ### Retiring Examples
-1. Mark as deprecated in header
-2. Provide alternative approach
-3. Keep for reference period
-4. Archive when no longer referenced
+1.  Mark as deprecated in header
+2.  Provide alternative approach
+3.  Keep for reference period
+4.  Archive when no longer referenced
 
 ## Quick Commands
 
@@ -181,9 +191,9 @@ cp work/examples/auth/jwt-middleware.js ./
 
 ## Best Practices
 
-1. **Keep it simple** - Focus on one concept
-2. **Make it runnable** - Avoid pseudo-code
-3. **Document well** - Context is crucial
-4. **Version agnostic** - Note version requirements
-5. **Error handling** - Show proper error patterns
-6. **Real-world ready** - Production-quality examples
+1.  **Keep it simple** - Focus on one concept
+2.  **Make it runnable** - Avoid pseudo-code
+3.  **Document well** - Context is crucial
+4.  **Version agnostic** - Note version requirements
+5.  **Error handling** - Show proper error patterns
+6.  **Real-world ready** - Production-quality examples

@@ -145,6 +145,19 @@ All 5DayDocs system variables use `5DAY_` prefix (like `5DAY_TASK_ID`) to preven
         └── archived/            # Processed bug reports
 ```
 
+### Organizational Process Assets (`docs/organizational-process-assets/`)
+
+This directory is a repository for the project's Organizational Process Assets (OPAs). In project management, OPAs are the internal plans, processes, policies, and knowledge bases that guide execution. They are living documents that define "how we do things here."
+
+The assets are organized into three main categories:
+
+*   **/processes**: Contains detailed specifications for core workflows, such as bug tracking, sprint planning, and folder-based project management.
+*   **/integrations**: Provides setup guides and documentation for integrating with external tools like Jira and GitHub.
+*   **/templates**: Holds standardized templates for creating new artifacts, like tasks and features.
+* **/scripts**: Contains reusable scripts to automate common workflows and enforce consistency.
+
+**Usage**: Before starting a new type of work or proposing a change to a workflow, always consult the relevant documents in this directory to ensure alignment with established project standards.
+
 ## How It Works
 
 ### Features (Source of Truth)
@@ -422,7 +435,7 @@ After running `./setup.sh`, these scripts will be available in `work/scripts/`:
 
 ### GitHub Issues (Optional)
 
-When this repository is hosted on GitHub, the included GitHub Action (`.github/workflows/sync-tasks-to-issues.yml`) automatically:
+When this repository is hosted on GitHub, the included GitHub Action (`docs/organizational-process-assets/templates/github-workflows/sync-tasks-to-issues.yml`) automatically:
 - Creates GitHub issues when tasks are committed to `backlog/` or `next/`
 - Updates issue labels as tasks move between folders
 - Closes issues when tasks reach `live/`
@@ -474,7 +487,7 @@ The Action automatically applies these labels:
 The integration works entirely through GitHub Actions. No need to install GitHub CLI or run special commands locally.
 
 ### Disabling Integration
-To disable: Simply delete `.github/workflows/sync-tasks-to-issues.yml`
+To disable: Simply delete `docs/organizational-process-assets/templates/github-workflows/sync-tasks-to-issues.yml`
 
 ## Quick Reference Commands
 

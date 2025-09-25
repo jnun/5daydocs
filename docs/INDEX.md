@@ -1,34 +1,17 @@
-# Documentation Index
+# Documentation
 
-This directory contains all project documentation organized by type and purpose.
+## Overview
 
-## Structure
+This directory contains all project documentation, including feature specifications, technical guides, and operational procedures. It serves as the central knowledge base for understanding the project's functionality and development practices.
 
-### /features/
-Product feature specifications and documentation. Each feature is documented with its current status:
-- **LIVE** - Deployed and available in production
-- **TESTING** - Built and being tested, not yet released
-- **WORKING** - Currently under development
-- **BACKLOG** - Planned but not started
+## Asset Categories
 
-Features are the source of truth for what functionality exists or is planned in the project.
+The documentation is organized into the following categories:
 
-### /guides/
-Technical documentation, how-to guides, and procedures. Includes:
-- Setup and installation instructions
-- Development workflows
-- Troubleshooting guides
-- Best practices and conventions
-- API documentation
+*   **[/features](./features/)**: Detailed specifications for product features, tracking their status from backlog to deployment.
+*   **[/guides](./guides/)**: Technical how-to guides, development workflows, and operational procedures.
+*   **[/organizational-process-assets](./organizational-process-assets/)**: The complete set of plans, processes, policies, and knowledge bases that guide project execution.
 
 ## Usage
 
-- **Feature Planning**: Start by creating a feature document in `/features/` with BACKLOG status
-- **Implementation**: Update feature status as work progresses through the pipeline
-- **Documentation**: Create guides in `/guides/` for recurring procedures or complex workflows
-- **Reference**: All team members should refer to these docs as the authoritative source
-
-## Quick Links
-
-- [Features Documentation](./features/INDEX.md) - All product features
-- [Technical Guides](./guides/INDEX.md) - Development and operational guides
+Use these documents to align with project standards and access detailed information on features and processes. Refer to the feature documents before starting new work and consult the guides for technical procedures.

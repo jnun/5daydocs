@@ -1,0 +1,3 @@
+[submodule "5daydocs"]
+	path = 5daydocs
+	url = git@github.com:jnun/5daydocs.git

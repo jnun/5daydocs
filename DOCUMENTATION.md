@@ -124,8 +124,9 @@ All 5DayDocs system variables use `5DAY_` prefix (like `5DAY_TASK_ID`) to preven
 ├── docs/                        # Documentation (source of truth)
 │   ├── features/                # Feature specifications (one file per feature)
 │   │   └── FEATURE-NAME.md      # Status-tagged capabilities (LIVE/TESTING/BACKLOG)
-│   └── guides/                  # Technical guides, setup instructions, architecture docs
-│       └── TOPIC-NAME.md        # Markdown format, technical documentation
+│   ├── guides/                  # Technical guides, setup instructions, architecture docs
+│   │   └── TOPIC-NAME.md        # Markdown format, technical documentation
+│   └── data/                    # Data layer documentation (schemas, migrations, architecture)
 └── work/
     ├── STATE.md                 # Current highest task ID
     ├── scripts/                 # Work automation scripts
@@ -140,7 +141,7 @@ All 5DayDocs system variables use `5DAY_` prefix (like `5DAY_TASK_ID`) to preven
     │   └── live/                # Completed
     ├── designs/                 # UI mockups and wireframes (any format: PNG, SVG, HTML)
     ├── examples/                # Code examples and snippets (markdown or code files)
-    ├── data/                    # Sample data and CSV files for testing/seeding
+    ├── data/                    # Database design, sample data, and storage planning (see Database & Storage section)
     └── bugs/                    # Bug reports (see Bug Reports section below)
         └── archived/            # Processed bug reports
 ```
@@ -318,6 +319,20 @@ When a task is complete:
 3. If approved: Move to `work/tasks/live/`
 4. If rejected: Move back to `work/tasks/next/` with notes
 5. Update related feature status if applicable
+
+## Data Architecture
+
+Documentation about your data layer belongs in `docs/data/` - it's reference material for understanding your project's data setup.
+
+The `docs/data/` directory should contain:
+- What database/framework you're using
+- Where schemas and migrations live in your codebase
+- How to run migrations and modify the database
+- Architecture decisions and trade-offs
+
+Most frameworks have their own locations for seed data (Prisma has prisma/seed.ts, Rails has db/seeds.rb, etc). Use those instead of creating duplicate structures.
+
+Keep documentation simple and clear. The goal is to help anyone working on tasks know where to look and what commands to run.
 
 ### Git Workflow (Optional)
 

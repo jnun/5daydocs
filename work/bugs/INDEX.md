@@ -1,3 +1,19 @@
+# Bugs
+
+## Overview
+
+This directory contains the bug tracking and archiving system for the project. It uses a simple, file-based approach to manage bug reports.
+
+## Asset Categories
+
+The bug tracking system is organized into the following categories:
+
+*   **[BUG_STATE.md](./BUG_STATE.md)**: Tracks the current state of bug reporting, including the highest bug ID.
+
+## Usage
+
+Use this directory to report, track, and manage bugs. Refer to the `BUG_STATE.md` file to get the next available bug ID before creating a new bug report.
+
 # Bug Tracking System
 
 Simple file-based bug tracking using markdown files and folder organization.
@@ -92,11 +108,11 @@ ls work/bugs/*.md 2>/dev/null | wc -l
 
 ## Best Practices
 
-1. **One bug, one file** - Keep reports focused
-2. **Reproducible steps** - Always include how to recreate
-3. **Convert quickly** - Bugs should become tasks ASAP
-4. **Archive completed** - Keep active list clean
-5. **Update BUG_STATE.md** - Prevent ID conflicts
+1.  **One bug, one file** - Keep reports focused
+2.  **Reproducible steps** - Always include how to recreate
+3.  **Convert quickly** - Bugs should become tasks ASAP
+4.  **Archive completed** - Keep active list clean
+5.  **Update BUG_STATE.md** - Prevent ID conflicts
 
 ## Integration with Tasks
 

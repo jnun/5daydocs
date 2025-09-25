@@ -3,7 +3,7 @@
 ## Problem
 When I commit to 
 
-**Feature**: /docs/features/github-actions-new-structure.md
+**Feature**: /docs/organizational-process-assets/github-actions-new-structure.md
 ## Desired Outcome
 [Describe what success looks like]
 

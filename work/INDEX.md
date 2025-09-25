@@ -1,3 +1,26 @@
+# Work
+
+## Overview
+
+The `/work` directory contains all active project management files, task tracking, and operational resources for the 5daydocs system. This is the central hub for the day-to-day activities of the project.
+
+## Asset Categories
+
+The work directory is organized into the following categories:
+
+*   **[STATE.md](./STATE.md)**: Tracks the current state of the project, including the highest task and bug IDs.
+*   **[bugs](./bugs/)**: The bug tracking and archiving system.
+*   **[data](./data/)**: Test and sample data files.
+*   **[designs](./designs/)**: UI/UX mockups and design documentation.
+*   **[examples](./examples/)**: Code snippets and implementation examples.
+*   **[scripts](./scripts/)**: Automation and utility scripts.
+*   **[tasks](./tasks/)**: The task management pipeline with a folder-based workflow.
+*   **[templates](./templates/)**: Templates for creating new project artifacts.
+
+## Usage
+
+Use this directory to manage all aspects of the project, from task and bug tracking to design and data management. Refer to the individual subdirectories for more detailed information on each area.
+
 # Work Folder Structure
 
 The `/work` directory contains all active project management files, task tracking, and operational resources for the 5daydocs system.
@@ -53,7 +76,7 @@ git mv work/tasks/review/ID-name.md work/tasks/live/
 
 ## Best Practices
 
-1. Always use `git mv` to preserve history when moving tasks
-2. Keep only one task in `working/` at a time
-3. Update STATE.md when creating new tasks
-4. Archive bugs after converting to tasks
+1.  Always use `git mv` to preserve history when moving tasks
+2.  Keep only one task in `working/` at a time
+3.  Update STATE.md when creating new tasks
+4.  Archive bugs after converting to tasks

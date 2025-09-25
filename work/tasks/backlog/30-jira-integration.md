@@ -1,6 +1,6 @@
 # Task 30: Jira Integration Setup
 
-**Feature**: /docs/features/jira-integration.md
+**Feature**: /docs/organizational-process-assets/integrations/jira-integration.md
 **Created**: 2025-01-20
 
 ## Problem

@@ -44,7 +44,7 @@ To track 5DayDocs task IDs in Jira:
    - Type: Short text (plain text only)
 3. Note the custom field ID (e.g., `customfield_10100`)
 4. Update the workflow file with your custom field ID:
-   - **GitHub**: Line 47 in `.github/workflows/sync-tasks-to-jira.yml`
+   - **GitHub**: Line 47 in `docs/organizational-process-assets/templates/github-workflows/sync-tasks-to-jira.yml`
    - **Bitbucket**: Line 38 in `bitbucket-pipelines.yml`
 
 ### 3. Configure Jira Workflow

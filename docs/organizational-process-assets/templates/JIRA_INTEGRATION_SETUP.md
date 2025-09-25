@@ -5,11 +5,11 @@ This guide helps you set up automatic synchronization between your 5DayDocs task
 ## Available Templates
 
 ### 1. GitHub + Jira Integration
-**File:** `sync-tasks-to-jira-github.yml`
+**File:** `./github-workflows/sync-tasks-to-jira-github.yml`
 **Use when:** Your code is hosted on GitHub and you use Jira for issue tracking
 
 ### 2. Bitbucket + Jira Integration
-**File:** `bitbucket-pipelines-jira.yml`
+**File:** `./bitbucket-pipelines-jira.yml`
 **Use when:** Your code is hosted on Bitbucket and you use Jira for issue tracking
 
 ## Setup Instructions
@@ -18,7 +18,7 @@ This guide helps you set up automatic synchronization between your 5DayDocs task
 
 1. **Copy the workflow file:**
    ```bash
-   cp .github/workflow-templates/sync-tasks-to-jira-github.yml .github/workflows/
+   cp ./github-workflows/sync-tasks-to-jira-github.yml .github/workflows/
    ```
 
 2. **Configure GitHub Secrets:**
@@ -51,7 +51,7 @@ This guide helps you set up automatic synchronization between your 5DayDocs task
 
 1. **Copy the pipeline file:**
    ```bash
-   cp .github/workflow-templates/bitbucket-pipelines-jira.yml bitbucket-pipelines.yml
+   cp ./bitbucket-pipelines-jira.yml bitbucket-pipelines.yml
    ```
 
 2. **Configure Repository Variables:**

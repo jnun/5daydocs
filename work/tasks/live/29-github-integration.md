@@ -1,6 +1,6 @@
 # Task 29: Add GitHub Issues Integration
 
-**Feature**: /docs/features/github-integration.md
+**Feature**: /docs/organizational-process-assets/integrations/github-integration.md
 **Created**: 2025-01-19
 
 ## Problem

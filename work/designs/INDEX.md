@@ -1,3 +1,13 @@
+# Designs
+
+## Overview
+
+This directory contains all design-related assets and documentation, including UI/UX designs, wireframes, mockups, and visual specifications. It serves as the central repository for the project's visual and interaction design.
+
+## Usage
+
+Use this directory to store and manage all design assets. Refer to the existing design documents for guidance on the project's visual style and user experience.
+
 # Design Documentation
 
 Storage for UI/UX designs, wireframes, mockups, and visual specifications.
@@ -109,21 +119,21 @@ For markdown and text files:
 
 ## Design Review Process
 
-1. Create design in appropriate tool
-2. Export to reviewable format (PNG/PDF)
-3. Place in `/work/designs/`
-4. Reference in related task
-5. Link in feature documentation
-6. Update after review feedback
+1.  Create design in appropriate tool
+2.  Export to reviewable format (PNG/PDF)
+3.  Place in `/work/designs/`
+4.  Reference in related task
+5.  Link in feature documentation
+6.  Update after review feedback
 
 ## Best Practices
 
-1. **Keep files small** - Optimize images
-2. **Use clear names** - Component and version obvious
-3. **Document decisions** - Why, not just what
-4. **Consider accessibility** - From the start
-5. **Mobile-first** - Design for small screens first
-6. **Version control** - Track changes systematically
+1.  **Keep files small** - Optimize images
+2.  **Use clear names** - Component and version obvious
+3.  **Document decisions** - Why, not just what
+4.  **Consider accessibility** - From the start
+5.  **Mobile-first** - Design for small screens first
+6.  **Version control** - Track changes systematically
 
 ## Quick Commands
 
@@ -139,4 +149,3 @@ du -h work/designs/*
 
 # Open design (macOS)
 open work/designs/dashboard-mockup-v2.png
-```

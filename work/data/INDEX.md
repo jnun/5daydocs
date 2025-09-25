@@ -1,3 +1,13 @@
+# Data
+
+## Overview
+
+This directory contains test data, sample files, and data fixtures used in development and testing. It serves as a repository for all non-code assets that are required for the project.
+
+## Usage
+
+Use this directory to store and manage test data, sample files, and other data assets. Refer to the individual files and subdirectories for more information on the available data.
+
 # Test & Sample Data
 
 Repository for test data, sample files, and data fixtures used in development and testing.
@@ -118,11 +128,11 @@ Import via admin panel or seed script
 ## Security & Privacy
 
 ### Sensitive Data Rules
-1. **Never use real user data**
-2. **Anonymize any production data**
-3. **Use fake generators for PII**
-4. **No real API keys or passwords**
-5. **No actual credit card numbers**
+1.  **Never use real user data**
+2.  **Anonymize any production data**
+3.  **Use fake generators for PII**
+4.  **No real API keys or passwords**
+5.  **No actual credit card numbers**
 
 ### Safe Test Values
 - Emails: `test@example.com`, `user+test@example.com`
@@ -188,10 +198,10 @@ curl -X POST http://localhost:3000/api/import \
 ## Maintenance
 
 ### Regular Tasks
-1. **Clean up old data** - Remove unused test files
-2. **Update samples** - Keep examples current
-3. **Document changes** - Note schema updates
-4. **Check file sizes** - Keep repository lean
+1.  **Clean up old data** - Remove unused test files
+2.  **Update samples** - Keep examples current
+3.  **Document changes** - Note schema updates
+4.  **Check file sizes** - Keep repository lean
 
 ### Archiving
 - Move old datasets to `archived/` subfolder
@@ -219,9 +229,9 @@ wc -l work/data/products.csv
 
 ## Best Practices
 
-1. **Keep it fake** - Never use real production data
-2. **Document purpose** - Why this data exists
-3. **Version datasets** - Track schema changes
-4. **Size appropriately** - Not too large for git
-5. **Cover edge cases** - Include boundary values
-6. **Make reproducible** - Document or script generation
+1.  **Keep it fake** - Never use real production data
+2.  **Document purpose** - Why this data exists
+3.  **Version datasets** - Track schema changes
+4.  **Size appropriately** - Not too large for git
+5.  **Cover edge cases** - Include boundary values
+6.  **Make reproducible** - Document or script generation

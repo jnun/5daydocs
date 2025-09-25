@@ -71,7 +71,7 @@ This field will store your task IDs to prevent duplicates:
 
 #### For GitHub:
 
-Edit `.github/workflows/sync-tasks-to-jira.yml` and update line 47:
+Edit `docs/organizational-process-assets/templates/github-workflows/sync-tasks-to-jira.yml` and update line 47:
 ```yaml
 TASK_ID_FIELD="customfield_10100"  # Replace with your field ID from Step 2
 ```

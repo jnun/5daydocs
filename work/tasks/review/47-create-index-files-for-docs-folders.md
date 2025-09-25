@@ -6,7 +6,7 @@ The docs/ folder and its subfolders need INDEX.md files to explain their purpose
 ## Desired Outcome
 Create INDEX.md files for:
 - docs/INDEX.md - explains documentation structure and organization
-- docs/features/INDEX.md - explains feature documentation and status tracking
+- docs/organizational-process-assets/INDEX.md - explains feature documentation and status tracking
 - docs/guides/INDEX.md - explains technical guides and how-to documentation
 
 ## Testing Criteria

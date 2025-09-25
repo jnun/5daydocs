@@ -19,11 +19,14 @@ The `setup.sh` script is the recommended starting point. It automates the copyin
     ./setup.sh
     ```
     When prompted, enter the absolute or relative path to your existing repository (e.g., `/Users/yourname/myexistingproject`). The script will then:
-    *   Create the `docs/` and `work/` directory structures.
+    *   Create the `docs/`, `work/`, and `.github/workflows` directory structures.
     *   Copy `DOCUMENTATION.md` to your project root.
-    *   Copy `5day.sh` (the command-line interface) to your project root and make it executable.
+    *   Copy `5day.sh` and `5d` (the command-line interfaces) to your project root and make them executable.
+    *   Copy `CLAUDE.md` to your project root for AI assistant configuration.
+    *   Create `work/.platform-config` to store the user's platform choice (GitHub, Jira, or Bitbucket with Jira).
     *   Copy automation scripts (e.g., `create-task.sh`, `create-feature.sh`, `check-alignment.sh`) to `work/scripts/`.
     *   Copy template files (e.g., `docs/organizational-process-assets/templates/TEMPLATE-task.md`, `docs/organizational-process-assets/templates/TEMPLATE-feature.md`) to their respective `work/` and `docs/` subdirectories.
+    *   Copy GitHub issue and pull request templates (`bug_report.md`, `feature_request.md`, etc.) into the `.github/` directory.
     *   Offer to add recommended `.gitignore` entries, with an option to append to an existing `.gitignore` file.
     *   Copy relevant GitHub Actions workflows to `.github/workflows/` based on your platform selection (GitHub Issues or GitHub with Jira).
 
@@ -41,7 +44,7 @@ While `setup.sh` handles many aspects, you'll need to manually address certain a
 *   **Issue**: If your existing repository already uses GitHub Actions or Bitbucket Pipelines, the 5DayDocs workflow files might conflict or require integration with your existing CI/CD setup.
 *   **Modification**:
     *   **GitHub Actions**: The `setup.sh` script copies `docs/organizational-process-assets/templates/github-workflows/sync-tasks-to-issues.yml` (for GitHub Issues) or `docs/organizational-process-assets/templates/github-workflows/sync-tasks-to-jira.yml` and `docs/organizational-process-assets/templates/github-workflows/sync-jira-to-git.yml` (for GitHub with Jira) into your `.github/workflows/` directory. Review these files and ensure they don't conflict with any existing workflows. You might need to merge their functionalities or adjust trigger conditions (`on: push`, `on: pull_request`).
-    *   **Bitbucket Pipelines**: The current 5DayDocs repository has templates for Bitbucket Pipelines (`docs/organizational-process-assets/templates/bitbucket-pipelines-jira.yml`), but the `setup.sh` script's integration for Bitbucket/Jira is marked as "coming soon." If you use Bitbucket, you will likely need to manually adapt and integrate the relevant sections from the Bitbucket Pipeline templates into your existing `bitbucket-pipelines.yml` file.
+    *   **Bitbucket Pipelines**: The current 5DayDocs repository has templates for Bitbucket Pipelines (`templates/bitbucket-pipelines.yml`), but the `setup.sh` script's integration for Bitbucket/Jira is marked as "coming soon." If you use Bitbucket, you will likely need to manually adapt and integrate the relevant sections from the Bitbucket Pipeline templates into your existing `bitbucket-pipelines.yml` file.
 
 #### c. Adjusting Paths and Customization
 
@@ -54,7 +57,7 @@ While `setup.sh` handles many aspects, you'll need to manually address certain a
 #### d. Initial Task and Bug IDs (`work/STATE.md`)
 
 *   **Issue**: If your existing project already has a task or bug tracking system, the initial `5DAY_TASK_ID` and `5DAY_BUG_ID` in the newly created `work/STATE.md` might start from 0, potentially conflicting with existing IDs.
-*   **Modification**: After running `setup.sh`, manually edit `work/STATE.md` in your existing repository. Set `5DAY_TASK_ID` and `5DAY_BUG_ID` to a value higher than any existing task or bug IDs in your project to prevent future conflicts. For example, if your highest existing task ID is 100, set `5DAY_TASK_ID: 100`.
+*   **Modification**: The `setup.sh` script is designed to preserve existing ID values in `work/STATE.md` during updates. Manual editing is primarily for the initial setup in a project with pre-existing IDs. After running `setup.sh` for the first time, manually edit `work/STATE.md` in your existing repository. Set `5DAY_TASK_ID` and `5DAY_BUG_ID` to a value higher than any existing task or bug IDs in your project to prevent future conflicts. For example, if your highest existing task ID is 100, set `5DAY_TASK_ID: 100`.
 
 #### e. `.gitignore` Integration
 
@@ -65,7 +68,7 @@ While `setup.sh` handles many aspects, you'll need to manually address certain a
 
 Once integrated, 5DayDocs operates as a set of conventions and scripts within your repository. Regular usage will involve:
 
-*   **Using `5day.sh`**: Execute `./5day.sh newtask "Description"` or `./5day.sh newfeature "Name"` from your project root to manage tasks and features.
+*   **Using `5day.sh`**: The `5day.sh` script is the primary interface for creating tasks and features, acting as a wrapper for the scripts located in `work/scripts/`. Execute `./5day.sh newtask "Description"` or `./5day.sh newfeature "Name"` from your project root to manage tasks and features.
 *   **Git Workflow**: Continue using your standard Git workflow. The 5DayDocs system is designed to be Git-friendly, with tasks and features being plain markdown files that are version-controlled.
 *   **Documentation**: Maintain feature documentation in `docs/features/` and technical guides in `docs/guides/`.
 *   **Updates**: If the 5DayDocs project itself receives updates, you can re-run the `setup.sh` script from the *source* 5DayDocs repository, pointing it to your existing project. The script is designed to handle updates by preserving existing `STATE.md` values and offering to update other files.

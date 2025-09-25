@@ -1,5 +1,22 @@
 # 5DayDocs
 
+## Overview
+
+This repository contains the 5DayDocs project, a simple, folder-based project management tool. It is designed to be lightweight and easy to use, with a minimal set of features to keep project management straightforward.
+
+## Asset Categories
+
+The repository is organized into the following categories:
+
+*   **[docs](./docs/)**: All project documentation, including feature specifications, technical guides, and operational procedures.
+*   **[work](./work/)**: The main working directory, containing all active project management files, task tracking, and operational resources.
+
+## Usage
+
+Use this repository to manage your projects using a simple, folder-based workflow. Refer to the documentation in the `docs` directory for detailed information on how to use the system.
+
+# 5DayDocs
+
 **The simplest, easiest to use, smallest possible folder-based project management tool.**
 
 ## Core Philosophy

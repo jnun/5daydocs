@@ -43,7 +43,7 @@ is_valid_status() {
 # Analyze each feature
 echo -e "${CYAN}${BOLD}Analyzing Features:${NC}\n"
 
-for feature_file in docs/features/*.md; do
+for feature_file in ../../../docs/features/*.md; do
     # Skip template
     if [[ "$feature_file" == *"TEMPLATE"* ]]; then
         continue
@@ -99,12 +99,12 @@ for feature_file in docs/features/*.md; do
     task_found=0
 
     # Search for tasks that reference this feature
-    for task_dir in work/tasks/{backlog,next,working,review,live}; do
+    for task_dir in ../../../work/tasks/{backlog,next,working,review,live}; do
         if [ -d "$task_dir" ]; then
             for task_file in "$task_dir"/*.md; do
                 if [ -f "$task_file" ] && [[ ! "$task_file" == *"TEMPLATE"* ]]; then
                     # Check if task references this feature
-                    if grep -q "/docs/features/$feature_name.md" "$task_file" 2>/dev/null; then
+                    if grep -q "../../../docs/features/$feature_name.md" "$task_file" 2>/dev/null; then
                         task_found=1
                         task_id=$(basename "$task_file" .md | cut -d'-' -f1)
                         task_title=$(grep "^# Task" "$task_file" 2>/dev/null | sed 's/# Task [0-9]*: //')
@@ -137,7 +137,7 @@ done
 echo -e "${CYAN}${BOLD}Checking for Orphaned Tasks:${NC}\n"
 
 orphan_found=0
-for task_dir in work/tasks/{backlog,next,working,review,live}; do
+for task_dir in ../../../work/tasks/{backlog,next,working,review,live}; do
     if [ -d "$task_dir" ]; then
         for task_file in "$task_dir"/*.md; do
             if [ -f "$task_file" ] && [[ ! "$task_file" == *"TEMPLATE"* ]]; then
@@ -151,10 +151,10 @@ for task_dir in work/tasks/{backlog,next,working,review,live}; do
                     folder=$(basename "$task_dir")
                     echo -e "  ${YELLOW}⚠ Task $task_id in $folder/ has no feature reference${NC}"
                     ISSUES_FOUND=1
-                elif [[ "$feature_ref" == *"/docs/features/"* ]]; then
+                elif [[ "$feature_ref" == *"../../../docs/features/"* ]]; then
                     # Extract feature filename from path
-                    feature_file=$(echo "$feature_ref" | sed 's/.*\/docs\/features\///' | sed 's/\.md$//')
-                    if [ ! -f "docs/features/${feature_file}.md" ]; then
+                    feature_file=$(echo "$feature_ref" | sed 's/.*\/features\///' | sed 's/\.md$//')
+                    if [ ! -f "../../../docs/features/${feature_file}.md" ]; then
                         echo -e "  ${RED}⚠ Task $task_id references non-existent feature: $feature_ref${NC}"
                         ISSUES_FOUND=1
                     fi

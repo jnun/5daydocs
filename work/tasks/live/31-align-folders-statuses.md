@@ -1,6 +1,6 @@
 # Task 31: Align Folder Names with Status Values
 
-**Feature**: /docs/features/folder-based-project-management.md
+**Feature**: /docs/organizational-process-assets/processes/folder-based-project-management.md
 **Created**: 2025-01-20
 
 ## Problem
@@ -31,7 +31,7 @@ The system uses inconsistent naming between task folders and feature statuses:
 - [x] DOCUMENTATION.md - Updated folder structure and status meanings
 - [x] CLAUDE.md - Updated all references to working/ and live/
 - [x] README.md - Updated workflow and status list
-- [x] docs/features/TEMPLATE-feature.md - Added all five status values
+- [x] docs/organizational-process-assets/templates/TEMPLATE-feature.md - Added all five status values
 - [x] work/tasks/TEMPLATE-task.md - Updated to reference working/ and live/
 
 ### Scripts (COMPLETED)
@@ -48,7 +48,7 @@ The system uses inconsistent naming between task folders and feature statuses:
 - [x] docs/guides/git-source-of-truth-sync.md - Updated all examples
 - [x] docs/guides/jira-kanban-setup.md - Updated folder mapping table
 - [x] docs/guides/quick-reference.md - Updated commands and lifecycle
-- [x] docs/features/jira-integration.md - Changed status to WORKING
+- [x] docs/organizational-process-assets/integrations/jira-integration.md - Changed status to WORKING
 
 ## Status Alignment Table
 

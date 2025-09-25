@@ -1,3 +1,21 @@
+# Tasks
+
+## Overview
+
+This directory contains the task management pipeline, which uses a folder-based workflow to represent the state of tasks. Tasks move through a series of directories, from backlog to completion.
+
+## Asset Categories
+
+The task pipeline is organized into the following stages:
+
+*   **[Backlog](./backlog/)**: Repository of all planned work.
+*   **[Live](./live/)**: Tasks that have been deployed or approved for deployment.
+*   **[Review](./review/)**: Tasks that are complete and awaiting review or testing.
+
+## Usage
+
+Use this directory to manage the lifecycle of tasks. Create new tasks in the `backlog` directory and move them through the pipeline as they are worked on, reviewed, and deployed.
+
 # Task Management Pipeline
 
 The task pipeline implements a folder-based workflow where tasks physically move through directories representing their current state.
@@ -66,11 +84,11 @@ Technical details, dependencies, considerations
 
 ## Rules & Best Practices
 
-1. **One task in working/ at a time** - Prevents context switching
-2. **Always use git mv** - Preserves git history
-3. **Update STATE.md** - Track highest ID after creating tasks
-4. **Small, atomic tasks** - Easier to review and deploy
-5. **Clear descriptions** - Use kebab-case in filenames
+1.  **One task in working/ at a time** - Prevents context switching
+2.  **Always use git mv** - Preserves git history
+3.  **Update STATE.md** - Track highest ID after creating tasks
+4.  **Small, atomic tasks** - Easier to review and deploy
+5.  **Clear descriptions** - Use kebab-case in filenames
 
 ## Converting Bugs to Tasks
 
@@ -83,4 +101,3 @@ echo "# Fix Login Error (Bug #001)" > work/tasks/backlog/13-fix-login-bug-001.md
 
 # 3. Archive bug
 git mv work/bugs/001-login-error.md work/bugs/archived/
-```

@@ -20,7 +20,7 @@ fi
 KEBAB_CASE=$(echo "$FEATURE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9-]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
 
 # Feature file path
-FEATURE_FILE="docs/features/${KEBAB_CASE}.md"
+FEATURE_FILE="../../../docs/features/${KEBAB_CASE}.md"
 
 # Check if feature already exists
 if [ -f "$FEATURE_FILE" ]; then
@@ -29,7 +29,7 @@ if [ -f "$FEATURE_FILE" ]; then
 fi
 
 # Create feature directory if it doesn't exist
-mkdir -p docs/features
+mkdir -p ../../../docs/features
 
 # Create feature document
 cat > "$FEATURE_FILE" << EOL

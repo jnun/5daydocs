@@ -14,5 +14,5 @@ Files created/copied by setup.sh:
 - [ ] DOCUMENTATION.md present after setup
 - [ ] Existing README.md is never modified or replaced
 - [ ] INDEX.md files in work/ and docs/ folders explain their purpose
-- [ ] Templates available in work/tasks/, work/bugs/, docs/features/
+- [ ] Templates available in work/tasks/, work/bugs/, docs/organizational-process-assets/templates/
 - [ ] Documentation is self-contained and tool-agnostic

@@ -3,7 +3,7 @@
 # Usage: ./setup.sh
 #   Prompts for target project path and sets up 5DayDocs structure there
 #
-# Templates: Workflow templates are stored in templates/github-workflows/
+# Templates: Workflow templates are stored in templates/workflows/
 #   These are copied to the target project based on platform selection
 
 set -e  # Exit on error
@@ -126,9 +126,9 @@ echo "Managing state tracking files..."
 if [ ! -f docs/STATE.md ]; then
     # Create new STATE.md
     # Check if template exists in source directory
-    if [ -f "$FIVEDAY_SOURCE_DIR/docs/work/templates/STATE.md.template" ]; then
+    if [ -f "$FIVEDAY_SOURCE_DIR/templates/project/STATE.md.template" ]; then
         # Copy template and replace placeholders
-        sed "s/{{DATE}}/$(date +%Y-%m-%d)/g" "$FIVEDAY_SOURCE_DIR/docs/work/templates/STATE.md.template" > docs/STATE.md
+        sed "s/{{DATE}}/$(date +%Y-%m-%d)/g" "$FIVEDAY_SOURCE_DIR/templates/project/STATE.md.template" > docs/STATE.md
         echo "✓ Created docs/STATE.md from template"
     else
         # Fallback to inline generation if template doesn't exist
@@ -378,19 +378,19 @@ if [ "$PLATFORM" != "bitbucket-jira" ]; then
     # Copy appropriate workflow files from templates based on platform
     if [ "$PLATFORM" = "github-jira" ]; then
         # Copy Jira-related workflows from templates
-        if [ -f "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-tasks-to-jira.yml" ]; then
-            cp "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-tasks-to-jira.yml" .github/workflows/
+        if [ -f "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-jira.yml" ]; then
+            cp "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-jira.yml" .github/workflows/
             echo "✓ Copied sync-tasks-to-jira.yml"
         fi
-        if [ -f "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-jira-to-git.yml" ]; then
-            cp "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-jira-to-git.yml" .github/workflows/
+        if [ -f "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-jira-to-git.yml" ]; then
+            cp "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-jira-to-git.yml" .github/workflows/
             echo "✓ Copied sync-jira-to-git.yml"
         fi
         echo "  Note: You'll need to configure Jira integration in your repository settings"
     else
         # Copy GitHub Issues workflow from templates
-        if [ -f "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-tasks-to-issues.yml" ]; then
-            cp "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-tasks-to-issues.yml" .github/workflows/
+        if [ -f "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-issues.yml" ]; then
+            cp "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-issues.yml" .github/workflows/
             echo "✓ Copied sync-tasks-to-issues.yml"
         fi
         echo "  Remember to configure secrets in your GitHub repository settings"
@@ -900,8 +900,8 @@ else
     # Copy Bitbucket pipeline configuration for Bitbucket platform
     if [ "$PLATFORM" = "bitbucket-jira" ]; then
         echo "Setting up Bitbucket Pipelines configuration..."
-        if [ -f "$FIVEDAY_SOURCE_DIR/templates/bitbucket-pipelines.yml.template" ]; then
-            cp "$FIVEDAY_SOURCE_DIR/templates/bitbucket-pipelines.yml.template" ./bitbucket-pipelines.yml
+        if [ -f "$FIVEDAY_SOURCE_DIR/templates/workflows/bitbucket/pipelines.yml" ]; then
+            cp "$FIVEDAY_SOURCE_DIR/templates/workflows/bitbucket/pipelines.yml" ./bitbucket-pipelines.yml
             echo "✓ Copied bitbucket-pipelines.yml to project root"
             echo "  Note: Configure Jira credentials in Bitbucket repository settings"
         else

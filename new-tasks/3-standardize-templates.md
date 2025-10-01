@@ -1,4 +1,4 @@
-# Task 3: Standardize Templates
+# Task 66: Standardize Templates
 
 **Feature**: none
 **Created**: 2025-10-01
@@ -10,6 +10,3 @@ Templates for features, tasks, and bugs are not fully standardized or documented
 - [ ] Review and update TEMPLATE-feature.md, TEMPLATE-task.md, TEMPLATE-bug.md for clarity and completeness
 - [ ] Add checklists and tags for status, priority, and dependencies in each template
 - [ ] Document template usage in INDEX.md files
-
-## Related Tasks
-- See also task 2 (Improve Metadata and Indexing)

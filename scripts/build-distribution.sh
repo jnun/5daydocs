@@ -48,7 +48,7 @@ cp CLAUDE.md "$DIST_PATH/"
 
 # Copy distribution templates
 echo "📝 Copying distribution templates..."
-cp distribution-templates/README.md "$DIST_PATH/README.md"
+cp templates/project/README.md "$DIST_PATH/README.md"
 
 # Note: No .gitignore needed for submodule distribution
 # Users manage their own .gitignore in their project
@@ -65,7 +65,7 @@ find "$DIST_PATH/docs" -type d -empty -exec touch {}/.gitkeep \;
 
 # Create initial STATE.md from template
 echo "📊 Creating initial STATE.md..."
-sed "s/{{DATE}}/$(date +%Y-%m-%d)/g" distribution-templates/STATE.md > "$DIST_PATH/docs/STATE.md"
+sed "s/{{DATE}}/$(date +%Y-%m-%d)/g" templates/project/STATE.md.template > "$DIST_PATH/docs/STATE.md"
 
 # Update setup.sh paths for distribution use
 echo "🔧 Adjusting setup.sh for distribution..."

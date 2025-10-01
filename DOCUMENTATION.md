@@ -148,8 +148,8 @@ All 5DayDocs system variables use `5DAY_` prefix (like `5DAY_TASK_ID`) to preven
 │   ├── guides/                  # Technical guides, setup instructions, architecture docs
 │   │   └── TOPIC-NAME.md        # Markdown format, technical documentation
 │   ├── data/                    # Data layer documentation (schemas, migrations, architecture)
+│   ├── STATE.md                 # Current highest task/bug ID
 │   └── work/                    # Workflow, tasks, bugs, scripts
-│       ├── STATE.md             # Current highest task/bug ID
 │       ├── scripts/             # Work automation scripts
 │       │   ├── create-task.sh       # Task creation helper
 │       │   ├── create-feature.sh    # Feature creation helper
@@ -160,13 +160,15 @@ All 5DayDocs system variables use `5DAY_` prefix (like `5DAY_TASK_ID`) to preven
 │       │   ├── next/                # Sprint queue
 │       │   ├── working/             # Being worked on now
 │       │   ├── review/              # Awaiting approval
-│       │   └── live/                # Completed
+│       │   ├── live/                # Completed
 │       │   └── INDEX.md             # Task folder index
 │       ├── bugs/                    # Bug reports
 │       │   ├── archived/            # Processed bug reports
 │       │   └── INDEX.md             # Bug folder index
-│       ├── data/                    # Data layer workflow docs
-│       └── INDEX.md                 # Work folder index
+│       ├── designs/              # UI mockups and wireframes
+│       ├── examples/             # Code examples and snippets
+│       ├── data/                 # Database design, sample data
+│       └── INDEX.md             # Work folder index
 ```
 
 ## How It Works

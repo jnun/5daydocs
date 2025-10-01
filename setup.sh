@@ -420,7 +420,22 @@ if [ "$PLATFORM" != "bitbucket-jira" ]; then
         echo "✓ Copied pull request template"
     fi
 else
-    echo "⚠ Skipping GitHub Actions and templates (not applicable for Bitbucket)"
+    # Bitbucket platform - copy bitbucket-pipelines.yml from templates
+    echo "Setting up Bitbucket Pipelines..."
+
+    if [ -f "$FIVEDAY_SOURCE_DIR/templates/bitbucket-pipelines.yml" ]; then
+        if [ ! -f bitbucket-pipelines.yml ] || $UPDATE_MODE; then
+            cp "$FIVEDAY_SOURCE_DIR/templates/bitbucket-pipelines.yml" bitbucket-pipelines.yml
+            echo "✓ Copied bitbucket-pipelines.yml to project root"
+            ((FILES_COPIED++))
+        else
+            echo "⚠ bitbucket-pipelines.yml already exists, preserving your version"
+        fi
+    else
+        echo "⚠ Warning: bitbucket-pipelines.yml template not found in templates directory"
+    fi
+
+    echo "⚠ Note: Bitbucket/Jira integration is not fully implemented yet"
 fi
 
 # Handle .gitignore configuration

@@ -10,18 +10,19 @@
 - **Docs folder holes evrerything:** /docs holds everything related to your project tasks
 - **Submodule-friendly:** You can install 5DayDocs as a Git submodule
 
-## Installation as a Submodule
-
-To use 5DayDocs in your project, add it as a submodule:
 ## Quick Start / Installation
 
 To install 5DayDocs in your project:
 
 ```bash
-# 1. Add 5DayDocs as a submodule (recommended)
-git submodule add https://github.com/yourusername/5daydocs.git 5daydocs
+# Option 1: Clone as a submodule (recommended)
+git submodule add https://github.com/jnun/5daydocs.git 5daydocs
+cd 5daydocs
+chmod +x setup.sh
+./setup.sh
 
-# 2. Run the setup script (from inside the submodule)
+# Option 2: Clone standalone
+git clone https://github.com/jnun/5daydocs.git
 cd 5daydocs
 chmod +x setup.sh
 ./setup.sh

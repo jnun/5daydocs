@@ -99,7 +99,7 @@ for feature_file in docs/features/*.md; do
     task_found=0
 
     # Search for tasks that reference this feature
-    for task_dir in work/tasks/{backlog,next,working,review,live}; do
+    for task_dir in docs/work/tasks/{backlog,next,working,review,live}; do
         if [ -d "$task_dir" ]; then
             for task_file in "$task_dir"/*.md; do
                 if [ -f "$task_file" ] && [[ ! "$task_file" == *"TEMPLATE"* ]]; then
@@ -137,7 +137,7 @@ done
 echo -e "${CYAN}${BOLD}Checking for Orphaned Tasks:${NC}\n"
 
 orphan_found=0
-for task_dir in work/tasks/{backlog,next,working,review,live}; do
+for task_dir in docs/work/tasks/{backlog,next,working,review,live}; do
     if [ -d "$task_dir" ]; then
         for task_file in "$task_dir"/*.md; do
             if [ -f "$task_file" ] && [[ ! "$task_file" == *"TEMPLATE"* ]]; then

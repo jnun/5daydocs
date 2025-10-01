@@ -11,7 +11,7 @@
 ## The Entire System
 
 ```
-work/tasks/backlog/   → work/tasks/next/   → work/tasks/working/   → work/tasks/review/   → work/tasks/live/
+docs/work/tasks/backlog/   → docs/work/tasks/next/   → docs/work/tasks/working/   → docs/work/tasks/review/   → docs/work/tasks/live/
 ```
 
 Tasks move left to right. One task in working/ at a time. That's it.
@@ -20,20 +20,20 @@ Tasks move left to right. One task in working/ at a time. That's it.
 
 ```bash
 # Setup (one time)
-chmod +x work/scripts/setup.sh
-./work/scripts/setup.sh
+chmod +x setup.sh
+./setup.sh
 
 # Daily workflow
-ls work/tasks/next/                                    # What's queued?
-mv work/tasks/next/1-task.md work/tasks/working/      # Start work
-mv work/tasks/working/1-task.md work/tasks/review/    # Submit for review
+ls docs/work/tasks/next/                                    # What's queued?
+mv docs/work/tasks/next/1-task.md docs/work/tasks/working/      # Start work
+mv docs/work/tasks/working/1-task.md docs/work/tasks/review/    # Submit for review
 ```
 
 ## Files That Matter
 
 - `DOCUMENTATION.md` - How to use 5DayDocs
-- `work/STATE.md` - Current highest task ID
-- `work/tasks/` - Your task pipeline
+- `docs/STATE.md` - Current highest task ID (central location)
+- `docs/work/tasks/` - Your task pipeline
 - `docs/features/` - Feature documentation
 - `templates/` - Templates for GitHub/Jira/Bitbucket workflows (see templates/INDEX.md)
 

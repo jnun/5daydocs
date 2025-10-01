@@ -1,77 +1,45 @@
-# 5DayDocs
-See `DOCUMENTATION.md` for complete workflow guide.
+# Philosophy
 
-**INSTALL THIS IN YOUR PROJECT TO USE IT BY RUNNING work/scripts/setup.sh**
+**No databases, no apps—just folders and markdown files.**
 
-## Philosophy
+- **Simple:** Everything is plain text and version controlled
+- **Portable:** Works with any project, any language, any team size
+- **Transparent:** All project management is visible and editable
+- **Flexible:** Adapt the workflow to your needs
+- **Minimal root footprint:** The only file placed in your project root is `DOCUMENTATION.md`
+- **Docs folder holes evrerything:** /docs holds everything related to your project tasks
+- **Submodule-friendly:** You can install 5DayDocs as a Git submodule
 
-- **Simple**: No databases, no apps - just folders and markdown files
-- **Portable**: Works with any project, any language, any team size
-- **Transparent**: Everything is plain text and version controlled
-- **Flexible**: Adapt the workflow to your needs
+## Installation as a Submodule
 
-**Core Rule for New Features**: Before adding ANY new feature, ask:
-"Does this simplify the use of the app or create more difficulty?"
-If it doesn't clearly simplify, don't add it.
+To use 5DayDocs in your project, add it as a submodule:
+## Quick Start / Installation
 
-A simple, folder-based documentation and task management system for software projects.
-
-## Quick Start
+To install 5DayDocs in your project:
 
 ```bash
-# 1. Clone this installer in a folder that's not in your working project folder
-git clone https://github.com/yourusername/5daydocs.git
-cd /path/to/5daydocs
+# 1. Add 5DayDocs as a submodule (recommended)
+git submodule add https://github.com/yourusername/5daydocs.git 5daydocs
 
-# 2. Run setup (it will ask for YOUR project path)
-chmod +x work/scripts/setup.sh
-./work/scripts/setup.sh
+# 2. Run the setup script (from inside the submodule)
+cd 5daydocs
+chmod +x setup.sh
+./setup.sh
 
-# 3. Go to YOUR project and start working
+# 3. When prompted, enter the path to your project root
+#    (e.g., /Users/yourname/myproject)
+
+# 4. After setup, your project will have:
+#    - DOCUMENTATION.md in root
+#    - docs/ folder with all 5DayDocs files
+
+# 5. Start using 5DayDocs automation scripts
 cd /path/to/your-project
-./work/scripts/create-task.sh "Your first task"
+./docs/work/scripts/create-task.sh "Your first task"
 ```
-
-## What Gets Installed
-
-The setup script creates this structure in YOUR project:
-
-```
-/
-├── DOCUMENTATION.md     # Complete workflow guide
-├── README.md           # This file
-├── docs/               # Documentation
-│   ├── features/       # Feature specifications
-│   └── guides/         # Technical guides
-└── work/              # Work items
-    ├── scripts/       # 5DayDocs automation scripts
-    │   ├── setup.sh       # Initial setup script
-    │   ├── create-task.sh # Task creation helper
-    │   └── check-alignment.sh # Feature status checker
-    ├── tasks/         # Task pipeline
-    ├── bugs/          # Bug reports
-    ├── designs/       # UI mockups
-    ├── examples/      # Code samples
-    └── data/          # Test data
-```
-
-## Quick Commands
-
-```bash
-# Create a new task (automated)
-./work/scripts/create-task.sh "Task description"
-
-# Check what's being worked on
-ls work/tasks/working/
 
 # Check feature/task alignment
-./work/scripts/check-alignment.sh
-```
-
-## Learn More
-
-See `DOCUMENTATION.md` for the complete guide including:
-- Creating and managing tasks
+./docs/work/scripts/check-alignment.sh
 - Feature documentation
 - Bug reporting workflow
 - Sprint planning
@@ -90,6 +58,39 @@ See `DOCUMENTATION.md` for the complete guide including:
 6. **Check project configuration** - Review package.json, Makefile, or equivalent files for dependencies and scripts
 
 **Remember:** Research first, code second. Understanding the existing structure prevents duplicate work and maintains consistency.
+
+## Submodule Structure
+
+When installed as a Git submodule, 5daydocs provides this structure in your project:
+
+```
+your-project/
+├── 5daydocs/                    # The submodule
+│   ├── 5day.sh                  # Command interface
+│   ├── setup.sh                 # Initialization script
+│   ├── templates/               # Workflow templates
+│   ├── CLAUDE.md               # AI pair programming guide
+│   └── README.md               # This file
+└── docs/                        # Created by setup.sh
+    ├── features/               # Feature specs (your data)
+    ├── guides/                 # Technical docs (your data)
+    └── work/                   # Work items (your data)
+        ├── STATE.md            # ID tracking (your data)
+        ├── tasks/              # Task pipeline (your data)
+        │   ├── backlog/
+        │   ├── next/
+        │   ├── working/
+        │   ├── review/
+        │   └── live/
+        ├── bugs/               # Bug tracking (your data)
+        └── scripts/            # Custom automation (your data)
+```
+
+**Key Points:**
+- The `5daydocs/` submodule contains only the framework
+- Your `docs/` folder contains all your project documentation and work items
+- Updates to 5daydocs won't affect your content
+- Your content is tracked in your main repository, not the submodule
 
 ---
 *Simple, folder-based task management with clear feature documentation*

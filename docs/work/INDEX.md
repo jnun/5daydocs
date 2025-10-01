@@ -1,6 +1,6 @@
-# Work Folder Structure
+# docs/work/ Directory Index
 
-The `/work` directory contains all active project management files, task tracking, and operational resources for the 5daydocs system.
+The `/docs/work/` directory contains all active project management files, task tracking, and operational resources for the 5DayDocs system.
 
 ## Core Directories
 
@@ -14,9 +14,9 @@ Task management pipeline with folder-based workflow states. Tasks flow through:
 
 ### /bugs
 Bug tracking and archiving system:
-- Active bugs: `/work/bugs/[ID]-description.md`
-- Archived bugs: `/work/bugs/archived/`
-- Bug state tracking: `BUG_STATE.md`
+- Active bugs: `/docs/work/bugs/[ID]-description.md`
+- Archived bugs: `/docs/work/bugs/archived/`
+- Bug state tracking: Integrated in `/docs/STATE.md`
 
 ### /scripts
 Automation and utility scripts:
@@ -35,25 +35,24 @@ Test and sample data files. Store JSON, CSV, and other data files used for testi
 
 ## Key Files
 
-- `STATE.md` - Tracks highest task ID number
-- `bugs/BUG_STATE.md` - Tracks highest bug ID number
+- `/docs/STATE.md` - Tracks highest task and bug ID numbers (central location)
 
 ## Workflow Commands
 
 ```bash
 # View current work
-ls work/tasks/working/
+ls docs/work/tasks/working/
 
 # Move task through pipeline
-git mv work/tasks/backlog/ID-name.md work/tasks/next/
-git mv work/tasks/next/ID-name.md work/tasks/working/
-git mv work/tasks/working/ID-name.md work/tasks/review/
-git mv work/tasks/review/ID-name.md work/tasks/live/
+git mv docs/work/tasks/backlog/ID-name.md docs/work/tasks/next/
+git mv docs/work/tasks/next/ID-name.md docs/work/tasks/working/
+git mv docs/work/tasks/working/ID-name.md docs/work/tasks/review/
+git mv docs/work/tasks/review/ID-name.md docs/work/tasks/live/
 ```
 
 ## Best Practices
 
 1. Always use `git mv` to preserve history when moving tasks
 2. Keep only one task in `working/` at a time
-3. Update STATE.md when creating new tasks
+3. Update `/docs/STATE.md` when creating new tasks
 4. Archive bugs after converting to tasks

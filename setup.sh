@@ -345,17 +345,7 @@ else
     echo "⚠ Warning: 5day.sh not found in source directory"
 fi
 
-# Also copy 5d if it exists (for backwards compatibility)
-if [ -f "$FIVEDAY_SOURCE_DIR/5d" ]; then
-    if [ ! -f ./5d ] || $UPDATE_MODE; then
-        cp "$FIVEDAY_SOURCE_DIR/5d" ./5d
-        chmod +x ./5d
-        echo "✓ Copied 5d command script to project root"
-        ((FILES_COPIED++))
-    else
-        echo "⚠ 5d already exists, preserving your version"
-    fi
-fi
+# Note: 5d symlink removed for clarity - use 5day.sh as the single command interface
 
 # Copy GitHub workflows (only for GitHub-based platforms)
 if [ "$PLATFORM" != "bitbucket-jira" ]; then
@@ -782,11 +772,7 @@ if [ -f ./5day.sh ]; then
     echo "✓ Ensured 5day.sh is executable"
 fi
 
-# Also ensure 5d in project root is executable (if exists)
-if [ -f ./5d ]; then
-    chmod +x ./5d
-    echo "✓ Ensured 5d is executable"
-fi
+# Note: 5d symlink removed - using 5day.sh as single command interface
 
 # Count created folders
 FOLDERS_CREATED=$(find docs .github -type d 2>/dev/null | wc -l | tr -d ' ')

@@ -1,58 +1,24 @@
-# docs/work/ Directory Index
+# Work Directory
 
-The `/docs/work/` directory contains all active project management files, task tracking, and operational resources for the 5DayDocs system.
+→ **Full documentation: [DOCUMENTATION.md](/DOCUMENTATION.md#common-workflows)**
 
-## Core Directories
+**Related:** [/docs/STATE.md](/docs/STATE.md) - Task/bug ID tracking
 
-### /tasks
-Task management pipeline with folder-based workflow states. Tasks flow through:
-- `backlog/` - Planned, not started
-- `next/` - Queued for current sprint
-- `working/` - Currently being worked on (limit 1 per developer)
-- `review/` - Built and awaiting approval
-- `live/` - Completed and deployed
+## What's Here
 
-### /bugs
-Bug tracking and archiving system:
-- Active bugs: `/docs/work/bugs/[ID]-description.md`
-- Archived bugs: `/docs/work/bugs/archived/`
-- Bug state tracking: Integrated in `/docs/STATE.md`
+- **tasks/** - Task pipeline (backlog → next → working → review → live)
+- **bugs/** - Bug reports and archived bugs
+- **scripts/** - Automation tools
+- **designs/** - UI mockups and wireframes
+- **examples/** - Code snippets for reuse
+- **data/** - Test and sample data
 
-### /scripts
-Automation and utility scripts:
-- `setup.sh` - Initial project setup
-- `check-alignment.sh` - Feature status analysis
-- Other project-specific automation
-
-### /designs
-UI/UX mockups and design documentation. Store visual designs, wireframes, and interaction specifications here.
-
-### /examples
-Code snippets and implementation examples. Reference implementations that can be reused across the project.
-
-### /data
-Test and sample data files. Store JSON, CSV, and other data files used for testing or demonstrations.
-
-## Key Files
-
-- `/docs/STATE.md` - Tracks highest task and bug ID numbers (central location)
-
-## Workflow Commands
+## Quick Commands
 
 ```bash
-# View current work
-ls docs/work/tasks/working/
-
 # Move task through pipeline
 git mv docs/work/tasks/backlog/ID-name.md docs/work/tasks/next/
 git mv docs/work/tasks/next/ID-name.md docs/work/tasks/working/
-git mv docs/work/tasks/working/ID-name.md docs/work/tasks/review/
-git mv docs/work/tasks/review/ID-name.md docs/work/tasks/live/
 ```
 
-## Best Practices
-
-1. Always use `git mv` to preserve history when moving tasks
-2. Keep only one task in `working/` at a time
-3. Update `/docs/STATE.md` when creating new tasks
-4. Archive bugs after converting to tasks
+**Rule:** Only one task in working/ at a time.

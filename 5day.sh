@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 5d - Five Day Docs Command Line Tool
+# 5day - Five Day Docs Command Line Tool
 # Main entry point for managing tasks, features, and project analysis
 
 # Colors for output
@@ -16,9 +16,9 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Function to display help
 show_help() {
-    echo -e "${CYAN}5d - Five Day Docs Management Tool${NC}"
+    echo -e "${CYAN}5day - Five Day Docs Management Tool${NC}"
     echo ""
-    echo "Usage: 5d <command> [options]"
+    echo "Usage: 5day <command> [options]"
     echo ""
     echo -e "${BLUE}Commands:${NC}"
     echo "  newtask <description>     Create a new task in backlog"
@@ -28,10 +28,10 @@ show_help() {
     echo "  help                      Show this help message"
     echo ""
     echo -e "${BLUE}Examples:${NC}"
-    echo "  5d newtask \"Fix login authentication bug\""
-    echo "  5d newfeature user-profile"
-    echo "  5d checkfeatures"
-    echo "  5d status"
+    echo "  5day newtask \"Fix login authentication bug\""
+    echo "  5day newfeature user-profile"
+    echo "  5day checkfeatures"
+    echo "  5day status"
     echo ""
 }
 
@@ -41,7 +41,7 @@ create_task() {
 
     if [ -z "$description" ]; then
         echo -e "${RED}ERROR: Task description required${NC}"
-        echo "Usage: 5d newtask \"Brief description of the task\""
+        echo "Usage: 5day newtask \"Brief description of the task\""
         exit 1
     fi
 
@@ -61,7 +61,7 @@ create_feature() {
 
     if [ -z "$feature_name" ]; then
         echo -e "${RED}ERROR: Feature name required${NC}"
-        echo "Usage: 5d newfeature <feature-name>"
+        echo "Usage: 5day newfeature <feature-name>"
         exit 1
     fi
 
@@ -165,7 +165,7 @@ echo -e "${GREEN}✓ Created feature: $FEATURE_FILE${NC}"
 echo ""
 echo "Next steps:"
 echo "1. Edit the feature document with detailed requirements"
-echo "2. Create tasks for implementation: 5d newtask \"Implement $FEATURE_NAME\""
+echo "2. Create tasks for implementation: 5day newtask \"Implement $FEATURE_NAME\""
 echo "3. Move feature to WORKING when development begins"
 EOF
         chmod +x "$PROJECT_ROOT/docs/work/scripts/create-feature.sh"

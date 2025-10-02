@@ -7,7 +7,7 @@
 - **Transparent:** All project management is visible and editable
 - **Flexible:** Adapt the workflow to your needs
 - **Minimal root footprint:** The only file placed in your project root is `DOCUMENTATION.md`
-- **Docs folder holes evrerything:** /docs holds everything related to your project tasks
+- **Docs folder holds everything:** /docs holds everything related to your project tasks
 - **Submodule-friendly:** You can install 5DayDocs as a Git submodule
 
 ## Quick Start / Installation
@@ -75,8 +75,9 @@ your-project/
 └── docs/                        # Created by setup.sh
     ├── features/               # Feature specs (your data)
     ├── guides/                 # Technical docs (your data)
+    ├── ideas/                  # Brainstorming (your data)
+    ├── STATE.md                # ID tracking (your data)
     └── work/                   # Work items (your data)
-        ├── STATE.md            # ID tracking (your data)
         ├── tasks/              # Task pipeline (your data)
         │   ├── backlog/
         │   ├── next/

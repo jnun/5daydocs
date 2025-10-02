@@ -279,17 +279,6 @@ else
     echo "⚠ DOCUMENTATION.md already exists, skipping"
 fi
 
-# Copy CLAUDE.md for AI assistance
-if [ ! -f CLAUDE.md ]; then
-    if [ -f "$FIVEDAY_SOURCE_DIR/CLAUDE.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/CLAUDE.md" CLAUDE.md
-        echo "✓ Copied CLAUDE.md (AI assistant configuration)"
-        ((FILES_COPIED++))
-    fi
-else
-    echo "⚠ CLAUDE.md already exists, skipping"
-fi
-
 # Copy template files
 echo "Setting up template files..."
 if [ ! -f docs/work/tasks/TEMPLATE-task.md ] || $UPDATE_MODE; then
@@ -377,16 +366,9 @@ if [ "$PLATFORM" != "bitbucket-jira" ]; then
 
     # Copy appropriate workflow files from templates based on platform
     if [ "$PLATFORM" = "github-jira" ]; then
-        # Copy Jira-related workflows from templates
-        if [ -f "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-jira.yml" ]; then
-            cp "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-jira.yml" .github/workflows/
-            echo "✓ Copied sync-tasks-to-jira.yml"
-        fi
-        if [ -f "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-jira-to-git.yml" ]; then
-            cp "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-jira-to-git.yml" .github/workflows/
-            echo "✓ Copied sync-jira-to-git.yml"
-        fi
-        echo "  Note: You'll need to configure Jira integration in your repository settings"
+        # Jira integration placeholder
+        echo "  Note: Jira integration workflows are not yet implemented"
+        echo "  You'll need to configure Jira integration manually"
     else
         # Copy GitHub Issues workflow from templates
         if [ -f "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-issues.yml" ]; then
@@ -914,14 +896,8 @@ else
 
     # Copy Bitbucket pipeline configuration for Bitbucket platform
     if [ "$PLATFORM" = "bitbucket-jira" ]; then
-        echo "Setting up Bitbucket Pipelines configuration..."
-        if [ -f "$FIVEDAY_SOURCE_DIR/templates/workflows/bitbucket/pipelines.yml" ]; then
-            cp "$FIVEDAY_SOURCE_DIR/templates/workflows/bitbucket/pipelines.yml" ./bitbucket-pipelines.yml
-            echo "✓ Copied bitbucket-pipelines.yml to project root"
-            echo "  Note: Configure Jira credentials in Bitbucket repository settings"
-        else
-            echo "⚠ Warning: bitbucket-pipelines.yml.template not found"
-        fi
+        echo "⚠ Bitbucket Pipelines configuration not yet implemented"
+        echo "  You'll need to create bitbucket-pipelines.yml manually"
     fi
 
     echo "📚 Get Started Now:"

@@ -147,7 +147,7 @@ All 5DayDocs system variables use `5DAY_` prefix (like `5DAY_TASK_ID`) to preven
 │   │   └── FEATURE-NAME.md      # Status-tagged capabilities (LIVE/TESTING/BACKLOG)
 │   ├── guides/                  # Technical guides, setup instructions, architecture docs
 │   │   └── TOPIC-NAME.md        # Markdown format, technical documentation
-│   ├── data/                    # Data layer documentation (schemas, migrations, architecture)
+│   ├── ideas/                   # Brainstorming, concepts, future ideas
 │   ├── STATE.md                 # Current highest task/bug ID
 │   └── work/                    # Workflow, tasks, bugs, scripts
 │       ├── scripts/             # Work automation scripts
@@ -167,8 +167,16 @@ All 5DayDocs system variables use `5DAY_` prefix (like `5DAY_TASK_ID`) to preven
 │       │   └── INDEX.md             # Bug folder index
 │       ├── designs/              # UI mockups and wireframes
 │       ├── examples/             # Code examples and snippets
-│       ├── data/                 # Database design, sample data
+│       ├── data/                 # Test/sample data
 │       └── INDEX.md             # Work folder index
+├── templates/                   # Templates directory
+│   ├── project/                 # Project setup templates
+│   └── workflows/               # CI/CD workflow templates
+│       ├── github/              # GitHub Actions workflows
+│       └── bitbucket/           # Bitbucket Pipelines configs
+├── scripts/                     # 5DayDocs distribution scripts
+├── setup.sh                     # Project setup script
+└── 5day.sh                      # Command interface
 ```
 
 ## How It Works

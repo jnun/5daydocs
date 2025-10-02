@@ -33,22 +33,30 @@ When preparing the repository for distribution, we provide users with:
 
 **Folder Structure:**
 ```
-work/
-├── tasks/
-│   ├── backlog/
-│   ├── next/
-│   ├── working/
-│   ├── review/
-│   └── live/
-├── bugs/
-│   └── archived/
-├── scripts/
-├── designs/
-├── examples/
-└── data/
 docs/
 ├── features/
-└── guides/
+├── guides/
+├── ideas/
+├── STATE.md
+└── work/
+    ├── tasks/
+    │   ├── backlog/
+    │   ├── next/
+    │   ├── working/
+    │   ├── review/
+    │   └── live/
+    ├── bugs/
+    │   └── archived/
+    ├── scripts/
+    ├── designs/
+    ├── examples/
+    └── data/
+templates/
+├── project/
+└── workflows/
+    ├── github/
+    └── bitbucket/
+scripts/
 ```
 
 Some internal files and folders (such as this `DISTRIBUTION.md`, internal documentation, and project-specific content) are not intended for end users, but remain in the repository for transparency and development purposes.

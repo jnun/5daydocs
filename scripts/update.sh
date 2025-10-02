@@ -1,10 +1,46 @@
 #!/bin/zsh
 # update.sh - 5DayDocs version-aware update and migration script
+# Usage: ./update.sh
+#   Prompts for target project path and updates 5DayDocs structure there
 
 set -e
 
+# Store the 5daydocs source directory (where this script lives)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]:-$0}" )" && pwd )"
+
+echo "================================================"
+echo "  5DayDocs - Update Script"
+echo "================================================"
+echo ""
+
+# Ask for target project path
+echo "Enter the path to your project where 5DayDocs is installed:"
+echo "(e.g., /Users/yourname/myproject or ../myproject)"
+read -r TARGET_PATH
+
+# Expand tilde and resolve relative paths
+TARGET_PATH="${TARGET_PATH/#\~/$HOME}"
+TARGET_PATH="$( cd "$TARGET_PATH" 2>/dev/null && pwd )" || {
+    echo "❌ Error: Path '$TARGET_PATH' does not exist or is not accessible."
+    exit 1
+}
+
+echo ""
+echo "Updating 5DayDocs in: $TARGET_PATH"
+echo ""
+
+# Change to target directory
+cd "$TARGET_PATH"
+
+# Check if 5DayDocs is installed in this directory
+if [ ! -d "docs/work/tasks" ] && [ ! -f "docs/STATE.md" ]; then
+    echo "❌ Error: 5DayDocs doesn't appear to be installed in $TARGET_PATH"
+    echo "   Please run setup.sh first to install 5DayDocs in this directory."
+    exit 1
+fi
+
 VERSION_FILE="docs/VERSION"
-CURRENT_VERSION="1.0.0"
+CURRENT_VERSION="1.1.0"
 
 # Read installed version
 if [ -f "$VERSION_FILE" ]; then
@@ -13,7 +49,6 @@ else
   INSTALLED_VERSION="0.0.0"
 fi
 
-echo "5DayDocs Update Script"
 echo "Current version: $INSTALLED_VERSION"
 echo "Target version: $CURRENT_VERSION"
 
@@ -133,6 +168,16 @@ if [[ "$INSTALLED_VERSION" < "1.0.0" ]]; then
   done
 
   INSTALLED_VERSION="1.0.0"
+fi
+
+# Migration from 1.0.0 to 1.1.0
+if [[ "$INSTALLED_VERSION" < "1.1.0" ]]; then
+  echo ""
+  echo "Migrating from 1.0.0 to 1.1.0..."
+  echo "✓ Update script now prompts for target directory"
+  echo "✓ No structural changes required"
+
+  INSTALLED_VERSION="1.1.0"
 fi
 
 # Write updated version

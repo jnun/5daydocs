@@ -65,7 +65,7 @@ else
 fi
 
 cat << EOF > docs/work/tasks/backlog/$FILENAME
-# $DESCRIPTION
+# Task $NEW_ID: $DESCRIPTION
 
 ## Problem
 [Describe what needs to be done or fixed]

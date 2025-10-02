@@ -1,4 +1,4 @@
-# Task 57: Create a clear installation and setup guide for someone working from the repo
+# Task 57: Clear Installation and Setup Guide
 
 ## Problem
 [Describe what needs to be done or fixed]

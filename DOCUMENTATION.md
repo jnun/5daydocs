@@ -213,7 +213,7 @@ Each task is a file with a unique ID that moves between folders.
 
 **Task File Format (Template - replace placeholders)**:
 ```markdown
-# Task ID: BRIEF-DESCRIPTION
+# Task [NUMBER]: [Brief Description]
 
 **Feature**: /docs/features/RELATED-FEATURE.md (or "multiple" or "none")
 **Created**: YYYY-MM-DD  <!-- Replace with actual date -->
@@ -332,8 +332,8 @@ When ready to fix a bug:
 2. Create a task following the normal task creation process
 3. Reference the bug report in the task:
    ```markdown
-   # Task ID: TITLE-DESCRIBING-FIX
-   
+   # Task [NUMBER]: [Title Describing Fix]
+
    **Bug Report**: /docs/work/bugs/ID-DESCRIPTION.md
    **Feature**: /docs/features/RELATED-FEATURE.md
    ```
@@ -372,7 +372,7 @@ Keep documentation simple and clear. The goal is to help anyone working on tasks
 For teams using git branches:
 1. Branch naming: `task/ID-DESCRIPTION` (matches task filename)
 2. One branch per task in `work/tasks/working/`
-3. PR title: "Task ID: Brief Description"
+3. PR title: "Task [NUMBER]: Brief Description"
 4. PR description: Link to task file and success criteria
 5. Merge to main after task moves to `live/`
 6. Delete branch after merge
@@ -493,9 +493,9 @@ Simply use your normal git workflow. The GitHub Action handles everything:
 ```bash
 # Example workflow (replace ID and DESCRIPTION with actual values)
 # Creating a task:
-echo "# Task ID: TITLE" > work/tasks/backlog/ID-DESCRIPTION.md
-git add work/tasks/backlog/ID-DESCRIPTION.md
-git commit -m "Add task ID: DESCRIPTION"
+echo "# Task 123: Fix Login Bug" > work/tasks/backlog/123-fix-login-bug.md
+git add work/tasks/backlog/123-fix-login-bug.md
+git commit -m "Add task 123: Fix Login Bug"
 git push  # GitHub Action creates issue automatically
 
 # Moving through pipeline:

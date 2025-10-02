@@ -6,7 +6,7 @@
 
 **Keep what works. Change only what's broken.**
 
-5DayDocs is intentionally simple:
+5DayDocs are intentionally simple:
 - Plain folders and markdown files
 - No databases, no apps, no complexity
 - Add only tools that demonstrably improve workflow
@@ -27,8 +27,8 @@ chmod +x setup.sh
 
 This will:
 - Create all required directories
-- Set up state tracking file (STATE.md)
-- Make all scripts in scripts/ executable
+- Set up state tracking file (docs/work/STATE.md)
+- Make all scripts in docs/work/scripts/ executable
 - Create .gitignore if needed
 - Add sample content if directories are empty
 
@@ -67,17 +67,18 @@ The `5day.sh` script is a convenient command interface for running common 5DayDo
 ```bash
 # Example commands - replace placeholders with actual values
 # Create directory structure
-mkdir -p work/tasks/{backlog,next,working,review,live}
-mkdir -p work/{bugs/archived,designs,examples,data}
+mkdir -p docs/work/tasks/{backlog,next,working,review,live}
+mkdir -p docs/work/{bugs/archived,designs,examples,data}
 mkdir -p docs/{features,guides}
-mkdir -p work/scripts
+mkdir -p docs/work/scripts
 
 # Create state file ($(date +%Y-%m-%d) will generate current date)
-echo "# work/STATE.md\n\n**Last Updated**: $(date +%Y-%m-%d)\n**5DAY_TASK_ID**: 0\n**5DAY_BUG_ID**: 0" > work/STATE.md
+echo "# docs/work/STATE.md\n\n**Last Updated**: $(date +%Y-%m-%d)\n**5DAY_TASK_ID**: 0\n**5DAY_BUG_ID**: 0" > docs/work/STATE.md
 
 # Make scripts executable
-chmod +x work/scripts/*.sh
+chmod +x docs/work/scripts/*.sh
 ```
+
 
 ## Document Conventions
 
@@ -87,6 +88,25 @@ chmod +x work/scripts/*.sh
 - When you see "ID-DESCRIPTION.md" replace ID with a number and DESCRIPTION with kebab-case text
 - All paths use forward slashes (/) even on Windows
 - Commands shown are for bash/unix shells
+
+
+
+### Capitalization and Naming Rationale
+
+- **Capitalized root files** (e.g., `DOCUMENTATION.md`, `README.md`) are core reference files at the top level. AI and tools use these as default starting points.
+- **Lowercase, kebab-case** for all other files and folders.
+
+#### Quick Reference Table
+
+| File Type                | Example                        | Convention                |
+|--------------------------|--------------------------------|---------------------------|
+| Core/root reference      | DOCUMENTATION.md, README.md    | Capitalized, underscores  |
+| Regular docs/features    | initial-welcome-message.md     | Lowercase, kebab-case     |
+| Task/Bug files           | 01-fix-login-bug.md            | Lowercase, kebab-case     |
+| Template files           | template-feature.md             | Lowercase, kebab-case     |
+| Scripts                  | create-task.sh                  | Lowercase, kebab-case     |
+
+**Rationale:** Capitalization is used only for files that serve as primary entry points or core references. All other files use lowercase and kebab-case for clarity and consistency.
 
 ### Why 5DAY_ Prefixes
 
@@ -117,6 +137,7 @@ All 5DayDocs system variables use `5DAY_` prefix (like `5DAY_TASK_ID`) to preven
 
 ## Project Structure
 
+
 ```
 /
 ├── DOCUMENTATION.md             # This guide
@@ -126,24 +147,36 @@ All 5DayDocs system variables use `5DAY_` prefix (like `5DAY_TASK_ID`) to preven
 │   │   └── FEATURE-NAME.md      # Status-tagged capabilities (LIVE/TESTING/BACKLOG)
 │   ├── guides/                  # Technical guides, setup instructions, architecture docs
 │   │   └── TOPIC-NAME.md        # Markdown format, technical documentation
-│   └── data/                    # Data layer documentation (schemas, migrations, architecture)
-└── work/
-    ├── STATE.md                 # Current highest task ID
-    ├── scripts/                 # Work automation scripts
-    │   ├── setup.sh             # Initial setup script
-    │   ├── create-task.sh       # Task creation helper
-    │   └── check-alignment.sh # Feature status checker
-    ├── tasks/                   # Task management
-    │   ├── backlog/             # Not prioritized
-    │   ├── next/                # Sprint queue
-    │   ├── working/             # Being worked on now
-    │   ├── review/              # Awaiting approval
-    │   └── live/                # Completed
-    ├── designs/                 # UI mockups and wireframes (any format: PNG, SVG, HTML)
-    ├── examples/                # Code examples and snippets (markdown or code files)
-    ├── data/                    # Database design, sample data, and storage planning (see Database & Storage section)
-    └── bugs/                    # Bug reports (see Bug Reports section below)
-        └── archived/            # Processed bug reports
+│   ├── ideas/                   # Brainstorming, concepts, future ideas
+│   ├── STATE.md                 # Current highest task/bug ID
+│   └── work/                    # Workflow, tasks, bugs, scripts
+│       ├── scripts/             # Work automation scripts
+│       │   ├── create-task.sh       # Task creation helper
+│       │   ├── create-feature.sh    # Feature creation helper
+│       │   ├── check-alignment.sh   # Feature status checker
+│       │   └── INDEX.md             # Scripts index and documentation
+│       ├── tasks/                   # Task management
+│       │   ├── backlog/             # Not prioritized
+│       │   ├── next/                # Sprint queue
+│       │   ├── working/             # Being worked on now
+│       │   ├── review/              # Awaiting approval
+│       │   ├── live/                # Completed
+│       │   └── INDEX.md             # Task folder index
+│       ├── bugs/                    # Bug reports
+│       │   ├── archived/            # Processed bug reports
+│       │   └── INDEX.md             # Bug folder index
+│       ├── designs/              # UI mockups and wireframes
+│       ├── examples/             # Code examples and snippets
+│       ├── data/                 # Test/sample data
+│       └── INDEX.md             # Work folder index
+├── templates/                   # Templates directory
+│   ├── project/                 # Project setup templates
+│   └── workflows/               # CI/CD workflow templates
+│       ├── github/              # GitHub Actions workflows
+│       └── bitbucket/           # Bitbucket Pipelines configs
+├── scripts/                     # 5DayDocs distribution scripts
+├── setup.sh                     # Project setup script
+└── 5day.sh                      # Command interface
 ```
 
 ## How It Works
@@ -211,13 +244,13 @@ When a task has dependencies or should be done in a specific order with other ta
 Only include this section when tasks have actual dependencies. Most tasks should be independent and can be worked in any order.
 
 **Task Flow**:
-1. Create in `work/tasks/backlog/` with next ID (check work/STATE.md)
-2. Sprint planning: Move to `work/tasks/next/`
-3. Start work: Move to `work/tasks/working/`
-4. Complete work: Move to `work/tasks/review/`
-5. After approval: Move to `work/tasks/live/`
-6. If blocked: Move back to `work/tasks/next/`
-7. Run `./work/scripts/check-alignment.sh` to check feature status
+1. Create in `docs/work/tasks/backlog/` with next ID (check docs/work/STATE.md)
+2. Sprint planning: Move to `docs/work/tasks/next/`
+3. Start work: Move to `docs/work/tasks/working/`
+4. Complete work: Move to `docs/work/tasks/review/`
+5. After approval: Move to `docs/work/tasks/live/`
+6. If blocked: Move back to `docs/work/tasks/next/`
+7. Run `./docs/work/scripts/check-alignment.sh` to check feature status
 8. Update feature doc status when capabilities go LIVE
 
 ## Common Workflows
@@ -237,21 +270,21 @@ Only include this section when tasks have actual dependencies. Most tasks should
 ```
 
 This automatically:
-- Checks the current highest ID in `work/STATE.md`
-- Creates the task file in `work/tasks/backlog/`
-- Updates `work/STATE.md` with the new ID
+- Checks the current highest ID in `docs/work/STATE.md`
+- Creates the task file in `docs/work/tasks/backlog/`
+- Updates `docs/work/STATE.md` with the new ID
 - Commits both files together
 
 **Where things are stored**:
-- **Task IDs**: Tracked in `work/STATE.md` (contains `5DAY_TASK_ID`)
-- **New tasks**: Created in `work/tasks/backlog/` folder
-- **Task files**: Named as `ID-description.md` (e.g., `5-fix-login.md`)
-- **Task format**: Each task file contains title, feature reference, creation date, problem description, and success criteria
+**Task IDs**: Tracked in `docs/STATE.md` (contains `5DAY_TASK_ID`)
+**New tasks**: Created in `docs/work/tasks/backlog/` folder
+**Task files**: Named as `ID-description.md` (e.g., `5-fix-login.md`)
+**Task format**: Each task file contains title, feature reference, creation date, problem description, and success criteria
 
 **Manual approach** (if you prefer):
-1. Check `work/STATE.md` for the current highest task ID
-2. Create a new file in `work/tasks/backlog/` with ID+1
-3. Update `work/STATE.md` with the new highest ID
+1. Check `docs/STATE.md` for the current highest task ID
+2. Create a new file in `docs/work/tasks/backlog/` with ID+1
+3. Update `docs/STATE.md` with the new highest ID
 4. Commit both files together
 
 
@@ -260,9 +293,9 @@ This automatically:
 Bug reports are created in `work/bugs/` by users, clients, or stakeholders reporting issues.
 
 **Bug File Naming**: ID-DESCRIPTION.md
-- Use sequential integer IDs starting from 0 (just like tasks: 0, 1, 2, 3...)
-- Keep DESCRIPTION brief and kebab-case
-- Track highest bug ID in work/STATE.md as 5DAY_BUG_ID
+Use sequential integer IDs starting from 0 (just like tasks: 0, 1, 2, 3...)
+Keep DESCRIPTION brief and kebab-case
+Track highest bug ID in docs/work/STATE.md as 5DAY_BUG_ID
 
 **Bug Report Format (Template - replace ALL CAPS with actual values)**:
 ```markdown
@@ -295,29 +328,29 @@ What should happen instead
 ### Converting Bugs to Tasks
 
 When ready to fix a bug:
-1. Review bug report in `work/bugs/`
+1. Review bug report in `docs/work/bugs/`
 2. Create a task following the normal task creation process
 3. Reference the bug report in the task:
    ```markdown
    # Task ID: TITLE-DESCRIBING-FIX
    
-   **Bug Report**: /work/bugs/ID-DESCRIPTION.md
+   **Bug Report**: /docs/work/bugs/ID-DESCRIPTION.md
    **Feature**: /docs/features/RELATED-FEATURE.md
    ```
-4. Move bug report to `work/bugs/archived/` after task is created:
+4. Move bug report to `docs/work/bugs/archived/` after task is created:
    ```bash
-   mkdir -p work/bugs/archived
-   mv work/bugs/ID-DESCRIPTION.md work/bugs/archived/
+   mkdir -p docs/work/bugs/archived
+   mv docs/work/bugs/ID-DESCRIPTION.md docs/work/bugs/archived/
    ```
 5. Proceed with task through normal workflow
 
 ### Task Review Process
 
 When a task is complete:
-1. Developer moves task to `work/tasks/review/`
+1. Developer moves task to `docs/work/tasks/review/`
 2. Reviewer checks success criteria are met
-3. If approved: Move to `work/tasks/live/`
-4. If rejected: Move back to `work/tasks/next/` with notes
+3. If approved: Move to `docs/work/tasks/live/`
+4. If rejected: Move back to `docs/work/tasks/next/` with notes
 5. Update related feature status if applicable
 
 ## Data Architecture
@@ -567,13 +600,13 @@ chmod +x 5day.sh
 
 **Missing directories?** Run `./setup.sh` or create manually:
 ```bash
-mkdir -p work/tasks/{backlog,next,working,review,live}
-mkdir -p work/{bugs/archived,designs,examples,data}
+mkdir -p docs/work/tasks/{backlog,next,working,review,live}
+mkdir -p docs/work/{bugs/archived,designs,examples,data}
 mkdir -p docs/{features,guides}
-mkdir -p work/scripts
+mkdir -p docs/work/scripts
 ```
 
-**Task ID conflicts?** Always check work/STATE.md first. The STATE.md file is the source of truth for task IDs.
+**Task ID conflicts?** Always check docs/STATE.md first. The STATE.md file is the source of truth for task IDs.
 
 **Git status showing deleted files?** This is normal after reorganization. Review and commit changes when ready.
 

@@ -3,7 +3,7 @@
 # Usage: ./setup.sh
 #   Prompts for target project path and sets up 5DayDocs structure there
 #
-# Templates: Workflow templates are stored in templates/github-workflows/
+# Templates: Workflow templates are stored in templates/workflows/
 #   These are copied to the target project based on platform selection
 
 set -e  # Exit on error
@@ -73,7 +73,7 @@ if [ "$TARGET_PATH" = "$FIVEDAY_SOURCE_DIR" ]; then
 fi
 
 # Check if 5DayDocs is already installed
-if [ -f work/STATE.md ] || [ -f DOCUMENTATION.md ]; then
+if [ -f docs/STATE.md ] || [ -f DOCUMENTATION.md ]; then
     echo "⚠ 5DayDocs appears to be already installed in this project."
     echo "Do you want to update/refresh the installation? (y/n)"
     read -r CONFIRM
@@ -86,37 +86,60 @@ else
     UPDATE_MODE=false
 fi
 
-# Create directory structure
+# Create directory structure with safety checks
 echo "Creating directory structure..."
-mkdir -p work/tasks/{backlog,next,working,review,live}
-mkdir -p work/{bugs/archived,designs,examples,data,scripts}
-mkdir -p docs/{features,guides}
-# DO NOT create scripts/ at root - keep all scripts in work/scripts/
+
+# Function to safely create directories
+safe_mkdir() {
+    local dir="$1"
+    if [ ! -d "$dir" ]; then
+        mkdir -p "$dir"
+        echo "  ✓ Created: $dir"
+    else
+        echo "  → Exists: $dir"
+    fi
+}
+
+# Create work directories
+safe_mkdir "docs/work/tasks/backlog"
+safe_mkdir "docs/work/tasks/next"
+safe_mkdir "docs/work/tasks/working"
+safe_mkdir "docs/work/tasks/review"
+safe_mkdir "docs/work/tasks/live"
+safe_mkdir "docs/work/bugs/archived"
+safe_mkdir "docs/work/designs"
+safe_mkdir "docs/work/examples"
+safe_mkdir "docs/work/data"
+safe_mkdir "docs/work/scripts"
+
+# Create docs directories
+safe_mkdir "docs/features"
+safe_mkdir "docs/guides"
 
 # Only create .github/workflows for GitHub-based platforms
 if [ "$PLATFORM" != "bitbucket-jira" ]; then
-    mkdir -p .github/workflows  # For GitHub Actions
+    safe_mkdir ".github/workflows"
 fi
 
 # Create or update state tracking files
 echo "Managing state tracking files..."
-if [ ! -f work/STATE.md ]; then
+if [ ! -f docs/STATE.md ]; then
     # Create new STATE.md
     # Check if template exists in source directory
-    if [ -f "$FIVEDAY_SOURCE_DIR/work/templates/STATE.md.template" ]; then
+    if [ -f "$FIVEDAY_SOURCE_DIR/templates/project/STATE.md.template" ]; then
         # Copy template and replace placeholders
-        sed "s/{{DATE}}/$(date +%Y-%m-%d)/g" "$FIVEDAY_SOURCE_DIR/work/templates/STATE.md.template" > work/STATE.md
-        echo "✓ Created work/STATE.md from template"
+        sed "s/{{DATE}}/$(date +%Y-%m-%d)/g" "$FIVEDAY_SOURCE_DIR/templates/project/STATE.md.template" > docs/STATE.md
+        echo "✓ Created docs/STATE.md from template"
     else
         # Fallback to inline generation if template doesn't exist
-        cat > work/STATE.md << STATE_EOF
-# work/STATE.md
+        cat > docs/STATE.md << STATE_EOF
+# docs/STATE.md
 
 **Last Updated**: $(date +%Y-%m-%d)
 **5DAY_TASK_ID**: 0
 **5DAY_BUG_ID**: 0
 STATE_EOF
-        echo "✓ Created work/STATE.md (fallback inline generation)"
+        echo "✓ Created docs/STATE.md (fallback inline generation)"
     fi
 else
     # STATE.md exists - preserve the ID numbers during updates
@@ -125,10 +148,10 @@ else
 
         # Extract existing values with robust parsing and validation
         # First extract the line, then find the first number sequence after the colon
-        EXISTING_TASK_ID=$(grep "5DAY_TASK_ID" work/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
-        EXISTING_BUG_ID=$(grep "5DAY_BUG_ID" work/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
+        EXISTING_TASK_ID=$(grep "5DAY_TASK_ID" docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
+        EXISTING_BUG_ID=$(grep "5DAY_BUG_ID" docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
         # Extract date and trim whitespace
-        EXISTING_DATE=$(grep "Last Updated" work/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | sed 's/[[:space:]]*$//' | head -1)
+        EXISTING_DATE=$(grep "Last Updated" docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | sed 's/[[:space:]]*$//' | head -1)
 
         # Validate and sanitize extracted values
         # Ensure IDs are valid numbers, default to 0 if not
@@ -160,8 +183,8 @@ else
 
         # Simply rewrite STATE.md with preserved values
         # No complex template logic needed
-        cat > work/STATE.md << STATE_EOF
-# work/STATE.md
+        cat > docs/STATE.md << STATE_EOF
+# docs/STATE.md
 
 **Last Updated**: $PRESERVE_DATE
 **5DAY_TASK_ID**: $PRESERVE_TASK_ID
@@ -169,25 +192,25 @@ else
 STATE_EOF
         echo "✓ Updated STATE.md while preserving values"
     else
-        echo "⚠ work/STATE.md already exists, preserving existing file"
+        echo "⚠ docs/STATE.md already exists, preserving existing file"
     fi
 fi
 
 # Store platform configuration
-if [ ! -f work/.platform-config ] || $UPDATE_MODE; then
-    cat > work/.platform-config << CONFIG_EOF
+if [ ! -f docs/work/.platform-config ] || $UPDATE_MODE; then
+    cat > docs/work/.platform-config << CONFIG_EOF
 # 5DayDocs Platform Configuration
 # Generated: $(date +%Y-%m-%d)
 PLATFORM="$PLATFORM"
 CONFIG_EOF
-    echo "✓ Created platform configuration file (work/.platform-config)"
+    echo "✓ Created platform configuration file (docs/work/.platform-config)"
 fi
 
 # BUG_STATE.md is now integrated into STATE.md
 # Create a migration notice if old BUG_STATE.md exists
-if [ -f work/bugs/BUG_STATE.md ]; then
-    echo "ℹ️  Note: Bug state tracking is now managed in work/STATE.md"
-    echo "  The old work/bugs/BUG_STATE.md can be removed after migration."
+if [ -f docs/work/bugs/BUG_STATE.md ]; then
+    echo "ℹ️  Note: Bug state tracking is now managed in docs/STATE.md"
+    echo "  The old docs/work/bugs/BUG_STATE.md can be removed after migration."
 fi
 
 # Copy documentation files
@@ -216,23 +239,23 @@ See \`DOCUMENTATION.md\` for the complete workflow guide.
 
 \`\`\`bash
 # Create a new task
-./work/scripts/create-task.sh "Task description"
+./docs/work/scripts/create-task.sh "Task description"
 
 # Check feature-task alignment
-./work/scripts/analyze-feature-alignment.sh
+./docs/work/scripts/analyze-feature-alignment.sh
 
 # View current work
-ls work/tasks/working/
+ls docs/work/tasks/working/
 
 # View sprint queue
-ls work/tasks/next/
+ls docs/work/tasks/next/
 \`\`\`
 
 ## Project Structure
 
-- \`work/tasks/\` - Task pipeline (backlog → next → working → review → live)
+- \`docs/work/tasks/\` - Task pipeline (backlog → next → working → review → live)
 - \`docs/features/\` - Feature documentation with status tracking
-- \`work/bugs/\` - Bug reports and tracking
+- \`docs/work/bugs/\` - Bug reports and tracking
 
 ---
 *Powered by 5DayDocs - Simple, folder-based project management*
@@ -256,30 +279,19 @@ else
     echo "⚠ DOCUMENTATION.md already exists, skipping"
 fi
 
-# Copy CLAUDE.md for AI assistance
-if [ ! -f CLAUDE.md ]; then
-    if [ -f "$FIVEDAY_SOURCE_DIR/CLAUDE.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/CLAUDE.md" CLAUDE.md
-        echo "✓ Copied CLAUDE.md (AI assistant configuration)"
-        ((FILES_COPIED++))
-    fi
-else
-    echo "⚠ CLAUDE.md already exists, skipping"
-fi
-
 # Copy template files
 echo "Setting up template files..."
-if [ ! -f work/tasks/TEMPLATE-task.md ] || $UPDATE_MODE; then
-    if [ -f "$FIVEDAY_SOURCE_DIR/work/tasks/TEMPLATE-task.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/work/tasks/TEMPLATE-task.md" work/tasks/
+if [ ! -f docs/work/tasks/TEMPLATE-task.md ] || $UPDATE_MODE; then
+    if [ -f "$FIVEDAY_SOURCE_DIR/docs/work/tasks/TEMPLATE-task.md" ]; then
+        cp "$FIVEDAY_SOURCE_DIR/docs/work/tasks/TEMPLATE-task.md" docs/work/tasks/
         echo "✓ Copied task template"
         ((FILES_COPIED++))
     fi
 fi
 
-if [ ! -f work/bugs/TEMPLATE-bug.md ] || $UPDATE_MODE; then
-    if [ -f "$FIVEDAY_SOURCE_DIR/work/bugs/TEMPLATE-bug.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/work/bugs/TEMPLATE-bug.md" work/bugs/
+if [ ! -f docs/work/bugs/TEMPLATE-bug.md ] || $UPDATE_MODE; then
+    if [ -f "$FIVEDAY_SOURCE_DIR/docs/work/bugs/TEMPLATE-bug.md" ]; then
+        cp "$FIVEDAY_SOURCE_DIR/docs/work/bugs/TEMPLATE-bug.md" docs/work/bugs/
         echo "✓ Copied bug template"
         ((FILES_COPIED++))
     fi
@@ -293,28 +305,28 @@ if [ ! -f docs/features/TEMPLATE-feature.md ] || $UPDATE_MODE; then
     fi
 fi
 
-# Copy scripts (all go in work/scripts/)
+# Copy scripts (all go in docs/work/scripts/)
 echo "Setting up automation scripts..."
-if [ -f "$FIVEDAY_SOURCE_DIR/work/scripts/check-alignment.sh" ]; then
-    cp "$FIVEDAY_SOURCE_DIR/work/scripts/check-alignment.sh" work/scripts/
-    chmod +x work/scripts/check-alignment.sh
-    echo "✓ Copied check-alignment.sh to work/scripts/"
+if [ -f "$FIVEDAY_SOURCE_DIR/docs/work/scripts/check-alignment.sh" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/docs/work/scripts/check-alignment.sh" docs/work/scripts/
+    chmod +x docs/work/scripts/check-alignment.sh
+    echo "✓ Copied check-alignment.sh to docs/work/scripts/"
     ((FILES_COPIED++))
     ((SCRIPTS_READY++))
 fi
 
-if [ -f "$FIVEDAY_SOURCE_DIR/work/scripts/create-task.sh" ]; then
-    cp "$FIVEDAY_SOURCE_DIR/work/scripts/create-task.sh" work/scripts/
-    chmod +x work/scripts/create-task.sh
-    echo "✓ Copied create-task.sh to work/scripts/"
+if [ -f "$FIVEDAY_SOURCE_DIR/docs/work/scripts/create-task.sh" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/docs/work/scripts/create-task.sh" docs/work/scripts/
+    chmod +x docs/work/scripts/create-task.sh
+    echo "✓ Copied create-task.sh to docs/work/scripts/"
     ((FILES_COPIED++))
     ((SCRIPTS_READY++))
 fi
 
-if [ -f "$FIVEDAY_SOURCE_DIR/work/scripts/create-feature.sh" ]; then
-    cp "$FIVEDAY_SOURCE_DIR/work/scripts/create-feature.sh" work/scripts/
-    chmod +x work/scripts/create-feature.sh
-    echo "✓ Copied create-feature.sh to work/scripts/"
+if [ -f "$FIVEDAY_SOURCE_DIR/docs/work/scripts/create-feature.sh" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/docs/work/scripts/create-feature.sh" docs/work/scripts/
+    chmod +x docs/work/scripts/create-feature.sh
+    echo "✓ Copied create-feature.sh to docs/work/scripts/"
     ((FILES_COPIED++))
     ((SCRIPTS_READY++))
 fi
@@ -333,17 +345,7 @@ else
     echo "⚠ Warning: 5day.sh not found in source directory"
 fi
 
-# Also copy 5d if it exists (for backwards compatibility)
-if [ -f "$FIVEDAY_SOURCE_DIR/5d" ]; then
-    if [ ! -f ./5d ] || $UPDATE_MODE; then
-        cp "$FIVEDAY_SOURCE_DIR/5d" ./5d
-        chmod +x ./5d
-        echo "✓ Copied 5d command script to project root"
-        ((FILES_COPIED++))
-    else
-        echo "⚠ 5d already exists, preserving your version"
-    fi
-fi
+# Note: 5d symlink removed for clarity - use 5day.sh as the single command interface
 
 # Copy GitHub workflows (only for GitHub-based platforms)
 if [ "$PLATFORM" != "bitbucket-jira" ]; then
@@ -354,20 +356,13 @@ if [ "$PLATFORM" != "bitbucket-jira" ]; then
 
     # Copy appropriate workflow files from templates based on platform
     if [ "$PLATFORM" = "github-jira" ]; then
-        # Copy Jira-related workflows from templates
-        if [ -f "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-tasks-to-jira.yml" ]; then
-            cp "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-tasks-to-jira.yml" .github/workflows/
-            echo "✓ Copied sync-tasks-to-jira.yml"
-        fi
-        if [ -f "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-jira-to-git.yml" ]; then
-            cp "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-jira-to-git.yml" .github/workflows/
-            echo "✓ Copied sync-jira-to-git.yml"
-        fi
-        echo "  Note: You'll need to configure Jira integration in your repository settings"
+        # Jira integration placeholder
+        echo "  Note: Jira integration workflows are not yet implemented"
+        echo "  You'll need to configure Jira integration manually"
     else
         # Copy GitHub Issues workflow from templates
-        if [ -f "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-tasks-to-issues.yml" ]; then
-            cp "$FIVEDAY_SOURCE_DIR/templates/github-workflows/sync-tasks-to-issues.yml" .github/workflows/
+        if [ -f "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-issues.yml" ]; then
+            cp "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-issues.yml" .github/workflows/
             echo "✓ Copied sync-tasks-to-issues.yml"
         fi
         echo "  Remember to configure secrets in your GitHub repository settings"
@@ -469,19 +464,19 @@ nohup.out
 secrets/
 
 # Local data examples (expand as needed)
-work/data/*.csv
-work/data/*.json
-work/data/*.xml
-work/data/*.sql
-work/data/*.db
-work/data/*.sqlite
+docs/work/data/*.csv
+docs/work/data/*.json
+docs/work/data/*.xml
+docs/work/data/*.sql
+docs/work/data/*.db
+docs/work/data/*.sqlite
 
 # Design files (binary/large files)
-work/designs/*.psd
-work/designs/*.ai
-work/designs/*.sketch
-work/designs/*.fig
-work/designs/*.xd
+docs/work/designs/*.psd
+docs/work/designs/*.ai
+docs/work/designs/*.sketch
+docs/work/designs/*.fig
+docs/work/designs/*.xd
 
 # Documentation builds (if using doc generators)
 docs/_build/
@@ -541,13 +536,13 @@ echo "Setting up INDEX.md documentation files..."
 
 # List of INDEX.md files to copy from source
 INDEX_FILES=(
-    "work/INDEX.md"
-    "work/tasks/INDEX.md"
-    "work/bugs/INDEX.md"
-    "work/scripts/INDEX.md"
-    "work/designs/INDEX.md"
-    "work/examples/INDEX.md"
-    "work/data/INDEX.md"
+    "docs/work/INDEX.md"
+    "docs/work/tasks/INDEX.md"
+    "docs/work/bugs/INDEX.md"
+    "docs/work/scripts/INDEX.md"
+    "docs/work/designs/INDEX.md"
+    "docs/work/examples/INDEX.md"
+    "docs/work/data/INDEX.md"
     "docs/INDEX.md"
     "docs/features/INDEX.md"
     "docs/guides/INDEX.md"
@@ -572,9 +567,9 @@ for index_file in "${INDEX_FILES[@]}"; do
         fi
     else
         # If source doesn't exist, create basic version for essential directories
-        if [ "$index_file" = "work/INDEX.md" ] && ([ ! -f "$index_file" ] || $UPDATE_MODE); then
-            cat > work/INDEX.md << 'INDEX_EOF'
-# work/ Directory Index
+        if [ "$index_file" = "docs/work/INDEX.md" ] && ([ ! -f "$index_file" ] || $UPDATE_MODE); then
+            cat > docs/work/INDEX.md << 'INDEX_EOF'
+# docs/work/ Directory Index
 
 This is the main operational directory for 5DayDocs project management.
 
@@ -609,7 +604,7 @@ This is the main operational directory for 5DayDocs project management.
 
 See `/DOCUMENTATION.md` for complete workflow guide.
 INDEX_EOF
-            echo "✓ Created fallback work/INDEX.md"
+            echo "✓ Created fallback docs/work/INDEX.md"
             ((FILES_COPIED++))
             ((INDEX_FILES_COPIED++))
         elif [ "$index_file" = "docs/INDEX.md" ] && ([ ! -f "$index_file" ] || $UPDATE_MODE); then
@@ -659,10 +654,10 @@ done
 
 # Create INDEX.md for task subfolders
 for folder in backlog next working review live; do
-    if [ ! -f "work/tasks/$folder/INDEX.md" ] || $UPDATE_MODE; then
+    if [ ! -f "docs/work/tasks/$folder/INDEX.md" ] || $UPDATE_MODE; then
         case $folder in
             backlog)
-                cat > "work/tasks/$folder/INDEX.md" << 'EOF'
+                cat > "docs/work/tasks/$folder/INDEX.md" << 'EOF'
 # backlog/ - Task Backlog
 
 Tasks that are planned but not yet scheduled for work.
@@ -674,12 +669,12 @@ Tasks that are planned but not yet scheduled for work.
 
 ## Moving Tasks Forward
 ```bash
-git mv work/tasks/backlog/ID-task.md work/tasks/next/
+git mv docs/work/tasks/backlog/ID-task.md docs/work/tasks/next/
 ```
 EOF
                 ;;
             next)
-                cat > "work/tasks/$folder/INDEX.md" << 'EOF'
+                cat > "docs/work/tasks/$folder/INDEX.md" << 'EOF'
 # next/ - Sprint Queue
 
 Tasks scheduled for the current or next sprint.
@@ -691,12 +686,12 @@ Tasks scheduled for the current or next sprint.
 
 ## Starting Work
 ```bash
-git mv work/tasks/next/ID-task.md work/tasks/working/
+git mv docs/work/tasks/next/ID-task.md docs/work/tasks/working/
 ```
 EOF
                 ;;
             working)
-                cat > "work/tasks/$folder/INDEX.md" << 'EOF'
+                cat > "docs/work/tasks/$folder/INDEX.md" << 'EOF'
 # working/ - Active Development
 
 Tasks currently being worked on.
@@ -708,12 +703,12 @@ Tasks currently being worked on.
 
 ## Completing Work
 ```bash
-git mv work/tasks/working/ID-task.md work/tasks/review/
+git mv docs/work/tasks/working/ID-task.md docs/work/tasks/review/
 ```
 EOF
                 ;;
             review)
-                cat > "work/tasks/$folder/INDEX.md" << 'EOF'
+                cat > "docs/work/tasks/$folder/INDEX.md" << 'EOF'
 # review/ - Pending Review
 
 Completed tasks awaiting review and approval.
@@ -725,12 +720,12 @@ Completed tasks awaiting review and approval.
 
 ## Approval Process
 ```bash
-git mv work/tasks/review/ID-task.md work/tasks/live/
+git mv docs/work/tasks/review/ID-task.md docs/work/tasks/live/
 ```
 EOF
                 ;;
             live)
-                cat > "work/tasks/$folder/INDEX.md" << 'EOF'
+                cat > "docs/work/tasks/$folder/INDEX.md" << 'EOF'
 # live/ - Deployed/Completed
 
 Tasks that have been deployed to production or fully completed.
@@ -745,7 +740,7 @@ Tasks remain here as permanent record of completed work.
 EOF
                 ;;
         esac
-        echo "✓ Created work/tasks/$folder/INDEX.md"
+        echo "✓ Created docs/work/tasks/$folder/INDEX.md"
         ((FILES_COPIED++))
         ((INDEX_FILES_COPIED++))
     fi
@@ -753,10 +748,10 @@ done
 
 # Ensure all scripts are executable (double-check)
 echo "Ensuring all scripts have execute permissions..."
-if [ -d work/scripts ]; then
+if [ -d docs/work/scripts ]; then
     # Find all .sh files and make them executable
     SCRIPT_COUNT=0
-    for script in work/scripts/*.sh; do
+    for script in docs/work/scripts/*.sh; do
         if [ -f "$script" ]; then
             chmod +x "$script"
             basename_script=$(basename "$script")
@@ -766,7 +761,7 @@ if [ -d work/scripts ]; then
     done
 
     if [ $SCRIPT_COUNT -gt 0 ]; then
-        echo "✓ All $SCRIPT_COUNT scripts in work/scripts/ are now executable"
+        echo "✓ All $SCRIPT_COUNT scripts in docs/work/scripts/ are now executable"
         SCRIPTS_READY=$SCRIPT_COUNT
     fi
 fi
@@ -777,14 +772,10 @@ if [ -f ./5day.sh ]; then
     echo "✓ Ensured 5day.sh is executable"
 fi
 
-# Also ensure 5d in project root is executable (if exists)
-if [ -f ./5d ]; then
-    chmod +x ./5d
-    echo "✓ Ensured 5d is executable"
-fi
+# Note: 5d symlink removed - using 5day.sh as single command interface
 
 # Count created folders
-FOLDERS_CREATED=$(find work docs .github -type d 2>/dev/null | wc -l | tr -d ' ')
+FOLDERS_CREATED=$(find docs .github -type d 2>/dev/null | wc -l | tr -d ' ')
 
 # Validation checks
 echo ""
@@ -793,7 +784,7 @@ VALIDATION_PASSED=true
 VALIDATION_ERRORS=""
 
 # Check required directories
-for dir in work/tasks/backlog work/tasks/next work/tasks/working work/tasks/review work/tasks/live work/bugs work/scripts docs/features docs/guides; do
+for dir in docs/work/tasks/backlog docs/work/tasks/next docs/work/tasks/working docs/work/tasks/review docs/work/tasks/live docs/work/bugs docs/work/scripts docs/features docs/guides; do
     if [ ! -d "$dir" ]; then
         VALIDATION_PASSED=false
         VALIDATION_ERRORS="$VALIDATION_ERRORS\n  ❌ Missing directory: $dir"
@@ -801,7 +792,7 @@ for dir in work/tasks/backlog work/tasks/next work/tasks/working work/tasks/revi
 done
 
 # Check required files
-for file in work/STATE.md DOCUMENTATION.md; do
+for file in docs/STATE.md DOCUMENTATION.md; do
     if [ ! -f "$file" ]; then
         VALIDATION_PASSED=false
         VALIDATION_ERRORS="$VALIDATION_ERRORS\n  ❌ Missing file: $file"
@@ -809,7 +800,7 @@ for file in work/STATE.md DOCUMENTATION.md; do
 done
 
 # Check script executability
-for script in work/scripts/*.sh; do
+for script in docs/work/scripts/*.sh; do
     if [ -f "$script" ] && [ ! -x "$script" ]; then
         VALIDATION_PASSED=false
         VALIDATION_ERRORS="$VALIDATION_ERRORS\n  ❌ Script not executable: $script"
@@ -833,12 +824,12 @@ echo "  • $SCRIPTS_READY scripts ready to use"
 echo ""
 echo "✓ 5DayDocs installed to: $TARGET_PATH"
 echo "✓ Platform configured: $PLATFORM"
-echo "✓ Directory structure created in work/, docs/"
-echo "✓ Scripts are executable at work/scripts/"
+echo "✓ Directory structure created in docs/"
+echo "✓ Scripts are executable at docs/work/scripts/"
 echo "✓ Documentation available at DOCUMENTATION.md"
 echo "✓ $INDEX_FILES_COPIED INDEX.md files installed for self-documentation"
-echo "✓ Task templates ready in work/tasks/"
-echo "✓ Bug tracking initialized in work/bugs/"
+echo "✓ Task templates ready in docs/work/tasks/"
+echo "✓ Bug tracking initialized in docs/work/bugs/"
 
 if [ "$VALIDATION_PASSED" = false ]; then
     echo ""
@@ -854,14 +845,14 @@ else
     echo "What's ready for you:"
     echo ""
     echo "📁 Project Structure:"
-    echo "   - work/tasks/ - Task pipeline (backlog → next → working → review → live)"
+    echo "   - docs/work/tasks/ - Task pipeline (backlog → next → working → review → live)"
     echo "   - docs/features/ - Feature documentation"
-    echo "   - work/bugs/ - Bug tracking"
+    echo "   - docs/work/bugs/ - Bug tracking"
     echo ""
     echo "🛠 Available Scripts:"
     echo "   - ./5day.sh - Main command interface for 5DayDocs"
-    echo "   - ./work/scripts/create-task.sh - Create new tasks"
-    echo "   - ./work/scripts/check-alignment.sh - Check feature/task alignment"
+    echo "   - ./docs/work/scripts/create-task.sh - Create new tasks"
+    echo "   - ./docs/work/scripts/check-alignment.sh - Check feature/task alignment"
     echo ""
 
     # Platform-specific setup info
@@ -889,6 +880,12 @@ else
             ;;
     esac
 
+    # Copy Bitbucket pipeline configuration for Bitbucket platform
+    if [ "$PLATFORM" = "bitbucket-jira" ]; then
+        echo "⚠ Bitbucket Pipelines configuration not yet implemented"
+        echo "  You'll need to create bitbucket-pipelines.yml manually"
+    fi
+
     echo "📚 Get Started Now:"
     echo ""
     echo "   Use the 5day.sh command interface:"
@@ -897,8 +894,8 @@ else
     echo "   $ ./5day.sh status                  # Show task status"
     echo ""
     echo "   Or use scripts directly:"
-    echo "   $ ./work/scripts/create-task.sh \"Your first task description\""
-    echo "   $ ./work/scripts/check-alignment.sh"
+    echo "   $ ./docs/work/scripts/create-task.sh \"Your first task description\""
+    echo "   $ ./docs/work/scripts/check-alignment.sh"
     echo ""
     echo "To update 5DayDocs in the future, run this setup script again."
 fi
@@ -909,7 +906,7 @@ if [ "$VALIDATION_PASSED" = true ]; then
     echo "   ./5day.sh newtask \"Build user authentication\""
     echo ""
     echo "   Or use the traditional method:"
-    echo "   ./work/scripts/create-task.sh \"Build user authentication\""
+    echo "   ./docs/work/scripts/create-task.sh \"Build user authentication\""
 fi
 
 echo ""

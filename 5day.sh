@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 5d - Five Day Docs Command Line Tool
+# 5day - Five Day Docs Command Line Tool
 # Main entry point for managing tasks, features, and project analysis
 
 # Colors for output
@@ -16,9 +16,9 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Function to display help
 show_help() {
-    echo -e "${CYAN}5d - Five Day Docs Management Tool${NC}"
+    echo -e "${CYAN}5day - Five Day Docs Management Tool${NC}"
     echo ""
-    echo "Usage: 5d <command> [options]"
+    echo "Usage: 5day <command> [options]"
     echo ""
     echo -e "${BLUE}Commands:${NC}"
     echo "  newtask <description>     Create a new task in backlog"
@@ -28,10 +28,10 @@ show_help() {
     echo "  help                      Show this help message"
     echo ""
     echo -e "${BLUE}Examples:${NC}"
-    echo "  5d newtask \"Fix login authentication bug\""
-    echo "  5d newfeature user-profile"
-    echo "  5d checkfeatures"
-    echo "  5d status"
+    echo "  5day newtask \"Fix login authentication bug\""
+    echo "  5day newfeature user-profile"
+    echo "  5day checkfeatures"
+    echo "  5day status"
     echo ""
 }
 
@@ -41,16 +41,16 @@ create_task() {
 
     if [ -z "$description" ]; then
         echo -e "${RED}ERROR: Task description required${NC}"
-        echo "Usage: 5d newtask \"Brief description of the task\""
+        echo "Usage: 5day newtask \"Brief description of the task\""
         exit 1
     fi
 
     # Call the existing create-task.sh script
-    if [ -x "$PROJECT_ROOT/work/scripts/create-task.sh" ]; then
-        "$PROJECT_ROOT/work/scripts/create-task.sh" "$description"
+    if [ -x "$PROJECT_ROOT/docs/work/scripts/create-task.sh" ]; then
+        "$PROJECT_ROOT/docs/work/scripts/create-task.sh" "$description"
     else
         echo -e "${RED}ERROR: create-task.sh not found or not executable${NC}"
-        echo "Run: chmod +x work/scripts/create-task.sh"
+        echo "Run: chmod +x docs/work/scripts/create-task.sh"
         exit 1
     fi
 }
@@ -61,18 +61,18 @@ create_feature() {
 
     if [ -z "$feature_name" ]; then
         echo -e "${RED}ERROR: Feature name required${NC}"
-        echo "Usage: 5d newfeature <feature-name>"
+        echo "Usage: 5day newfeature <feature-name>"
         exit 1
     fi
 
     # Call the create-feature.sh script
-    if [ -x "$PROJECT_ROOT/work/scripts/create-feature.sh" ]; then
-        "$PROJECT_ROOT/work/scripts/create-feature.sh" "$feature_name"
+    if [ -x "$PROJECT_ROOT/docs/work/scripts/create-feature.sh" ]; then
+        "$PROJECT_ROOT/docs/work/scripts/create-feature.sh" "$feature_name"
     else
         echo -e "${RED}ERROR: create-feature.sh not found or not executable${NC}"
         echo "Creating it now..."
         # Create the feature script if it doesn't exist
-        cat > "$PROJECT_ROOT/work/scripts/create-feature.sh" << 'EOF'
+        cat > "$PROJECT_ROOT/docs/work/scripts/create-feature.sh" << 'EOF'
 #!/bin/bash
 
 # Create a new feature document in docs/features
@@ -165,21 +165,21 @@ echo -e "${GREEN}✓ Created feature: $FEATURE_FILE${NC}"
 echo ""
 echo "Next steps:"
 echo "1. Edit the feature document with detailed requirements"
-echo "2. Create tasks for implementation: 5d newtask \"Implement $FEATURE_NAME\""
+echo "2. Create tasks for implementation: 5day newtask \"Implement $FEATURE_NAME\""
 echo "3. Move feature to WORKING when development begins"
 EOF
-        chmod +x "$PROJECT_ROOT/work/scripts/create-feature.sh"
-        "$PROJECT_ROOT/work/scripts/create-feature.sh" "$feature_name"
+        chmod +x "$PROJECT_ROOT/docs/work/scripts/create-feature.sh"
+        "$PROJECT_ROOT/docs/work/scripts/create-feature.sh" "$feature_name"
     fi
 }
 
 # Function to check features
 check_features() {
-    if [ -x "$PROJECT_ROOT/work/scripts/check-alignment.sh" ]; then
-        "$PROJECT_ROOT/work/scripts/check-alignment.sh"
+    if [ -x "$PROJECT_ROOT/docs/work/scripts/check-alignment.sh" ]; then
+        "$PROJECT_ROOT/docs/work/scripts/check-alignment.sh"
     else
         echo -e "${RED}ERROR: check-alignment.sh not found or not executable${NC}"
-        echo "Run: chmod +x work/scripts/check-alignment.sh"
+        echo "Run: chmod +x docs/work/scripts/check-alignment.sh"
         exit 1
     fi
 }
@@ -190,11 +190,11 @@ show_status() {
     echo ""
 
     # Count tasks in each stage
-    local backlog_count=$(ls -1 work/tasks/backlog/*.md 2>/dev/null | wc -l | tr -d ' ')
-    local next_count=$(ls -1 work/tasks/next/*.md 2>/dev/null | wc -l | tr -d ' ')
-    local working_count=$(ls -1 work/tasks/working/*.md 2>/dev/null | wc -l | tr -d ' ')
-    local review_count=$(ls -1 work/tasks/review/*.md 2>/dev/null | wc -l | tr -d ' ')
-    local live_count=$(ls -1 work/tasks/live/*.md 2>/dev/null | wc -l | tr -d ' ')
+    local backlog_count=$(ls -1 docs/work/tasks/backlog/*.md 2>/dev/null | wc -l | tr -d ' ')
+    local next_count=$(ls -1 docs/work/tasks/next/*.md 2>/dev/null | wc -l | tr -d ' ')
+    local working_count=$(ls -1 docs/work/tasks/working/*.md 2>/dev/null | wc -l | tr -d ' ')
+    local review_count=$(ls -1 docs/work/tasks/review/*.md 2>/dev/null | wc -l | tr -d ' ')
+    local live_count=$(ls -1 docs/work/tasks/live/*.md 2>/dev/null | wc -l | tr -d ' ')
 
     echo -e "${BLUE}Task Pipeline:${NC}"
     echo "  Backlog:  $backlog_count tasks"
@@ -205,8 +205,8 @@ show_status() {
     echo ""
 
     # Show current highest task ID
-    if [ -f "work/STATE.md" ]; then
-        local highest_id=$(awk '/Highest Task ID/{print $NF}' work/STATE.md)
+    if [ -f "docs/STATE.md" ]; then
+        local highest_id=$(awk '/Highest Task ID/{print $NF}' docs/STATE.md)
         echo -e "${BLUE}Current highest task ID:${NC} $highest_id"
     fi
 
@@ -214,7 +214,7 @@ show_status() {
     if [ "$working_count" -gt 0 ]; then
         echo ""
         echo -e "${YELLOW}Currently working on:${NC}"
-        for task in work/tasks/working/*.md; do
+        for task in docs/work/tasks/working/*.md; do
             if [ -f "$task" ]; then
                 basename "$task" .md
             fi

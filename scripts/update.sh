@@ -202,6 +202,41 @@ if [[ "$INSTALLED_VERSION" < "1.1.0" ]]; then
   INSTALLED_VERSION="1.1.0"
 fi
 
+# Ensure all scripts have proper permissions
+echo ""
+echo "Setting executable permissions on scripts..."
+
+# Make main scripts executable
+if [ -f "$TARGET_DIR/5day.sh" ]; then
+  chmod +x "$TARGET_DIR/5day.sh"
+  echo "✓ Set permissions for 5day.sh"
+fi
+
+if [ -f "$TARGET_DIR/setup.sh" ]; then
+  chmod +x "$TARGET_DIR/setup.sh"
+  echo "✓ Set permissions for setup.sh"
+fi
+
+# Make work scripts executable
+if [ -d "$TARGET_DIR/docs/work/scripts" ]; then
+  for script in "$TARGET_DIR/docs/work/scripts"/*.sh; do
+    if [ -f "$script" ]; then
+      chmod +x "$script"
+      echo "✓ Set permissions for $(basename "$script")"
+    fi
+  done
+fi
+
+# Make distribution scripts executable if updating the source
+if [ -d "$TARGET_DIR/scripts" ]; then
+  for script in "$TARGET_DIR/scripts"/*.sh; do
+    if [ -f "$script" ]; then
+      chmod +x "$script"
+      echo "✓ Set permissions for $(basename "$script")"
+    fi
+  done
+fi
+
 # Write updated version
 echo "$CURRENT_VERSION" > "$VERSION_FILE"
 

@@ -12,14 +12,12 @@ Update the version number whenever you make:
 
 ### Files to Update When Changing Version
 
-When you increment the version, you MUST update:
-1. `/VERSION` - The master version file
-2. `/scripts/update.sh` - Line 43: `CURRENT_VERSION="X.X.X"`
+When you increment the version, you only need to update:
+1. `/VERSION` - The master version file (update.sh now reads from this file automatically)
 
 ## Version Change Checklist
 
 - [ ] Update `/VERSION` file with new version number
-- [ ] Update `CURRENT_VERSION` in `/scripts/update.sh`
 - [ ] Add migration logic in `update.sh` if needed for structural changes
 - [ ] Test the update process on a sample project
 - [ ] Commit with message: `chore: bump version to X.X.X`

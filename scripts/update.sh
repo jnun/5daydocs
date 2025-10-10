@@ -7,11 +7,22 @@ set -e
 
 # Store the 5daydocs source directory (where this script lives)
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]:-$0}" )" && pwd )"
+# Get the 5daydocs root directory (parent of scripts/)
+FIVEDAY_SOURCE_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
 
 echo "================================================"
 echo "  5DayDocs - Update Script"
 echo "================================================"
 echo ""
+
+# Read current version from source VERSION file
+if [ -f "$FIVEDAY_SOURCE_DIR/VERSION" ]; then
+    CURRENT_VERSION=$(cat "$FIVEDAY_SOURCE_DIR/VERSION")
+else
+    echo "❌ Error: Cannot find VERSION file in 5daydocs source directory"
+    echo "   Expected at: $FIVEDAY_SOURCE_DIR/VERSION"
+    exit 1
+fi
 
 # Ask for target project path
 echo "Enter the path to your project where 5DayDocs is installed:"
@@ -41,7 +52,6 @@ if [ ! -d "docs/work/tasks" ] && [ ! -d "work/tasks" ] && [ ! -f "docs/STATE.md"
 fi
 
 VERSION_FILE="docs/VERSION"
-CURRENT_VERSION="1.1.0"
 
 # Read installed version
 if [ -f "$VERSION_FILE" ]; then

@@ -32,8 +32,9 @@ echo ""
 # Change to target directory
 cd "$TARGET_PATH"
 
-# Check if 5DayDocs is installed in this directory
-if [ ! -d "docs/work/tasks" ] && [ ! -f "docs/STATE.md" ]; then
+# Check if 5DayDocs is installed in this directory (check both old and new structures)
+# At least one of these should exist for 5DayDocs to be considered installed
+if [ ! -d "docs/work/tasks" ] && [ ! -d "work/tasks" ] && [ ! -f "docs/STATE.md" ] && [ ! -f "work/STATE.md" ]; then
     echo "❌ Error: 5DayDocs doesn't appear to be installed in $TARGET_PATH"
     echo "   Please run setup.sh first to install 5DayDocs in this directory."
     exit 1
@@ -88,8 +89,19 @@ if [[ "$INSTALLED_VERSION" < "0.1.0" ]]; then
   echo ""
   echo "Migrating from pre-0.1.0 structure..."
 
-  # Handle old work/tasks structure (if exists)
-  if [ -d "work/tasks" ] && [ ! -d "docs/work/tasks" ]; then
+  # Handle old work/ structure at root (if exists)
+  if [ -d "work" ] && [ ! -d "docs/work" ]; then
+    mkdir -p docs
+    mv work docs/
+    echo "✓ Moved work/ to docs/work/"
+
+    # Move STATE.md if it exists in work/
+    if [ -f "docs/work/STATE.md" ]; then
+      mv docs/work/STATE.md docs/
+      echo "✓ Moved STATE.md to docs/"
+    fi
+  elif [ -d "work/tasks" ] && [ ! -d "docs/work/tasks" ]; then
+    # Handle partial migration - just tasks
     mkdir -p docs/work
     mv work/tasks docs/work/
     echo "✓ Moved work/tasks/ to docs/work/tasks/"

@@ -57,7 +57,13 @@ VERSION_FILE="docs/VERSION"
 if [ -f "$VERSION_FILE" ]; then
   INSTALLED_VERSION=$(cat "$VERSION_FILE")
 else
-  INSTALLED_VERSION="0.0.0"
+  # No VERSION file - check for old structure indicators
+  if [ -d "work" ] || [ -f "work/STATE.md" ]; then
+    echo "Found work/ directory at root - old structure detected"
+    INSTALLED_VERSION="0.0.0"
+  else
+    INSTALLED_VERSION="0.0.0"
+  fi
 fi
 
 echo "Current version: $INSTALLED_VERSION"
@@ -100,12 +106,51 @@ if [[ "$INSTALLED_VERSION" < "0.1.0" ]]; then
   echo "Migrating from pre-0.1.0 structure..."
 
   # Handle old work/ structure at root (if exists)
-  if [ -d "work" ] && [ ! -d "docs/work" ]; then
-    mkdir -p docs
-    mv work docs/
-    echo "✓ Moved work/ to docs/work/"
+  if [ -d "work" ]; then
+    if [ ! -d "docs/work" ]; then
+      # Simple case: docs/work doesn't exist, just move
+      mkdir -p docs
+      mv work docs/
+      echo "✓ Moved work/ to docs/work/"
+    else
+      # Complex case: both exist - need to merge
+      echo "Found both work/ and docs/work/ - merging content..."
 
-    # Move STATE.md if it exists in work/
+      # Compare STATE.md dates to determine which is newer
+      ROOT_DATE="1970-01-01"
+      DOCS_DATE="1970-01-01"
+
+      if [ -f "work/STATE.md" ]; then
+        ROOT_DATE=$(grep "Last Updated" work/STATE.md | sed 's/.*: //' || echo "1970-01-01")
+      fi
+
+      if [ -f "docs/work/STATE.md" ] || [ -f "docs/STATE.md" ]; then
+        if [ -f "docs/STATE.md" ]; then
+          DOCS_DATE=$(grep "Last Updated" docs/STATE.md | sed 's/.*: //' || echo "1970-01-01")
+        else
+          DOCS_DATE=$(grep "Last Updated" docs/work/STATE.md | sed 's/.*: //' || echo "1970-01-01")
+        fi
+      fi
+
+      # If root work/ is newer, backup docs/work and replace
+      if [[ "$ROOT_DATE" > "$DOCS_DATE" ]]; then
+        echo "Root work/ is newer (${ROOT_DATE} vs ${DOCS_DATE})"
+        if [ -d "docs/work.backup" ]; then
+          rm -rf "docs/work.backup"
+        fi
+        mv docs/work docs/work.backup
+        mv work docs/
+        echo "✓ Backed up old docs/work/ to docs/work.backup/"
+        echo "✓ Moved newer work/ to docs/work/"
+      else
+        echo "docs/work/ is newer or same date - removing old root work/"
+        echo "Consider manually checking work/ before removing it"
+        mv work work.backup
+        echo "✓ Moved old work/ to work.backup/"
+      fi
+    fi
+
+    # Move STATE.md if it exists in docs/work/
     if [ -f "docs/work/STATE.md" ]; then
       mv docs/work/STATE.md docs/
       echo "✓ Moved STATE.md to docs/"

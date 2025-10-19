@@ -84,10 +84,15 @@ EOF
 LAST_UPDATED=$(date +%F)
 TEMP_STATE="docs/STATE.md.tmp.$$"
 
-# Get current bug ID to preserve it
+# Get current bug ID and sync flag to preserve them
 HIGHEST_BUG_ID=$(awk '/5DAY_BUG_ID/{print $NF}' docs/STATE.md)
 if [ -z "$HIGHEST_BUG_ID" ]; then
     HIGHEST_BUG_ID="0"  # Default if not found
+fi
+
+SYNC_ALL_TASKS=$(awk '/SYNC_ALL_TASKS/{print $NF}' docs/STATE.md)
+if [ -z "$SYNC_ALL_TASKS" ]; then
+    SYNC_ALL_TASKS="false"  # Default if not found
 fi
 
 # Create temporary file with new state
@@ -97,6 +102,7 @@ cat << EOF > "$TEMP_STATE"
 **Last Updated**: $LAST_UPDATED
 **5DAY_TASK_ID**: $NEW_ID
 **5DAY_BUG_ID**: $HIGHEST_BUG_ID
+**SYNC_ALL_TASKS**: $SYNC_ALL_TASKS
 EOF
 
 # Atomically replace STATE.md

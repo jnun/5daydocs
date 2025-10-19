@@ -5,6 +5,7 @@ on:
     paths:
       - 'work/tasks/**/*.md'
       - 'docs/work/tasks/**/*.md'
+      - 'docs/STATE.md'
     branches:
       - main
 
@@ -18,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
-      contents: read
+      contents: write
     
     steps:
       - name: Checkout
@@ -38,10 +39,25 @@ jobs:
           gh label create "review" --color "C2E0C6" --description "In review folder" 2>/dev/null || true
           gh label create "completed" --color "98FB98" --description "In live folder" 2>/dev/null || true
       
+      - name: Check if bulk sync is requested
+        id: check-sync-flag
+        run: |
+          SYNC_ALL=$(grep -oP 'SYNC_ALL_TASKS\*\*:\s*\K\w+' docs/STATE.md || echo "false")
+          echo "sync_all=$SYNC_ALL" >> $GITHUB_OUTPUT
+          echo "Sync mode: $SYNC_ALL"
+
       - name: Get changed task files
         id: changed-files
         run: |
-          echo "files=$(git diff --name-only HEAD^ HEAD | grep -E '(work/tasks/|docs/work/tasks/).*\.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          if [ "${{ steps.check-sync-flag.outputs.sync_all }}" = "true" ]; then
+            # Bulk sync mode - get ALL tasks
+            echo "🔄 Bulk sync mode enabled - processing all tasks"
+            FILES=$(find work/tasks docs/work/tasks -name '*.md' -type f 2>/dev/null | grep -vE '(INDEX|TEMPLATE)' | tr '\n' ' ')
+            echo "files=$FILES" >> $GITHUB_OUTPUT
+          else
+            # Normal mode - only changed tasks
+            echo "files=$(git diff --name-only HEAD^ HEAD | grep -E '(work/tasks/|docs/work/tasks/).*\.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          fi
       
       - name: Sync tasks with GitHub issues
         if: steps.changed-files.outputs.files != ''
@@ -197,3 +213,24 @@ jobs:
           done
 
           echo "Sync complete!"
+
+      - name: Reset bulk sync flag
+        if: steps.check-sync-flag.outputs.sync_all == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Resetting SYNC_ALL_TASKS flag to false..."
+
+          # Update STATE.md to reset flag
+          sed -i 's/\*\*SYNC_ALL_TASKS\*\*: true/**SYNC_ALL_TASKS**: false/' docs/STATE.md
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Commit and push the change
+          git add docs/STATE.md
+          git commit -m "Reset SYNC_ALL_TASKS flag after bulk sync"
+          git push
+
+          echo "✓ Flag reset to false"

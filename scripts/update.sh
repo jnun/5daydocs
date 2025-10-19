@@ -51,13 +51,21 @@ if [ ! -d "docs/work/tasks" ] && [ ! -d "work/tasks" ] && [ ! -f "docs/STATE.md"
     exit 1
 fi
 
-VERSION_FILE="docs/VERSION"
+# Read installed version from STATE.md
+if [ -f "docs/STATE.md" ]; then
+  INSTALLED_VERSION=$(awk '/5DAY_VERSION/{print $NF}' docs/STATE.md)
 
-# Read installed version
-if [ -f "$VERSION_FILE" ]; then
-  INSTALLED_VERSION=$(cat "$VERSION_FILE")
+  # If no version field exists, check for old VERSION file
+  if [ -z "$INSTALLED_VERSION" ] && [ -f "docs/VERSION" ]; then
+    INSTALLED_VERSION=$(cat "docs/VERSION")
+  fi
+
+  # Default to 0.0.0 if still not found
+  if [ -z "$INSTALLED_VERSION" ]; then
+    INSTALLED_VERSION="0.0.0"
+  fi
 else
-  # No VERSION file - check for old structure indicators
+  # No STATE.md - check for old structure indicators
   if [ -d "work" ] || [ -f "work/STATE.md" ]; then
     echo "Found work/ directory at root - old structure detected"
     INSTALLED_VERSION="0.0.0"
@@ -66,7 +74,7 @@ else
   fi
 fi
 
-echo "Current version: $INSTALLED_VERSION"
+echo "Installed version: $INSTALLED_VERSION"
 echo "Target version: $CURRENT_VERSION"
 
 # Function to ensure task pipeline folders exist
@@ -256,6 +264,25 @@ if [[ "$INSTALLED_VERSION" < "1.1.3" ]]; then
   INSTALLED_VERSION="1.1.3"
 fi
 
+# Migration from 1.1.3 to 1.1.4
+if [[ "$INSTALLED_VERSION" < "1.1.4" ]]; then
+  echo ""
+  echo "Migrating from 1.1.3 to 1.1.4..."
+
+  # Add SYNC_ALL_TASKS field to STATE.md if it doesn't exist
+  if [ -f "$TARGET_PATH/docs/STATE.md" ]; then
+    if ! grep -q "SYNC_ALL_TASKS" "$TARGET_PATH/docs/STATE.md"; then
+      echo "Adding SYNC_ALL_TASKS field to STATE.md..."
+      echo "**SYNC_ALL_TASKS**: false" >> "$TARGET_PATH/docs/STATE.md"
+      echo "✓ Added SYNC_ALL_TASKS field"
+    else
+      echo "✓ SYNC_ALL_TASKS field already exists"
+    fi
+  fi
+
+  INSTALLED_VERSION="1.1.4"
+fi
+
 # Update distributable files from source
 echo ""
 echo "Updating distributable files..."
@@ -322,8 +349,22 @@ if [ -d "$TARGET_PATH/scripts" ]; then
   done
 fi
 
-# Write updated version
-echo "$CURRENT_VERSION" > "$VERSION_FILE"
+# Write updated version to STATE.md
+if [ -f "docs/STATE.md" ]; then
+  # Update 5DAY_VERSION field in STATE.md
+  if grep -q "5DAY_VERSION" "docs/STATE.md"; then
+    # Field exists - update it
+    sed -i.bak "s/\*\*5DAY_VERSION\*\*: .*/\*\*5DAY_VERSION**: $CURRENT_VERSION/" "docs/STATE.md"
+    rm -f "docs/STATE.md.bak"
+  else
+    # Field doesn't exist - add it after Last Updated
+    sed -i.bak "/\*\*Last Updated\*\*/a\\
+**5DAY_VERSION**: $CURRENT_VERSION
+" "docs/STATE.md"
+    rm -f "docs/STATE.md.bak"
+  fi
+  echo "✓ Updated version in docs/STATE.md"
+fi
 
 echo ""
 echo "✅ Update complete!"

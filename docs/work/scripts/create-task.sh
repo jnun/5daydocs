@@ -84,7 +84,12 @@ EOF
 LAST_UPDATED=$(date +%F)
 TEMP_STATE="docs/STATE.md.tmp.$$"
 
-# Get current bug ID and sync flag to preserve them
+# Get current values to preserve them
+CURRENT_VERSION=$(awk '/5DAY_VERSION/{print $NF}' docs/STATE.md)
+if [ -z "$CURRENT_VERSION" ]; then
+    CURRENT_VERSION="1.0.0"  # Default if not found
+fi
+
 HIGHEST_BUG_ID=$(awk '/5DAY_BUG_ID/{print $NF}' docs/STATE.md)
 if [ -z "$HIGHEST_BUG_ID" ]; then
     HIGHEST_BUG_ID="0"  # Default if not found
@@ -100,6 +105,7 @@ cat << EOF > "$TEMP_STATE"
 # docs/STATE.md
 
 **Last Updated**: $LAST_UPDATED
+**5DAY_VERSION**: $CURRENT_VERSION
 **5DAY_TASK_ID**: $NEW_ID
 **5DAY_BUG_ID**: $HIGHEST_BUG_ID
 **SYNC_ALL_TASKS**: $SYNC_ALL_TASKS

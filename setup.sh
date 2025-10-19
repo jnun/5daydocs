@@ -12,9 +12,17 @@ set -e  # Exit on error
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 FIVEDAY_SOURCE_DIR="$SCRIPT_DIR"
 
+# Read current version from source
+if [ -f "$FIVEDAY_SOURCE_DIR/VERSION" ]; then
+    CURRENT_VERSION=$(cat "$FIVEDAY_SOURCE_DIR/VERSION")
+else
+    CURRENT_VERSION="1.0.0"
+fi
+
 echo "================================================"
 echo "  5DayDocs - Project Documentation Setup"
 echo "================================================"
+echo "  Version: $CURRENT_VERSION"
 echo ""
 
 # Ask for target project path
@@ -128,7 +136,9 @@ if [ ! -f docs/STATE.md ]; then
     # Check if template exists in source directory
     if [ -f "$FIVEDAY_SOURCE_DIR/templates/project/STATE.md.template" ]; then
         # Copy template and replace placeholders
-        sed "s/{{DATE}}/$(date +%Y-%m-%d)/g" "$FIVEDAY_SOURCE_DIR/templates/project/STATE.md.template" > docs/STATE.md
+        sed -e "s/{{DATE}}/$(date +%Y-%m-%d)/g" \
+            -e "s/{{VERSION}}/$CURRENT_VERSION/g" \
+            "$FIVEDAY_SOURCE_DIR/templates/project/STATE.md.template" > docs/STATE.md
         echo "✓ Created docs/STATE.md from template"
     else
         # Fallback to inline generation if template doesn't exist
@@ -136,8 +146,10 @@ if [ ! -f docs/STATE.md ]; then
 # docs/STATE.md
 
 **Last Updated**: $(date +%Y-%m-%d)
+**5DAY_VERSION**: $CURRENT_VERSION
 **5DAY_TASK_ID**: 0
 **5DAY_BUG_ID**: 0
+**SYNC_ALL_TASKS**: false
 STATE_EOF
         echo "✓ Created docs/STATE.md (fallback inline generation)"
     fi
@@ -147,13 +159,21 @@ else
         echo "  Preserving existing STATE.md values during update..."
 
         # Extract existing values with robust parsing and validation
-        # First extract the line, then find the first number sequence after the colon
+        EXISTING_VERSION=$(awk '/5DAY_VERSION/{print $NF}' docs/STATE.md 2>/dev/null)
         EXISTING_TASK_ID=$(grep "5DAY_TASK_ID" docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
         EXISTING_BUG_ID=$(grep "5DAY_BUG_ID" docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
-        # Extract date and trim whitespace
+        EXISTING_SYNC_FLAG=$(awk '/SYNC_ALL_TASKS/{print $NF}' docs/STATE.md 2>/dev/null)
         EXISTING_DATE=$(grep "Last Updated" docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | sed 's/[[:space:]]*$//' | head -1)
 
         # Validate and sanitize extracted values
+        # Preserve existing version or use current if missing
+        if [ -n "$EXISTING_VERSION" ]; then
+            PRESERVE_VERSION="$EXISTING_VERSION"
+        else
+            PRESERVE_VERSION="$CURRENT_VERSION"
+            echo "    Info: Adding version field: $CURRENT_VERSION"
+        fi
+
         # Ensure IDs are valid numbers, default to 0 if not
         if [[ "$EXISTING_TASK_ID" =~ ^[0-9]+$ ]]; then
             PRESERVE_TASK_ID=$EXISTING_TASK_ID
@@ -169,6 +189,14 @@ else
             echo "    Warning: Invalid bug ID found, using 0"
         fi
 
+        # Validate sync flag
+        if [ "$EXISTING_SYNC_FLAG" = "true" ] || [ "$EXISTING_SYNC_FLAG" = "false" ]; then
+            PRESERVE_SYNC_FLAG="$EXISTING_SYNC_FLAG"
+        else
+            PRESERVE_SYNC_FLAG="false"
+            echo "    Info: Adding SYNC_ALL_TASKS field: false"
+        fi
+
         # Validate date format (YYYY-MM-DD), use today if invalid
         if [[ "$EXISTING_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
             PRESERVE_DATE="$EXISTING_DATE"
@@ -178,17 +206,20 @@ else
         fi
 
         echo "    Preserved Last Updated: $PRESERVE_DATE"
+        echo "    Preserved Version: $PRESERVE_VERSION"
         echo "    Preserved Task ID: $PRESERVE_TASK_ID"
         echo "    Preserved Bug ID: $PRESERVE_BUG_ID"
+        echo "    Preserved Sync Flag: $PRESERVE_SYNC_FLAG"
 
         # Simply rewrite STATE.md with preserved values
-        # No complex template logic needed
         cat > docs/STATE.md << STATE_EOF
 # docs/STATE.md
 
 **Last Updated**: $PRESERVE_DATE
+**5DAY_VERSION**: $PRESERVE_VERSION
 **5DAY_TASK_ID**: $PRESERVE_TASK_ID
 **5DAY_BUG_ID**: $PRESERVE_BUG_ID
+**SYNC_ALL_TASKS**: $PRESERVE_SYNC_FLAG
 STATE_EOF
         echo "✓ Updated STATE.md while preserving values"
     else

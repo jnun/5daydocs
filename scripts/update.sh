@@ -247,34 +247,74 @@ if [[ "$INSTALLED_VERSION" < "1.1.0" ]]; then
   INSTALLED_VERSION="1.1.0"
 fi
 
+# Migration from 1.1.0 to 1.1.2
+if [[ "$INSTALLED_VERSION" < "1.1.2" ]]; then
+  echo ""
+  echo "Migrating from 1.1.0 to 1.1.2..."
+  echo "✓ Updating distributable files (workflows, scripts)"
+
+  INSTALLED_VERSION="1.1.2"
+fi
+
+# Update distributable files from source
+echo ""
+echo "Updating distributable files..."
+
+# Update GitHub Actions workflows (only if they already exist in target)
+if [ -d "$TARGET_PATH/.github/workflows" ]; then
+  echo "Checking for workflow updates..."
+
+  # Check each workflow template
+  if [ -d "$FIVEDAY_SOURCE_DIR/templates/workflows/github" ]; then
+    for template_workflow in "$FIVEDAY_SOURCE_DIR/templates/workflows/github"/*.yml; do
+      if [ -f "$template_workflow" ]; then
+        workflow_name=$(basename "$template_workflow")
+        target_workflow="$TARGET_PATH/.github/workflows/$workflow_name"
+
+        # Only update if workflow already exists in target
+        if [ -f "$target_workflow" ]; then
+          cp -f "$template_workflow" "$target_workflow"
+          echo "✓ Updated workflow: $workflow_name"
+        fi
+      fi
+    done
+  fi
+fi
+
+# Update work scripts (create directory if needed)
+if [ -d "$FIVEDAY_SOURCE_DIR/docs/work/scripts" ]; then
+  mkdir -p "$TARGET_PATH/docs/work/scripts"
+
+  for script in "$FIVEDAY_SOURCE_DIR/docs/work/scripts"/*.sh; do
+    if [ -f "$script" ]; then
+      script_name=$(basename "$script")
+      cp -f "$script" "$TARGET_PATH/docs/work/scripts/$script_name"
+      chmod +x "$TARGET_PATH/docs/work/scripts/$script_name"
+      echo "✓ Updated script: $script_name"
+    fi
+  done
+fi
+
 # Ensure all scripts have proper permissions
 echo ""
 echo "Setting executable permissions on scripts..."
 
 # Make main scripts executable
-if [ -f "$TARGET_DIR/5day.sh" ]; then
-  chmod +x "$TARGET_DIR/5day.sh"
+if [ -f "$TARGET_PATH/5day.sh" ]; then
+  chmod +x "$TARGET_PATH/5day.sh"
   echo "✓ Set permissions for 5day.sh"
 fi
 
-if [ -f "$TARGET_DIR/setup.sh" ]; then
-  chmod +x "$TARGET_DIR/setup.sh"
+if [ -f "$TARGET_PATH/setup.sh" ]; then
+  chmod +x "$TARGET_PATH/setup.sh"
   echo "✓ Set permissions for setup.sh"
 fi
 
-# Make work scripts executable
-if [ -d "$TARGET_DIR/docs/work/scripts" ]; then
-  for script in "$TARGET_DIR/docs/work/scripts"/*.sh; do
-    if [ -f "$script" ]; then
-      chmod +x "$script"
-      echo "✓ Set permissions for $(basename "$script")"
-    fi
-  done
-fi
+# Make work scripts executable (already done above, skip to avoid duplicate messages)
 
 # Make distribution scripts executable if updating the source
-if [ -d "$TARGET_DIR/scripts" ]; then
-  for script in "$TARGET_DIR/scripts"/*.sh; do
+if [ -d "$TARGET_PATH/scripts" ]; then
+  for script in "$TARGET_PATH/scripts"/*.sh; do
     if [ -f "$script" ]; then
       chmod +x "$script"
       echo "✓ Set permissions for $(basename "$script")"

@@ -3,9 +3,15 @@ name: Sync Tasks to GitHub Issues
 on:
   push:
     paths:
+      - 'work/tasks/**/*.md'
       - 'docs/work/tasks/**/*.md'
     branches:
       - main
+
+# Prevent concurrent runs from conflicting
+concurrency:
+  group: sync-tasks-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   sync-tasks:
@@ -18,7 +24,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0  # Full history for reliable diff detection
 
       - name: Create labels if they don't exist
         env:
@@ -35,39 +41,58 @@ jobs:
       - name: Get changed task files
         id: changed-files
         run: |
-          echo "files=$(git diff --name-only HEAD^ HEAD | grep -E 'work/tasks/.*\.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          echo "files=$(git diff --name-only HEAD^ HEAD | grep -E '(work/tasks/|docs/work/tasks/).*\.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
       
       - name: Sync tasks with GitHub issues
         if: steps.changed-files.outputs.files != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail  # Exit on error, undefined vars, pipe failures
+
           for file in ${{ steps.changed-files.outputs.files }}; do
-            # Skip template files
-            if [[ "$file" == *"TEMPLATE"* ]]; then
+            echo "Processing: $file"
+
+            # Skip template and index files
+            if [[ "$file" == *"TEMPLATE"* ]] || [[ "$file" == *"INDEX.md" ]]; then
+              echo "  Skipped (template/index file)"
               continue
             fi
 
-            # Extract task ID
+            # Extract task ID from filename
             TASK_ID=$(basename "$file" | cut -d'-' -f1)
+
+            # Validate task ID is numeric
+            if ! [[ "$TASK_ID" =~ ^[0-9]+$ ]]; then
+              echo "  Error: Invalid task ID '$TASK_ID' in filename: $file"
+              echo "  Expected format: ID-description.md (e.g., 123-my-task.md)"
+              exit 1
+            fi
 
             # Check if file exists (not deleted)
             if [ -f "$file" ]; then
-              # File exists - create or update issue
-              TASK_TITLE=$(grep '^# Task' "$file" | sed 's/^# Task [0-9]*: //')
+              echo "  Task ID: $TASK_ID"
+
+              # Parse task metadata with validation
+              TASK_TITLE=$(grep '^# Task' "$file" | sed 's/^# Task [0-9]*: //' | head -n1)
 
               # Validate title is not empty
               if [ -z "$TASK_TITLE" ]; then
-                echo "Error: Task title is missing or invalid in $file"
-                echo "Expected format: '# Task ID: Title'"
+                echo "  Error: Task title is missing or invalid in $file"
+                echo "  Expected format: '# Task ID: Title'"
                 exit 1
               fi
 
-              FEATURE=$(grep '^\*\*Feature\*\*:' "$file" | sed 's/\*\*Feature\*\*: //' || echo "none")
-              PROBLEM=$(sed -n '/## Problem/,/## Success Criteria/p' "$file" | sed '1d;$d' || echo "No description")
+              echo "  Title: $TASK_TITLE"
+
+              # Extract metadata with safe defaults
+              FEATURE=$(grep '^\*\*Feature\*\*:' "$file" | sed 's/\*\*Feature\*\*: //' | head -n1 || echo "none")
+              PROBLEM=$(sed -n '/## Problem/,/## Success Criteria/p' "$file" | sed '1d;$d' || echo "No description provided")
               CRITERIA=$(sed -n '/## Success Criteria/,/## Notes\|$/p' "$file" | sed '1d' || echo "No criteria defined")
 
               # Determine status and labels based on folder
+              STATUS=""
+              LABELS=""
               case "$file" in
                 *"backlog"*)
                   LABELS="backlog,5day-task"
@@ -89,14 +114,24 @@ jobs:
                   LABELS="completed,5day-task"
                   STATUS="Live"
                   ;;
+                *)
+                  echo "  Error: File '$file' doesn't match any known folder pattern"
+                  echo "  Expected: backlog, next, working, review, or live"
+                  exit 1
+                  ;;
               esac
 
-              # Check if issue exists
-              ISSUE_NUMBER=$(gh issue list --state all --search "Task $TASK_ID:" --json number --jq '.[0].number')
+              echo "  Status: $STATUS"
+
+              # Create issue body with metadata tracking (HTML comment for idempotent lookup)
+              BODY="<!-- 5daydocs-task-id: $TASK_ID -->"$'\n\n'"## 5DayDocs Task"$'\n\n'"**Status**: $STATUS"$'\n'"**Feature**: $FEATURE"$'\n'"**Task File**: \`$file\`"$'\n\n'"## Problem"$'\n'"$PROBLEM"$'\n\n'"## Success Criteria"$'\n'"$CRITERIA"$'\n\n'"---"$'\n'"*This issue was automatically synced from the 5DayDocs task management system.*"
+
+              # Search for existing issue by metadata (more reliable than title search)
+              ISSUE_NUMBER=$(gh issue list --state all --limit 1000 --json number,body --jq ".[] | select(.body | contains(\"<!-- 5daydocs-task-id: $TASK_ID -->\")) | .number" | head -n1)
 
               if [ -z "$ISSUE_NUMBER" ]; then
-                # Create new issue
-                BODY="## 5DayDocs Task"$'\n\n'"**Status**: $STATUS"$'\n'"**Feature**: $FEATURE"$'\n'"**Task File**: \`$file\`"$'\n\n'"## Problem"$'\n'"$PROBLEM"$'\n\n'"## Success Criteria"$'\n'"$CRITERIA"$'\n\n'"---"$'\n'"*This issue was automatically synced from the 5DayDocs task management system.*"
+                # No existing issue found - create new one
+                echo "  Creating new issue..."
 
                 # Convert comma-separated labels to individual --label arguments
                 LABEL_ARGS=""
@@ -105,15 +140,23 @@ jobs:
                   LABEL_ARGS="$LABEL_ARGS --label $label"
                 done
 
-                gh issue create \
-                  --title "$TASK_TITLE" \
+                ISSUE_NUMBER=$(gh issue create \
+                  --title "Task $TASK_ID: $TASK_TITLE" \
                   --body "$BODY" \
-                  $LABEL_ARGS
+                  $LABEL_ARGS | grep -oP '(?<=/issues/)\d+')
 
-                echo "Created GitHub issue for task $TASK_ID"
+                echo "  ✓ Created issue #$ISSUE_NUMBER"
               else
-                # Update existing issue
-                # Remove old labels
+                # Issue exists - update it (idempotent)
+                echo "  Updating existing issue #$ISSUE_NUMBER..."
+
+                # Update title (in case it changed)
+                gh issue edit $ISSUE_NUMBER --title "Task $TASK_ID: $TASK_TITLE"
+
+                # Update body (keep metadata, update content)
+                gh issue edit $ISSUE_NUMBER --body "$BODY"
+
+                # Remove all old status labels
                 for old_label in backlog sprint in-progress review completed; do
                   gh issue edit $ISSUE_NUMBER --remove-label "$old_label" 2>/dev/null || true
                 done
@@ -121,25 +164,36 @@ jobs:
                 # Add new labels
                 IFS=',' read -ra LABEL_ARRAY <<< "$LABELS"
                 for label in "${LABEL_ARRAY[@]}"; do
-                  gh issue edit $ISSUE_NUMBER --add-label "$label"
+                  gh issue edit $ISSUE_NUMBER --add-label "$label" 2>/dev/null || true
                 done
 
-                # Handle archiving
+                # Handle state transitions
                 if [[ "$file" == *"live"* ]]; then
-                  gh issue close $ISSUE_NUMBER --comment "Task completed and live"
-                  echo "Closed issue #$ISSUE_NUMBER for completed task $TASK_ID"
+                  gh issue close $ISSUE_NUMBER --comment "Task completed and moved to live" 2>/dev/null || true
+                  echo "  ✓ Closed issue (task completed)"
                 else
                   # Reopen if it was closed but moved out of live
-                  gh issue reopen $ISSUE_NUMBER 2>/dev/null || true
-                  echo "Updated issue #$ISSUE_NUMBER for task $TASK_ID to status: $STATUS"
+                  CURRENT_STATE=$(gh issue view $ISSUE_NUMBER --json state --jq '.state')
+                  if [ "$CURRENT_STATE" = "CLOSED" ]; then
+                    gh issue reopen $ISSUE_NUMBER 2>/dev/null || true
+                    echo "  ✓ Reopened issue (moved from live)"
+                  fi
+                  echo "  ✓ Updated to status: $STATUS"
                 fi
               fi
             else
               # File deleted - close issue if it exists
-              ISSUE_NUMBER=$(gh issue list --state all --search "Task $TASK_ID:" --json number --jq '.[0].number')
+              echo "  Task file deleted: $TASK_ID"
+
+              ISSUE_NUMBER=$(gh issue list --state all --limit 1000 --json number,body --jq ".[] | select(.body | contains(\"<!-- 5daydocs-task-id: $TASK_ID -->\")) | .number" | head -n1)
+
               if [ -n "$ISSUE_NUMBER" ]; then
-                gh issue close $ISSUE_NUMBER --comment "Task file deleted from repository"
-                echo "Closed issue #$ISSUE_NUMBER - task file deleted"
+                gh issue close $ISSUE_NUMBER --comment "Task file deleted from repository" 2>/dev/null || true
+                echo "  ✓ Closed issue #$ISSUE_NUMBER"
+              else
+                echo "  No issue found to close"
               fi
             fi
           done
+
+          echo "Sync complete!"

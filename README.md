@@ -160,6 +160,36 @@ When users run `./scripts/update.sh`:
 - `docs/work/scripts/*.sh` - Automatically copied by update.sh
 - `templates/workflows/github/*.yml` - Copied if workflow already exists
 
+### STATE.md Reconciliation System
+
+**IMPORTANT:** docs/STATE.md contains user data that must NEVER be lost.
+
+The reconciliation system ensures STATE.md always has complete structure:
+
+1. **Template is source of truth:** `templates/project/STATE.md.template` defines all required fields
+2. **update.sh reconciliation:** Always runs at end of update process
+   - Reads existing values from user's STATE.md
+   - Validates each value (type checking, format validation)
+   - Preserves valid user data
+   - Adds missing fields with defaults
+   - Rewrites STATE.md with complete structure
+
+3. **Field handling rules:**
+   - **Last Updated**: Preserve existing date or use today
+   - **5DAY_VERSION**: Always update to current version
+   - **5DAY_TASK_ID**: ALWAYS preserve (user data)
+   - **5DAY_BUG_ID**: ALWAYS preserve (user data)
+   - **SYNC_ALL_TASKS**: Preserve existing or default to false
+
+4. **Adding new fields:**
+   - Add to `templates/project/STATE.md.template` with {{PLACEHOLDER}}
+   - Add to reconciliation logic in `update.sh` (line ~352)
+   - Add to `setup.sh` template substitution
+   - Add to `create-task.sh` preservation logic
+   - Test with old STATE.md files
+
+**Never** directly modify STATE.md field structure without updating reconciliation logic.
+
 ### Version Migration Pattern
 
 Add version checks to `scripts/update.sh`:

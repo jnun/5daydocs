@@ -349,27 +349,70 @@ if [ -d "$TARGET_PATH/scripts" ]; then
   done
 fi
 
-# Write updated version to STATE.md and ensure all fields exist
-if [ -f "docs/STATE.md" ]; then
-  # Update 5DAY_VERSION field in STATE.md
-  if grep -q "5DAY_VERSION" "docs/STATE.md"; then
-    # Field exists - update it
-    sed -i.bak "s/\*\*5DAY_VERSION\*\*: .*/\*\*5DAY_VERSION**: $CURRENT_VERSION/" "docs/STATE.md"
-    rm -f "docs/STATE.md.bak"
-  else
-    # Field doesn't exist - add it after Last Updated
-    sed -i.bak "/\*\*Last Updated\*\*/a\\
-**5DAY_VERSION**: $CURRENT_VERSION
-" "docs/STATE.md"
-    rm -f "docs/STATE.md.bak"
-  fi
-  echo "✓ Updated version in docs/STATE.md"
+# Reconcile STATE.md with template to ensure all fields exist
+# This ensures STATE.md always has complete field structure without losing user data
+# Template structure must match templates/project/STATE.md.template
+echo ""
+echo "Reconciling STATE.md with template..."
 
-  # Ensure SYNC_ALL_TASKS field exists (add if missing, regardless of version)
-  if ! grep -q "SYNC_ALL_TASKS" "docs/STATE.md"; then
-    echo "**SYNC_ALL_TASKS**: false" >> "docs/STATE.md"
-    echo "✓ Added SYNC_ALL_TASKS field to STATE.md"
+if [ -f "docs/STATE.md" ]; then
+  # Extract existing values from current STATE.md
+  EXISTING_DATE=$(awk -F': ' '/\*\*Last Updated\*\*/{print $2}' docs/STATE.md | tr -d '\r')
+  EXISTING_VERSION=$(awk -F': ' '/\*\*5DAY_VERSION\*\*/{print $2}' docs/STATE.md | tr -d '\r')
+  EXISTING_TASK_ID=$(awk -F': ' '/\*\*5DAY_TASK_ID\*\*/{print $2}' docs/STATE.md | tr -d '\r')
+  EXISTING_BUG_ID=$(awk -F': ' '/\*\*5DAY_BUG_ID\*\*/{print $2}' docs/STATE.md | tr -d '\r')
+  EXISTING_SYNC_FLAG=$(awk -F': ' '/\*\*SYNC_ALL_TASKS\*\*/{print $2}' docs/STATE.md | tr -d '\r')
+
+  # Validate and set defaults for missing or invalid values
+  # Date: preserve existing or use today
+  if [[ "$EXISTING_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+    RECONCILED_DATE="$EXISTING_DATE"
+  else
+    RECONCILED_DATE=$(date +%Y-%m-%d)
+    echo "  Setting Last Updated: $RECONCILED_DATE"
   fi
+
+  # Version: always update to current version
+  RECONCILED_VERSION="$CURRENT_VERSION"
+
+  # Task ID: preserve existing or default to 0
+  if [[ "$EXISTING_TASK_ID" =~ ^[0-9]+$ ]]; then
+    RECONCILED_TASK_ID="$EXISTING_TASK_ID"
+  else
+    RECONCILED_TASK_ID="0"
+    echo "  Initializing Task ID: 0"
+  fi
+
+  # Bug ID: preserve existing or default to 0
+  if [[ "$EXISTING_BUG_ID" =~ ^[0-9]+$ ]]; then
+    RECONCILED_BUG_ID="$EXISTING_BUG_ID"
+  else
+    RECONCILED_BUG_ID="0"
+    echo "  Initializing Bug ID: 0"
+  fi
+
+  # Sync flag: preserve existing or default to false
+  if [ "$EXISTING_SYNC_FLAG" = "true" ] || [ "$EXISTING_SYNC_FLAG" = "false" ]; then
+    RECONCILED_SYNC_FLAG="$EXISTING_SYNC_FLAG"
+  else
+    RECONCILED_SYNC_FLAG="false"
+    echo "  Setting SYNC_ALL_TASKS: false"
+  fi
+
+  # Rewrite STATE.md using template structure with reconciled values
+  cat > docs/STATE.md << STATE_EOF
+# docs/STATE.md
+
+**Last Updated**: $RECONCILED_DATE
+**5DAY_VERSION**: $RECONCILED_VERSION
+**5DAY_TASK_ID**: $RECONCILED_TASK_ID
+**5DAY_BUG_ID**: $RECONCILED_BUG_ID
+**SYNC_ALL_TASKS**: $RECONCILED_SYNC_FLAG
+STATE_EOF
+
+  echo "✓ Reconciled STATE.md with template structure"
+  echo "  Preserved: Task ID=$RECONCILED_TASK_ID, Bug ID=$RECONCILED_BUG_ID, Sync=$RECONCILED_SYNC_FLAG"
+  echo "  Updated: Version=$RECONCILED_VERSION"
 fi
 
 echo ""

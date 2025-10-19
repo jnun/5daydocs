@@ -247,13 +247,13 @@ if [[ "$INSTALLED_VERSION" < "1.1.0" ]]; then
   INSTALLED_VERSION="1.1.0"
 fi
 
-# Migration from 1.1.0 to 1.1.2
-if [[ "$INSTALLED_VERSION" < "1.1.2" ]]; then
+# Migration from 1.1.0 to 1.1.3
+if [[ "$INSTALLED_VERSION" < "1.1.3" ]]; then
   echo ""
-  echo "Migrating from 1.1.0 to 1.1.2..."
+  echo "Migrating from 1.1.0 to 1.1.3..."
   echo "✓ Updating distributable files (workflows, scripts)"
 
-  INSTALLED_VERSION="1.1.2"
+  INSTALLED_VERSION="1.1.3"
 fi
 
 # Update distributable files from source

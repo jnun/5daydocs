@@ -36,11 +36,11 @@ chmod +x setup.sh
 
 # 5. Start using 5DayDocs automation scripts
 cd /path/to/your-project
-./docs/work/scripts/create-task.sh "Your first task"
+./docs/scripts/create-task.sh "Your first task"
 ```
 
 # Check feature/task alignment
-./docs/work/scripts/check-alignment.sh
+./docs/scripts/check-alignment.sh
 - Feature documentation
 - Bug reporting workflow
 - Sprint planning
@@ -110,7 +110,7 @@ When making changes to 5daydocs, follow these steps in order:
 
 2. **Update templates to match new behavior**
    - **CRITICAL:** If you modified `.github/workflows/*.yml`, copy it to `templates/workflows/github/`
-   - If you modified `docs/work/scripts/*.sh`, these are automatically distributed by update.sh
+   - If you modified `docs/scripts/*.sh`, these are automatically distributed by update.sh
    - Templates are what get copied to user projects during updates
 
 3. **Increment the VERSION file**
@@ -147,7 +147,7 @@ When users run `./scripts/update.sh`:
 3. Runs any migration logic between versions
 4. **Copies distributable files:**
    - Workflows from `templates/workflows/github/` → `.github/workflows/`
-   - Scripts from `docs/work/scripts/` → user's `docs/work/scripts/`
+   - Scripts from `docs/scripts/` → user's `docs/scripts/`
 5. Updates `docs/VERSION` to match source version
 
 ### Critical Files to Keep in Sync
@@ -157,7 +157,7 @@ When users run `./scripts/update.sh`:
 - Any changes to workflow behavior must be in both places
 
 **Auto-distributed files:**
-- `docs/work/scripts/*.sh` - Automatically copied by update.sh
+- `docs/scripts/*.sh` - Automatically copied by update.sh
 - `templates/workflows/github/*.yml` - Copied if workflow already exists
 
 ### STATE.md Reconciliation System

@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - 'work/tasks/**/*.md'
-      - 'docs/work/tasks/**/*.md'
+      - 'docs/tasks/**/*.md'
       - 'docs/STATE.md'
     branches:
       - main
@@ -56,7 +56,7 @@ jobs:
             echo "files=$FILES" >> $GITHUB_OUTPUT
           else
             # Normal mode - only changed tasks
-            echo "files=$(git diff --name-only HEAD^ HEAD | grep -E '(work/tasks/|docs/work/tasks/).*\.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+            echo "files=$(git diff --name-only HEAD^ HEAD | grep -E '(work/tasks/|docs/tasks/).*\.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
           fi
       
       - name: Sync tasks with GitHub issues

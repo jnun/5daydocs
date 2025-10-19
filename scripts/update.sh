@@ -79,11 +79,11 @@ echo "Target version: $CURRENT_VERSION"
 
 # Function to ensure task pipeline folders exist
 ensure_task_folders() {
-  mkdir -p docs/work/tasks/backlog
-  mkdir -p docs/work/tasks/next
-  mkdir -p docs/work/tasks/working
-  mkdir -p docs/work/tasks/review
-  mkdir -p docs/work/tasks/live
+  mkdir -p docs/tasks/backlog
+  mkdir -p docs/tasks/next
+  mkdir -p docs/tasks/working
+  mkdir -p docs/tasks/review
+  mkdir -p docs/tasks/live
   echo "✓ Ensured task pipeline folders exist"
 }
 
@@ -163,31 +163,24 @@ if [[ "$INSTALLED_VERSION" < "0.1.0" ]]; then
       mv docs/work/STATE.md docs/
       echo "✓ Moved STATE.md to docs/"
     fi
-  elif [ -d "work/tasks" ] && [ ! -d "docs/work/tasks" ]; then
+  elif [ -d "work/tasks" ] && [ ! -d "docs/tasks" ]; then
     # Handle partial migration - just tasks
-    mkdir -p docs/work
-    mv work/tasks docs/work/
-    echo "✓ Moved work/tasks/ to docs/work/tasks/"
-  fi
-
-  # Handle flat task structure (tasks directly in docs/tasks)
-  if [ -d "docs/tasks" ] && [ ! -d "docs/work/tasks" ]; then
-    mkdir -p docs/work
-    mv docs/tasks docs/work/
-    echo "✓ Moved docs/tasks/ to docs/work/tasks/"
+    mkdir -p docs
+    mv work/tasks docs/
+    echo "✓ Moved work/tasks/ to docs/tasks/"
   fi
 
   # Ensure pipeline folders exist
   ensure_task_folders
 
   # Move any loose task files to backlog
-  if [ -d "docs/work/tasks" ]; then
-    for file in docs/work/tasks/*.md; do
+  if [ -d "docs/tasks" ]; then
+    for file in docs/tasks/*.md; do
       if [ -f "$file" ]; then
         basename=$(basename "$file")
         # Skip index and template files
         if [[ "$basename" != "INDEX.md" ]] && [[ "$basename" != "TEMPLATE"* ]]; then
-          mv "$file" "docs/work/tasks/backlog/" 2>/dev/null || true
+          mv "$file" "docs/tasks/backlog/" 2>/dev/null || true
           echo "✓ Moved $basename to backlog/"
         fi
       fi
@@ -207,16 +200,16 @@ if [[ "$INSTALLED_VERSION" < "1.0.0" ]]; then
   ensure_state_file
 
   # Ensure bugs folders exist
-  mkdir -p docs/work/bugs
-  mkdir -p docs/work/bugs/archived
+  mkdir -p docs/bugs
+  mkdir -p docs/bugs/archived
   echo "✓ Ensured bug tracking folders exist"
 
-  # Ensure other work folders exist
-  mkdir -p docs/work/scripts
-  mkdir -p docs/work/designs
-  mkdir -p docs/work/examples
-  mkdir -p docs/work/data
-  echo "✓ Ensured work support folders exist"
+  # Ensure other folders exist
+  mkdir -p docs/scripts
+  mkdir -p docs/designs
+  mkdir -p docs/examples
+  mkdir -p docs/data
+  echo "✓ Ensured support folders exist"
 
   # Ensure docs folders exist
   mkdir -p docs/features
@@ -225,11 +218,11 @@ if [[ "$INSTALLED_VERSION" < "1.0.0" ]]; then
   echo "✓ Ensured documentation folders exist"
 
   # Update references in markdown files
-  for file in README.md docs/INDEX.md docs/work/tasks/INDEX.md CLAUDE.md; do
+  for file in README.md docs/INDEX.md docs/tasks/INDEX.md CLAUDE.md; do
     if [ -f "$file" ]; then
       # Update old task paths
-      sed -i '' 's|work/tasks/|docs/work/tasks/|g' "$file" 2>/dev/null || true
-      sed -i '' 's|docs/tasks/|docs/work/tasks/|g' "$file" 2>/dev/null || true
+      sed -i '' 's|work/tasks/|docs/tasks/|g' "$file" 2>/dev/null || true
+      sed -i '' 's|docs/tasks/|docs/tasks/|g' "$file" 2>/dev/null || true
       echo "✓ Updated references in $file"
     fi
   done
@@ -238,7 +231,7 @@ if [[ "$INSTALLED_VERSION" < "1.0.0" ]]; then
   echo ""
   echo "Checking task distribution:"
   for folder in backlog next working review live; do
-    count=$(ls -1 docs/work/tasks/$folder/*.md 2>/dev/null | grep -v TEMPLATE | wc -l | tr -d ' ')
+    count=$(ls -1 docs/tasks/$folder/*.md 2>/dev/null | grep -v TEMPLATE | wc -l | tr -d ' ')
     echo "  $folder: $count tasks"
   done
 
@@ -283,6 +276,119 @@ if [[ "$INSTALLED_VERSION" < "1.1.4" ]]; then
   INSTALLED_VERSION="1.1.4"
 fi
 
+# Migration from 1.x to 2.0.0 - Major structural change: Flatten docs/work/ hierarchy
+if [[ "$INSTALLED_VERSION" < "2.0.0" ]]; then
+  echo ""
+  echo "================================================"
+  echo "  Migrating to 2.0.0 - Structure Simplification"
+  echo "================================================"
+  echo ""
+  echo "This update flattens the directory structure:"
+  echo "  docs/work/tasks/ → docs/tasks/"
+  echo "  docs/work/bugs/ → docs/bugs/"
+  echo "  docs/work/scripts/ → docs/scripts/"
+  echo "  docs/work/designs/ → docs/designs/"
+  echo "  docs/work/examples/ → docs/examples/"
+  echo "  docs/work/data/ → docs/data/"
+  echo ""
+  echo "All your data will be safely migrated."
+  echo ""
+
+  # Create backup directory with timestamp
+  BACKUP_DIR="docs/work-backup-$(date +%Y%m%d-%H%M%S)"
+
+  # Function to safely move directory with content preservation
+  safe_migrate_dir() {
+    local source="$1"
+    local dest="$2"
+
+    if [ -d "$source" ]; then
+      # Create parent directory if needed
+      mkdir -p "$(dirname "$dest")"
+
+      if [ -d "$dest" ]; then
+        # Destination exists - merge content
+        echo "  Merging $source into existing $dest..."
+        cp -R "$source/." "$dest/"
+        echo "  ✓ Merged content from $source to $dest"
+      else
+        # Simple move
+        mv "$source" "$dest"
+        echo "  ✓ Moved $source → $dest"
+      fi
+    else
+      echo "  → Skipped $source (doesn't exist)"
+    fi
+  }
+
+  # Backup the entire docs/work/ directory first
+  if [ -d "docs/work" ]; then
+    echo "Creating backup at $BACKUP_DIR..."
+    cp -R "docs/work" "$BACKUP_DIR"
+    echo "✓ Backup created"
+    echo ""
+  fi
+
+  echo "Migrating directories..."
+
+  # Migrate each subdirectory
+  safe_migrate_dir "docs/work/tasks" "docs/tasks"
+  safe_migrate_dir "docs/work/bugs" "docs/bugs"
+  safe_migrate_dir "docs/work/scripts" "docs/scripts"
+  safe_migrate_dir "docs/work/designs" "docs/designs"
+  safe_migrate_dir "docs/work/examples" "docs/examples"
+  safe_migrate_dir "docs/work/data" "docs/data"
+
+  # Move platform config if it exists
+  if [ -f "docs/work/.platform-config" ]; then
+    mv "docs/work/.platform-config" "docs/.platform-config"
+    echo "  ✓ Moved platform config to docs/"
+  fi
+
+  # Move any INDEX.md from docs/work/ to appropriate locations
+  if [ -f "docs/work/INDEX.md" ]; then
+    # Archive the old work INDEX.md as it's no longer relevant
+    mv "docs/work/INDEX.md" "$BACKUP_DIR/INDEX.md" 2>/dev/null || true
+  fi
+
+  # Check if docs/work/ is now empty
+  if [ -d "docs/work" ]; then
+    if [ -z "$(ls -A docs/work 2>/dev/null)" ]; then
+      # Empty, safe to remove
+      rmdir "docs/work"
+      echo "  ✓ Removed empty docs/work/ directory"
+    else
+      # Not empty - keep it and warn
+      echo "  ⚠ docs/work/ still has content - preserved for manual review"
+      echo "    Contents:"
+      ls -la "docs/work/" | head -10
+    fi
+  fi
+
+  echo ""
+  echo "✓ Migration to 2.0.0 structure complete!"
+  echo "  Backup preserved at: $BACKUP_DIR"
+  echo ""
+
+  # Verify migration success
+  echo "Verifying migration..."
+  MIGRATION_OK=true
+  for dir in docs/tasks/backlog docs/tasks/next docs/tasks/working docs/tasks/review docs/tasks/live docs/bugs docs/scripts; do
+    if [ ! -d "$dir" ]; then
+      echo "  ⚠ Warning: Expected directory not found: $dir"
+      MIGRATION_OK=false
+    fi
+  done
+
+  if $MIGRATION_OK; then
+    echo "✓ All expected directories present"
+  else
+    echo "⚠ Some directories missing - please review"
+  fi
+
+  INSTALLED_VERSION="2.0.0"
+fi
+
 # Update distributable files from source
 echo ""
 echo "Updating distributable files..."
@@ -309,14 +415,14 @@ if [ -d "$TARGET_PATH/.github/workflows" ]; then
 fi
 
 # Update work scripts (create directory if needed)
-if [ -d "$FIVEDAY_SOURCE_DIR/docs/work/scripts" ]; then
-  mkdir -p "$TARGET_PATH/docs/work/scripts"
+if [ -d "$FIVEDAY_SOURCE_DIR/docs/scripts" ]; then
+  mkdir -p "$TARGET_PATH/docs/scripts"
 
-  for script in "$FIVEDAY_SOURCE_DIR/docs/work/scripts"/*.sh; do
+  for script in "$FIVEDAY_SOURCE_DIR/docs/scripts"/*.sh; do
     if [ -f "$script" ]; then
       script_name=$(basename "$script")
-      cp -f "$script" "$TARGET_PATH/docs/work/scripts/$script_name"
-      chmod +x "$TARGET_PATH/docs/work/scripts/$script_name"
+      cp -f "$script" "$TARGET_PATH/docs/scripts/$script_name"
+      chmod +x "$TARGET_PATH/docs/scripts/$script_name"
       echo "✓ Updated script: $script_name"
     fi
   done

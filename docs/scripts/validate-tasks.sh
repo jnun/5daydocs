@@ -12,11 +12,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 TASK_DIRS=(
-    "$PROJECT_ROOT/docs/work/tasks/backlog"
-    "$PROJECT_ROOT/docs/work/tasks/next"
-    "$PROJECT_ROOT/docs/work/tasks/working"
-    "$PROJECT_ROOT/docs/work/tasks/review"
-    "$PROJECT_ROOT/docs/work/tasks/live"
+    "$PROJECT_ROOT/docs/tasks/backlog"
+    "$PROJECT_ROOT/docs/tasks/next"
+    "$PROJECT_ROOT/docs/tasks/working"
+    "$PROJECT_ROOT/docs/tasks/review"
+    "$PROJECT_ROOT/docs/tasks/live"
 )
 
 # Options

@@ -55,8 +55,8 @@ cp templates/project/README.md "$DIST_PATH/README.md"
 
 # Create empty folder structure with .gitkeep files
 echo "📁 Creating folder structure..."
-mkdir -p "$DIST_PATH/docs/work/tasks/"{backlog,next,working,review,live}
-mkdir -p "$DIST_PATH/docs/work/bugs/archived"
+mkdir -p "$DIST_PATH/docs/tasks/"{backlog,next,working,review,live}
+mkdir -p "$DIST_PATH/docs/bugs/archived"
 mkdir -p "$DIST_PATH/docs/work/"{scripts,designs,examples,data}
 mkdir -p "$DIST_PATH/docs/"{features,guides}
 

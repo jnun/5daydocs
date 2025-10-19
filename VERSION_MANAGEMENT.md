@@ -42,3 +42,36 @@ Before committing a version change:
 1. Run setup.sh on a test directory
 2. Make some changes to simulate an older installation
 3. Run update.sh to verify migrations work correctly
+
+## Version History
+
+### 2.0.0 (2025-10-19) - Structure Simplification
+**BREAKING CHANGE**: Flattened directory structure
+
+**What Changed:**
+- `docs/work/tasks/` → `docs/tasks/`
+- `docs/work/bugs/` → `docs/bugs/`
+- `docs/work/scripts/` → `docs/scripts/`
+- `docs/work/designs/` → `docs/designs/`
+- `docs/work/examples/` → `docs/examples/`
+- `docs/work/data/` → `docs/data/`
+- Removed `docs/work/` directory entirely
+
+**Migration:**
+- Automatic migration in update.sh for all users on version < 2.0.0
+- Creates timestamped backup before migration
+- Safely merges content if conflicts exist
+- All user data (tasks, bugs, STATE.md IDs) preserved
+
+**Why This Change:**
+- Simpler paths (less nesting)
+- Easier to type and remember
+- More intuitive structure
+- Aligns with "keep it simple" philosophy
+
+**Impact:**
+- All existing installations will auto-migrate on first update
+- All scripts, documentation, and templates updated
+- GitHub workflows updated to use new paths
+
+### 1.2.0 - Previous version (pre-flattening)

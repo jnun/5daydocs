@@ -118,19 +118,19 @@ echo "Restoring your project content..."
 if [ -d "$BACKUP_DIR/work" ]; then
     # Copy task files
     for folder in backlog next working review live; do
-        if [ -d "$BACKUP_DIR/docs/work/tasks/$folder" ]; then
-            cp -n "$BACKUP_DIR/docs/work/tasks/$folder"/*.md "docs/work/tasks/$folder/" 2>/dev/null || true
+        if [ -d "$BACKUP_DIR/docs/tasks/$folder" ]; then
+            cp -n "$BACKUP_DIR/docs/tasks/$folder"/*.md "docs/tasks/$folder/" 2>/dev/null || true
         fi
     done
 
     # Copy bug files
     if [ -d "$BACKUP_DIR/docs/work/bugs" ]; then
-        find "$BACKUP_DIR/docs/work/bugs" -name "*.md" -exec cp -n {} docs/work/bugs/ \; 2>/dev/null || true
+        find "$BACKUP_DIR/docs/work/bugs" -name "*.md" -exec cp -n {} docs/bugs/ \; 2>/dev/null || true
     fi
 
     # Copy custom scripts
     if [ -d "$BACKUP_DIR/docs/work/scripts" ]; then
-        cp -n "$BACKUP_DIR/docs/work/scripts"/* "docs/work/scripts/" 2>/dev/null || true
+        cp -n "$BACKUP_DIR/docs/work/scripts"/* "docs/scripts/" 2>/dev/null || true
     fi
 
     # Restore STATE.md (preserving IDs)
@@ -166,7 +166,7 @@ echo "Your project has been migrated to use 5daydocs as a submodule."
 echo ""
 echo "Next steps:"
 echo "1. Review the migration:"
-echo "   - Check docs/work/tasks/ for your tasks"
+echo "   - Check docs/tasks/ for your tasks"
 echo "   - Verify docs/STATE.md has correct IDs"
 echo "   - Ensure docs/ has your documentation"
 echo ""

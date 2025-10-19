@@ -51,7 +51,7 @@ fi
 FILENAME=$(printf "%d-%s.md" "$NEW_ID" "$KEBAB_CASE_DESC")
 
 # Check if file already exists (race condition protection)
-if [ -f "docs/work/tasks/backlog/$FILENAME" ]; then
+if [ -f "docs/tasks/backlog/$FILENAME" ]; then
     echo -e "${RED}ERROR: Task file already exists!${NC}"
     echo "Another process may have created this task. Please try again."
     exit 1
@@ -64,7 +64,7 @@ else
     FEATURE_LINE=""
 fi
 
-cat << EOF > docs/work/tasks/backlog/$FILENAME
+cat << EOF > docs/tasks/backlog/$FILENAME
 # Task $NEW_ID: $DESCRIPTION
 
 ## Problem
@@ -116,19 +116,19 @@ if mv -f "$TEMP_STATE" docs/STATE.md; then
     echo -e "${GREEN}✓ STATE.md updated successfully${NC}"
 else
     echo -e "${RED}ERROR: Failed to update STATE.md${NC}"
-    rm -f "docs/work/tasks/backlog/$FILENAME"
+    rm -f "docs/tasks/backlog/$FILENAME"
     rm -f "$TEMP_STATE"
     exit 1
 fi
 
 # Verify task file was created successfully
-if [ ! -f "docs/work/tasks/backlog/$FILENAME" ]; then
+if [ ! -f "docs/tasks/backlog/$FILENAME" ]; then
     echo -e "${RED}ERROR: Task file was not created${NC}"
     exit 1
 fi
 
 # Stage the changes and print summary
-git add docs/STATE.md "docs/work/tasks/backlog/$FILENAME"
+git add docs/STATE.md "docs/tasks/backlog/$FILENAME"
 
 echo ""
 echo -e "${GREEN}✓ Task created successfully!${NC}"
@@ -138,10 +138,10 @@ echo -e "Title:       $DESCRIPTION"
 if [ -n "$FEATURE" ]; then
     echo -e "Feature:     $FEATURE"
 fi
-echo -e "Location:    docs/work/tasks/backlog/$FILENAME"
+echo -e "Location:    docs/tasks/backlog/$FILENAME"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo -e "${YELLOW}Next steps:${NC}"
 echo "1. Edit the task file to add problem details and criteria"
 echo "2. Commit: git commit -m 'Add task $NEW_ID: $DESCRIPTION'"
-echo "3. Move to sprint: git mv docs/work/tasks/backlog/$FILENAME docs/work/tasks/next/"
+echo "3. Move to sprint: git mv docs/tasks/backlog/$FILENAME docs/tasks/next/"

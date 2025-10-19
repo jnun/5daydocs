@@ -11,7 +11,7 @@
 ## The Entire System
 
 ```
-docs/work/tasks/backlog/   → docs/work/tasks/next/   → docs/work/tasks/working/   → docs/work/tasks/review/   → docs/work/tasks/live/
+docs/tasks/backlog/   → docs/tasks/next/   → docs/tasks/working/   → docs/tasks/review/   → docs/tasks/live/
 ```
 
 Tasks move left to right. One task in working/ at a time. That's it.
@@ -24,16 +24,16 @@ chmod +x setup.sh
 ./setup.sh
 
 # Daily workflow
-ls docs/work/tasks/next/                                    # What's queued?
-mv docs/work/tasks/next/1-task.md docs/work/tasks/working/      # Start work
-mv docs/work/tasks/working/1-task.md docs/work/tasks/review/    # Submit for review
+ls docs/tasks/next/                                    # What's queued?
+mv docs/tasks/next/1-task.md docs/tasks/working/      # Start work
+mv docs/tasks/working/1-task.md docs/tasks/review/    # Submit for review
 ```
 
 ## Files That Matter
 
 - `DOCUMENTATION.md` - How to use 5DayDocs
 - `docs/STATE.md` - Current highest task ID (central location)
-- `docs/work/tasks/` - Your task pipeline
+- `docs/tasks/` - Your task pipeline
 - `docs/features/` - Feature documentation
 - `templates/` - Templates for GitHub/Jira/Bitbucket workflows (see templates/INDEX.md)
 

@@ -349,7 +349,7 @@ if [ -d "$TARGET_PATH/scripts" ]; then
   done
 fi
 
-# Write updated version to STATE.md
+# Write updated version to STATE.md and ensure all fields exist
 if [ -f "docs/STATE.md" ]; then
   # Update 5DAY_VERSION field in STATE.md
   if grep -q "5DAY_VERSION" "docs/STATE.md"; then
@@ -364,6 +364,12 @@ if [ -f "docs/STATE.md" ]; then
     rm -f "docs/STATE.md.bak"
   fi
   echo "✓ Updated version in docs/STATE.md"
+
+  # Ensure SYNC_ALL_TASKS field exists (add if missing, regardless of version)
+  if ! grep -q "SYNC_ALL_TASKS" "docs/STATE.md"; then
+    echo "**SYNC_ALL_TASKS**: false" >> "docs/STATE.md"
+    echo "✓ Added SYNC_ALL_TASKS field to STATE.md"
+  fi
 fi
 
 echo ""

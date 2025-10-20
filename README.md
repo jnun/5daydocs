@@ -111,12 +111,7 @@ When making changes to 5daydocs, follow these steps in order:
    - Update scripts, workflows, documentation, etc.
    - Test changes in a local project
 
-2. **Update templates to match new behavior**
-   - **CRITICAL:** If you modified `.github/workflows/*.yml`, copy it to `templates/workflows/github/`
-   - If you modified `docs/scripts/*.sh`, these are automatically distributed by update.sh
-   - Templates are what get copied to user projects during updates
-
-3. **Increment the VERSION file**
+2. **Increment the VERSION file**
    - Update `/VERSION` using semantic versioning:
      - **Patch (1.1.X):** Bug fixes, small improvements
      - **Minor (1.X.0):** New features, workflow changes
@@ -148,20 +143,18 @@ When users run `./scripts/update.sh`:
 1. Script reads version from `5daydocs/VERSION` (source)
 2. Compares with `docs/VERSION` (installed version)
 3. Runs any migration logic between versions
-4. **Copies distributable files:**
-   - Workflows from `templates/workflows/github/` → `.github/workflows/`
-   - Scripts from `docs/scripts/` → user's `docs/scripts/`
-5. Updates `docs/VERSION` to match source version
+4. **Copies distributable files from source:**
+   - Workflows from `.github/workflows/` → target `.github/workflows/`
+   - Scripts from `docs/scripts/` → target `docs/scripts/`
+5. Updates target's `docs/STATE.md` with new version
 
-### Critical Files to Keep in Sync
+### Distributable Files
 
-**Always update both locations:**
-- `.github/workflows/*.yml` AND `templates/workflows/github/*.yml`
-- Any changes to workflow behavior must be in both places
+All files are distributed from their working locations (single source of truth):
+- `.github/workflows/*.yml` - GitHub Actions workflows
+- `docs/scripts/*.sh` - Task management scripts
 
-**Auto-distributed files:**
-- `docs/scripts/*.sh` - Automatically copied by update.sh
-- `templates/workflows/github/*.yml` - Copied if workflow already exists
+No manual syncing required - just edit the working files and bump the version.
 
 ### STATE.md Reconciliation System
 

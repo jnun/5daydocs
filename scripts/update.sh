@@ -418,16 +418,16 @@ echo "Updating distributable files..."
 if [ -d "$TARGET_PATH/.github/workflows" ]; then
   echo "Checking for workflow updates..."
 
-  # Check each workflow template
-  if [ -d "$FIVEDAY_SOURCE_DIR/templates/workflows/github" ]; then
-    for template_workflow in "$FIVEDAY_SOURCE_DIR/templates/workflows/github"/*.yml; do
-      if [ -f "$template_workflow" ]; then
-        workflow_name=$(basename "$template_workflow")
+  # Copy workflows from source .github/workflows/ (single source of truth)
+  if [ -d "$FIVEDAY_SOURCE_DIR/.github/workflows" ]; then
+    for source_workflow in "$FIVEDAY_SOURCE_DIR/.github/workflows"/*.yml; do
+      if [ -f "$source_workflow" ]; then
+        workflow_name=$(basename "$source_workflow")
         target_workflow="$TARGET_PATH/.github/workflows/$workflow_name"
 
         # Only update if workflow already exists in target
         if [ -f "$target_workflow" ]; then
-          cp -f "$template_workflow" "$target_workflow"
+          cp -f "$source_workflow" "$target_workflow"
           echo "✓ Updated workflow: $workflow_name"
         fi
       fi

@@ -213,24 +213,3 @@ jobs:
           done
 
           echo "Sync complete!"
-
-      - name: Reset bulk sync flag
-        if: steps.check-sync-flag.outputs.sync_all == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Resetting SYNC_ALL_TASKS flag to false..."
-
-          # Update STATE.md to reset flag
-          sed -i 's/\*\*SYNC_ALL_TASKS\*\*: true/**SYNC_ALL_TASKS**: false/' docs/STATE.md
-
-          # Configure git
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Commit and push the change
-          git add docs/STATE.md
-          git commit -m "Reset SYNC_ALL_TASKS flag after bulk sync"
-          git push
-
-          echo "✓ Flag reset to false"

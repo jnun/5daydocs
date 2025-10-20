@@ -397,9 +397,9 @@ if [ "$PLATFORM" != "bitbucket-jira" ]; then
         echo "  Note: Jira integration workflows are not yet implemented"
         echo "  You'll need to configure Jira integration manually"
     else
-        # Copy GitHub Issues workflow from templates
-        if [ -f "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-issues.yml" ]; then
-            cp "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-issues.yml" .github/workflows/
+        # Copy GitHub Issues workflow from source .github/workflows/
+        if [ -f "$FIVEDAY_SOURCE_DIR/.github/workflows/sync-tasks-to-issues.yml" ]; then
+            cp "$FIVEDAY_SOURCE_DIR/.github/workflows/sync-tasks-to-issues.yml" .github/workflows/
             echo "✓ Copied sync-tasks-to-issues.yml"
         fi
         echo "  Remember to configure secrets in your GitHub repository settings"

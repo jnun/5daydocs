@@ -10,11 +10,11 @@ Automatically syncs your task files to a visual kanban board that non-technical 
 - **No manual updating** required
 - **Share with partners** via GitHub Projects URL
 
-## Prerequisites
+## Prerequisites & Setup
 
-You need the GitHub CLI (`gh`) installed to create and manage projects.
+This feature requires the GitHub CLI tool and proper authentication. Follow these steps in order:
 
-### Install GitHub CLI
+### Step 1: Install GitHub CLI
 
 **macOS (Homebrew):**
 ```bash
@@ -36,14 +36,34 @@ winget install --id GitHub.cli
 
 **Other platforms:** See [https://cli.github.com/manual/installation](https://cli.github.com/manual/installation)
 
-### Authenticate with GitHub
+### Step 2: Authenticate with GitHub
 
-After installing, authenticate:
+Run this command:
 ```bash
 gh auth login
 ```
 
-Follow the prompts to authenticate with your GitHub account.
+Follow the prompts:
+- Choose "GitHub.com"
+- Choose "HTTPS" or "SSH" (either works)
+- Choose "Login with a web browser"
+- Copy the one-time code shown
+- Press Enter to open your browser and paste the code
+
+### Step 3: Add Project Permissions
+
+**IMPORTANT:** The default authentication doesn't include permissions for GitHub Projects. You must add them:
+
+```bash
+gh auth refresh -s project,read:project
+```
+
+This will:
+- Open your browser again
+- Ask you to authorize additional permissions
+- Grant access to create and manage GitHub Projects
+
+**If you skip this step**, you'll get an error: `your authentication token is missing required scopes`
 
 ## Status Columns
 
@@ -55,9 +75,11 @@ The board has 5 columns matching your workflow:
 4. **Review** - Tasks in testing and review
 5. **Live** - Completed and approved tasks
 
-## One-Time Setup
+## Create and Configure the Project Board
 
-### Step 1: Create the Project
+**Before proceeding:** Make sure you've completed Steps 1-3 above (Install, Authenticate, Add Permissions).
+
+### Step 4: Create the Project
 
 Run this command in your terminal (replace `YourProject` with your actual project name):
 
@@ -77,7 +99,7 @@ https://github.com/users/YourUsername/projects/1
 
 The number at the end (`1` in this example) is your **PROJECT_NUMBER**.
 
-### Step 2: Find Your Project Number (if needed)
+### Step 5: Find Your Project Number (if needed)
 
 If you need to find it again:
 
@@ -87,7 +109,7 @@ gh project list --owner @me
 
 Look for your project name (e.g., "myapp Task Board") and note the number.
 
-### Step 3: Configure GitHub Repository
+### Step 6: Configure GitHub Repository
 
 1. Go to your repository on GitHub
 2. Click **Settings** (top menu)
@@ -99,7 +121,7 @@ Look for your project name (e.g., "myapp Task Board") and note the number.
    - **Value**: Your project number (e.g., `1`)
 7. Click **Add variable**
 
-### Step 4: Set Up Status Field in Project
+### Step 7: Set Up Status Field in Project
 
 1. Go to your project: `https://github.com/users/YourUsername/projects/<PROJECT_NUMBER>`
 2. Click the **⋯** (three dots) in the top right
@@ -115,7 +137,7 @@ Look for your project name (e.g., "myapp Task Board") and note the number.
    - Live
 8. Click **Save**
 
-### Step 5: Test the Setup
+### Step 8: Test the Setup
 
 1. Move a task file between folders (e.g., from `backlog` to `next`)
 2. Commit and push:
@@ -137,12 +159,23 @@ Look for your project name (e.g., "myapp Task Board") and note the number.
 
 ## Troubleshooting
 
+### "please run: gh auth login"
+- You haven't authenticated with GitHub CLI yet
+- Run `gh auth login` and follow the prompts
+- See Step 2 above for detailed instructions
+
+### "your authentication token is missing required scopes [project read:project]"
+- Your authentication doesn't have permission to manage GitHub Projects
+- Run: `gh auth refresh -s project,read:project`
+- This will open your browser to authorize the additional permissions
+- See Step 3 above for details
+
 ### "Could not find project item"
 - The item was just added and needs time to sync (usually ~1 second)
 - This is a harmless warning on first run
 
 ### "Status field may need to be created"
-- Complete Step 4 above to configure the Status field
+- Complete Step 7 above to configure the Status field
 - Ensure the field options match exactly: Backlog, Next, Working, Review, Live
 
 ### Workflow doesn't run

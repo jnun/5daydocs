@@ -77,15 +77,18 @@ your-project/
     ├── guides/                 # Technical docs (your data)
     ├── ideas/                  # Brainstorming (your data)
     ├── STATE.md                # ID tracking (your data)
-    └── work/                   # Work items (your data)
-        ├── tasks/              # Task pipeline (your data)
-        │   ├── backlog/
-        │   ├── next/
-        │   ├── working/
-        │   ├── review/
-        │   └── live/
-        ├── bugs/               # Bug tracking (your data)
-        └── scripts/            # Custom automation (your data)
+    ├── tasks/                  # Task pipeline (your data)
+    │   ├── backlog/
+    │   ├── next/
+    │   ├── working/
+    │   ├── review/
+    │   └── live/
+    ├── bugs/                   # Bug tracking (your data)
+    │   └── archived/
+    ├── scripts/                # Automation scripts (your data)
+    ├── designs/                # UI mockups and wireframes (your data)
+    ├── examples/               # Code examples (your data)
+    └── data/                   # Test/sample data (your data)
 ```
 
 **Key Points:**

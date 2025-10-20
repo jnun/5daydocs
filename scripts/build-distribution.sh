@@ -53,6 +53,10 @@ echo "📚 Copying documentation..."
 cp LICENSE "$DIST_PATH/" 2>/dev/null || true
 cp CLAUDE.md "$DIST_PATH/"
 
+# Copy VERSION file
+echo "📋 Copying VERSION file..."
+cp VERSION "$DIST_PATH/"
+
 # Copy distribution templates
 echo "📝 Copying distribution templates..."
 cp templates/project/README.md "$DIST_PATH/README.md"
@@ -64,8 +68,8 @@ cp templates/project/README.md "$DIST_PATH/README.md"
 echo "📁 Creating folder structure..."
 mkdir -p "$DIST_PATH/docs/tasks/"{backlog,next,working,review,live}
 mkdir -p "$DIST_PATH/docs/bugs/archived"
-mkdir -p "$DIST_PATH/docs/work/"{scripts,designs,examples,data}
-mkdir -p "$DIST_PATH/docs/"{features,guides}
+mkdir -p "$DIST_PATH/docs/"{scripts,designs,examples,data}
+mkdir -p "$DIST_PATH/docs/"{features,guides,ideas}
 
 # Add .gitkeep to preserve empty directories
 find "$DIST_PATH/docs" -type d -empty -exec touch {}/.gitkeep \;

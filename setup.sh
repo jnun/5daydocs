@@ -124,6 +124,12 @@ safe_mkdir "docs/scripts"
 safe_mkdir "docs/features"
 safe_mkdir "docs/guides"
 
+# Add .gitkeep files to preserve empty directories
+echo ""
+echo "Adding .gitkeep files to preserve empty folder structure..."
+find docs -type d -empty -exec touch {}/.gitkeep \;
+echo "✓ Added .gitkeep files to empty directories"
+
 # Only create .github/workflows for GitHub-based platforms
 if [ "$PLATFORM" != "bitbucket-jira" ]; then
     safe_mkdir ".github/workflows"

@@ -217,6 +217,10 @@ if [[ "$INSTALLED_VERSION" < "1.0.0" ]]; then
   mkdir -p docs/ideas
   echo "✓ Ensured documentation folders exist"
 
+  # Add .gitkeep files to preserve empty directories
+  echo "✓ Adding .gitkeep files to empty directories..."
+  find docs -type d -empty -exec touch {}/.gitkeep \;
+
   # Update references in markdown files
   for file in README.md docs/INDEX.md docs/tasks/INDEX.md CLAUDE.md; do
     if [ -f "$file" ]; then

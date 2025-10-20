@@ -5,6 +5,13 @@
 
 set -e
 
+# Read VERSION file
+if [ -f "VERSION" ]; then
+    CURRENT_VERSION=$(cat VERSION | tr -d '\n')
+else
+    CURRENT_VERSION="1.0.0"
+fi
+
 # Configuration
 DIST_REPO="5daydocs"
 DIST_PATH="../${DIST_REPO}"
@@ -65,7 +72,9 @@ find "$DIST_PATH/docs" -type d -empty -exec touch {}/.gitkeep \;
 
 # Create initial STATE.md from template
 echo "📊 Creating initial STATE.md..."
-sed "s/{{DATE}}/$(date +%Y-%m-%d)/g" templates/project/STATE.md.template > "$DIST_PATH/docs/STATE.md"
+sed -e "s/{{DATE}}/$(date +%Y-%m-%d)/g" \
+    -e "s/{{VERSION}}/$CURRENT_VERSION/g" \
+    templates/project/STATE.md.template > "$DIST_PATH/docs/STATE.md"
 
 # Update setup.sh paths for distribution use
 echo "🔧 Adjusting setup.sh for distribution..."

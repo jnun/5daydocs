@@ -355,8 +355,12 @@ if [[ "$INSTALLED_VERSION" < "2.0.0" ]]; then
     mv "docs/work/INDEX.md" "$BACKUP_DIR/INDEX.md" 2>/dev/null || true
   fi
 
-  # Clean up any remaining INDEX.md files in subdirectories of docs/work/
-  # These are template files that don't need to be migrated
+  # Clean up any remaining files in docs/work/ subdirectories
+  # These are template/index files that don't need to be migrated
+  echo ""
+  echo "Cleaning up old docs/work/ directory..."
+
+  # Archive any remaining INDEX.md files
   for subdir in tasks bugs scripts designs examples data; do
     if [ -f "docs/work/$subdir/INDEX.md" ]; then
       mv "docs/work/$subdir/INDEX.md" "$BACKUP_DIR/$subdir-INDEX.md" 2>/dev/null || true
@@ -364,20 +368,21 @@ if [[ "$INSTALLED_VERSION" < "2.0.0" ]]; then
     fi
   done
 
-  # Remove any remaining empty directories in docs/work/
-  find "docs/work" -type d -empty -delete 2>/dev/null || true
-
-  # Check if docs/work/ is now empty
+  # Remove any remaining empty directories and the work directory itself
   if [ -d "docs/work" ]; then
-    if [ -z "$(ls -A docs/work 2>/dev/null)" ]; then
-      # Empty, safe to remove
-      rmdir "docs/work"
-      echo "  ✓ Removed empty docs/work/ directory"
-    else
-      # Not empty - keep it and warn
-      echo "  ⚠ docs/work/ still has content - preserved for manual review"
-      echo "    Contents:"
-      ls -la "docs/work/" | head -10
+    # Remove all empty subdirectories first
+    find "docs/work" -type d -empty -delete 2>/dev/null || true
+
+    # Force remove docs/work/ - everything important is already migrated and backed up
+    if [ -d "docs/work" ]; then
+      # Move any remaining files to backup as a safety measure
+      if [ -n "$(ls -A docs/work 2>/dev/null)" ]; then
+        echo "  ⚠ Moving remaining docs/work/ contents to backup..."
+        cp -R docs/work/. "$BACKUP_DIR/remaining-files/" 2>/dev/null || true
+      fi
+      # Now safe to remove
+      rm -rf "docs/work"
+      echo "  ✓ Removed docs/work/ directory"
     fi
   fi
 

@@ -103,8 +103,8 @@ jobs:
 
               # Extract metadata with safe defaults
               FEATURE=$(grep '^\*\*Feature\*\*:' "$file" | sed 's/\*\*Feature\*\*: //' | head -n1 || echo "none")
-              PROBLEM=$(sed -n '/## Problem/,/## Success Criteria/p' "$file" | sed '1d;$d' || echo "No description provided")
-              CRITERIA=$(sed -n '/## Success Criteria/,/## Notes\|$/p' "$file" | sed '1d' || echo "No criteria defined")
+              PROBLEM=$(sed -n '/## Problem/,/## Success criteria/p' "$file" | sed '1d;$d' || echo "No description provided")
+              CRITERIA=$(sed -n '/## Success criteria/,/## Notes\|$/p' "$file" | sed '1d' || echo "No criteria defined")
 
               # Determine status and labels based on folder
               STATUS=""
@@ -140,7 +140,7 @@ jobs:
               echo "  Status: $STATUS"
 
               # Create issue body with metadata tracking (HTML comment for idempotent lookup)
-              BODY="<!-- 5daydocs-task-id: $TASK_ID -->"$'\n\n'"## 5DayDocs Task"$'\n\n'"**Status**: $STATUS"$'\n'"**Feature**: $FEATURE"$'\n'"**Task File**: \`$file\`"$'\n\n'"## Problem"$'\n'"$PROBLEM"$'\n\n'"## Success Criteria"$'\n'"$CRITERIA"$'\n\n'"---"$'\n'"*This issue was automatically synced from the 5DayDocs task management system.*"
+              BODY="<!-- 5daydocs-task-id: $TASK_ID -->"$'\n\n'"## 5DayDocs Task"$'\n\n'"**Status**: $STATUS"$'\n'"**Feature**: $FEATURE"$'\n'"**Task File**: \`$file\`"$'\n\n'"## Problem"$'\n'"$PROBLEM"$'\n\n'"## Success criteria"$'\n'"$CRITERIA"$'\n\n'"---"$'\n'"*This issue was automatically synced from the 5DayDocs task management system.*"
 
               # Search for existing issue by metadata (more reliable than title search)
               ISSUE_NUMBER=$(gh issue list --state all --limit 1000 --json number,body --jq ".[] | select(.body | contains(\"<!-- 5daydocs-task-id: $TASK_ID -->\")) | .number" | head -n1)

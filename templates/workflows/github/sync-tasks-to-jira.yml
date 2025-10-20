@@ -69,8 +69,8 @@ jobs:
               # File exists - create or update issue
               TASK_TITLE=$(grep '^# Task' "$file" | sed 's/# Task [0-9]*: //')
               FEATURE=$(grep '^\*\*Feature\*\*:' "$file" | sed 's/\*\*Feature\*\*: //' || echo "none")
-              PROBLEM=$(sed -n '/## Problem/,/## Success Criteria/p' "$file" | sed '1d;$d' || echo "No description")
-              CRITERIA=$(sed -n '/## Success Criteria/,/## Notes\|$/p' "$file" | sed '1d' || echo "No criteria defined")
+              PROBLEM=$(sed -n '/## Problem/,/## Success criteria/p' "$file" | sed '1d;$d' || echo "No description")
+              CRITERIA=$(sed -n '/## Success criteria/,/## Notes\|$/p' "$file" | sed '1d' || echo "No criteria defined")
 
               # Determine status based on folder
               case "$file" in
@@ -97,7 +97,7 @@ jobs:
               esac
 
               # Format description for Jira (using Jira's wiki markup)
-              DESCRIPTION="h2. 5DayDocs Task\\n\\n*Status*: $STATUS_DESC\\n*Feature*: $FEATURE\\n*Task File*: {{$file}}\\n\\nh2. Problem\\n$PROBLEM\\n\\nh2. Success Criteria\\n$CRITERIA\\n\\n----\\n_This issue was automatically synced from the 5DayDocs task management system._"
+              DESCRIPTION="h2. 5DayDocs Task\\n\\n*Status*: $STATUS_DESC\\n*Feature*: $FEATURE\\n*Task File*: {{$file}}\\n\\nh2. Problem\\n$PROBLEM\\n\\nh2. Success criteria\\n$CRITERIA\\n\\n----\\n_This issue was automatically synced from the 5DayDocs task management system._"
 
               # Search for existing issue with this Task ID
               JQL="project = $JIRA_PROJECT_KEY AND \"$TASK_ID_FIELD\" ~ \"$TASK_ID\""

@@ -47,8 +47,8 @@ jobs:
             TASK_ID=$(basename "$file" | cut -d'-' -f1)
             TASK_TITLE=$(grep '^# Task' "$file" | sed 's/# Task [0-9]*: //' || echo "Task $TASK_ID")
             FEATURE=$(grep '^\*\*Feature\*\*:' "$file" | sed 's/\*\*Feature\*\*: //' || echo "General")
-            PROBLEM=$(sed -n '/## Problem/,/## Success Criteria/p' "$file" | sed '1d;$d' | head -c 1000 || echo "See task file")
-            CRITERIA=$(sed -n '/## Success Criteria/,/## Notes\|$/p' "$file" | sed '1d' | head -c 1000 || echo "See task file")
+            PROBLEM=$(sed -n '/## Problem/,/## Success criteria/p' "$file" | sed '1d;$d' | head -c 1000 || echo "See task file")
+            CRITERIA=$(sed -n '/## Success criteria/,/## Notes\|$/p' "$file" | sed '1d' | head -c 1000 || echo "See task file")
 
             # Determine Jira status based on folder
             case "$file" in
@@ -126,7 +126,7 @@ jobs:
         {
           "type": "heading",
           "attrs": {"level": 3},
-          "content": [{"type": "text", "text": "Success Criteria"}]
+          "content": [{"type": "text", "text": "Success criteria"}]
         },
         {
           "type": "paragraph",

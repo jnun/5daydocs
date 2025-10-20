@@ -6,7 +6,7 @@
 ## Problem
 [Clear description of what needs to be fixed or built]
 
-## Success Criteria
+## Success criteria
 - [ ] [First measurable criterion]
 - [ ] [Second measurable criterion]
 - [ ] [Third measurable criterion]
@@ -81,24 +81,25 @@ rules exactly to avoid sync errors.
   ## Problem
   [Content describing what needs to be solved]
 
-  ## Success Criteria
+  ## Success criteria
   - [ ] [Measurable outcome 1]
   - [ ] [Measurable outcome 2]
 
   ## Notes
   [Optional content, but section header must exist]
 
-  ✓ CORRECT:  Uses exactly these section names (## Problem, ## Success Criteria, ## Notes)
-  ✗ WRONG:    ## Desired Outcome        (use "## Success Criteria")
-  ✗ WRONG:    ## Testing Criteria       (use "## Success Criteria")
+  ✓ CORRECT:  Uses exactly these section names (## Problem, ## Success criteria, ## Notes)
+  ✗ WRONG:    ## Desired Outcome        (use "## Success criteria")
+  ✗ WRONG:    ## Testing Criteria       (use "## Success criteria")
   ✗ WRONG:    ## Description            (use "## Problem")
   ✗ WRONG:    ### Problem                (wrong heading level, must be ##)
 
   AI/Human Guidance:
   - Section names are CASE SENSITIVE and must match exactly
   - All sections must use ## (level 2 headings)
+  - Use sentence case for headings (per technical writing best practices)
   - GitHub workflow parses content BETWEEN these section markers
-  - Order matters: Problem → Success Criteria → Notes
+  - Order matters: Problem → Success criteria → Notes
 
 ✍️ CONTENT GUIDELINES
 ─────────────────────────────
@@ -114,7 +115,7 @@ rules exactly to avoid sync errors.
     changes back to task files. This creates a one-way sync that leads to
     drift between the two systems.
 
-  ## Success Criteria Section:
+  ## Success criteria section:
   - List SPECIFIC, MEASURABLE outcomes
   - Use GitHub markdown checkboxes: - [ ]
   - Each criterion should be testable/verifiable
@@ -161,7 +162,7 @@ rules exactly to avoid sync errors.
 ─────────────────────────────
 
   For AI Assistants:
-  ✗ Don't invent your own section names (stick to Problem/Success Criteria/Notes)
+  ✗ Don't invent your own section names (stick to Problem/Success criteria/Notes)
   ✗ Don't skip the metadata fields (Feature and Created)
   ✗ Don't use wrong heading levels (# for title, ## for sections)
   ✗ Don't forget to check the filename matches the ID in the title
@@ -180,7 +181,7 @@ rules exactly to avoid sync errors.
   [ ] Filename is numeric-description.md format
   [ ] Title is "# Task [ID]: [Description]" with matching ID
   [ ] **Feature**: and **Created**: fields exist with proper formatting
-  [ ] All three sections exist: ## Problem, ## Success Criteria, ## Notes
+  [ ] All three sections exist: ## Problem, ## Success criteria, ## Notes
   [ ] Success criteria use - [ ] checkbox format
   [ ] File is in correct folder for current status
   [ ] 5DAY_TASK_ID in docs/STATE.md was incremented (for new tasks)
@@ -195,7 +196,8 @@ rules exactly to avoid sync errors.
   - Deleted files → Closes corresponding GitHub issue
   - Files in live/ → Closes GitHub issue with "completed" label
 
-  The workflow identifies tasks using HTML comment in issue body:
+  The workflow parses ## Problem and ## Success criteria sections.
+  It identifies tasks using HTML comment in issue body:
     <!-- 5daydocs-task-id: [ID] -->
 
   Do not manually edit this in GitHub issues.

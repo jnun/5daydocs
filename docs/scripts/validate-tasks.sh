@@ -10,7 +10,7 @@ set -euo pipefail
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TASK_DIRS=(
     "$PROJECT_ROOT/docs/tasks/backlog"
     "$PROJECT_ROOT/docs/tasks/next"
@@ -120,8 +120,8 @@ validate_and_fix_task() {
         issues+=("Missing required section: ## Problem (or equivalent)")
     fi
 
-    if ! grep -qE '^## (Success Criteria|Testing Criteria|Desired Outcome|Acceptance Criteria)' "$file"; then
-        issues+=("Missing required section: ## Success Criteria (or equivalent)")
+    if ! grep -qE '^## (Success criteria|Success Criteria|Testing Criteria|Desired Outcome|Acceptance Criteria)' "$file"; then
+        issues+=("Missing required section: ## Success criteria (or equivalent)")
     fi
 
     # If no issues found, file is valid
@@ -165,7 +165,7 @@ fix_task_file() {
         has_problem=true
     fi
 
-    if grep -qE '^## (Success Criteria|Testing Criteria|Desired Outcome|Acceptance Criteria)' "$file"; then
+    if grep -qE '^## (Success criteria|Success Criteria|Testing Criteria|Desired Outcome|Acceptance Criteria)' "$file"; then
         has_success_criteria=true
     fi
 
@@ -204,17 +204,17 @@ fix_task_file() {
             fi
 
             # Rename section variations to standard names
-            if echo "$line" | grep -qE '^## (Success Criteria|Testing Criteria|Acceptance Criteria)$'; then
-                # Only output Success Criteria once
+            if echo "$line" | grep -qE '^## (Success criteria|Success Criteria|Testing Criteria|Acceptance Criteria)$'; then
+                # Only output Success criteria once
                 if [ "$seen_success_criteria" = false ]; then
-                    echo "## Success Criteria"
+                    echo "## Success criteria"
                     seen_success_criteria=true
                 fi
                 in_desired_outcome=false
             elif echo "$line" | grep -qE '^## Desired Outcome$'; then
-                # Rename Desired Outcome to Success Criteria
+                # Rename Desired Outcome to Success criteria
                 if [ "$seen_success_criteria" = false ]; then
-                    echo "## Success Criteria"
+                    echo "## Success criteria"
                     seen_success_criteria=true
                 fi
                 in_desired_outcome=true
@@ -238,10 +238,10 @@ fix_task_file() {
             echo "[Description of what needs to be done]"
         fi
 
-        # Add missing Success Criteria section if needed
+        # Add missing Success criteria section if needed
         if [ "$has_success_criteria" = false ]; then
             echo ""
-            echo "## Success Criteria"
+            echo "## Success criteria"
             echo "- [ ] [Add success criteria here]"
         fi
 
@@ -265,9 +265,11 @@ for task_dir in "${TASK_DIRS[@]}"; do
     fi
 
     # Find all .md files in the directory
-    while IFS= read -r -d '' file; do
-        validate_and_fix_task "$file"
-    done < <(find "$task_dir" -maxdepth 1 -name "*.md" -type f -print0 2>/dev/null)
+    for file in "$task_dir"/*.md; do
+        # Skip if glob didn't match any files
+        [ -e "$file" ] || continue
+        validate_and_fix_task "$file" || true  # Don't exit on validation failure
+    done
 done
 
 # Print summary

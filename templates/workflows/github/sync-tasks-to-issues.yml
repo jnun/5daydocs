@@ -42,7 +42,7 @@ jobs:
       - name: Check if bulk sync is requested
         id: check-sync-flag
         run: |
-          SYNC_ALL=$(grep -oP 'SYNC_ALL_TASKS\*\*:\s*\K\w+' docs/STATE.md || echo "false")
+          SYNC_ALL=$(grep -oP '\*\*SYNC_ALL_TASKS\*\*:\s*\K\w+' docs/STATE.md || echo "false")
           echo "sync_all=$SYNC_ALL" >> $GITHUB_OUTPUT
           echo "Sync mode: $SYNC_ALL"
 
@@ -52,11 +52,11 @@ jobs:
           if [ "${{ steps.check-sync-flag.outputs.sync_all }}" = "true" ]; then
             # Bulk sync mode - get ALL tasks
             echo "🔄 Bulk sync mode enabled - processing all tasks"
-            FILES=$(find work/tasks docs/work/tasks -name '*.md' -type f 2>/dev/null | grep -vE '(INDEX|TEMPLATE)' | tr '\n' ' ')
+            FILES=$(find docs/tasks -name '*.md' -type f 2>/dev/null | grep -vE '(INDEX|TEMPLATE)' | tr '\n' ' ')
             echo "files=$FILES" >> $GITHUB_OUTPUT
           else
             # Normal mode - only changed tasks
-            echo "files=$(git diff --name-only HEAD^ HEAD | grep -E '(work/tasks/|docs/tasks/).*\.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+            echo "files=$(git diff --name-only HEAD^ HEAD | grep -E 'docs/tasks/.*\.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
           fi
       
       - name: Sync tasks with GitHub issues

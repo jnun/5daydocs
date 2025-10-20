@@ -355,6 +355,18 @@ if [[ "$INSTALLED_VERSION" < "2.0.0" ]]; then
     mv "docs/work/INDEX.md" "$BACKUP_DIR/INDEX.md" 2>/dev/null || true
   fi
 
+  # Clean up any remaining INDEX.md files in subdirectories of docs/work/
+  # These are template files that don't need to be migrated
+  for subdir in tasks bugs scripts designs examples data; do
+    if [ -f "docs/work/$subdir/INDEX.md" ]; then
+      mv "docs/work/$subdir/INDEX.md" "$BACKUP_DIR/$subdir-INDEX.md" 2>/dev/null || true
+      echo "  ✓ Archived docs/work/$subdir/INDEX.md to backup"
+    fi
+  done
+
+  # Remove any remaining empty directories in docs/work/
+  find "docs/work" -type d -empty -delete 2>/dev/null || true
+
   # Check if docs/work/ is now empty
   if [ -d "docs/work" ]; then
     if [ -z "$(ls -A docs/work 2>/dev/null)" ]; then

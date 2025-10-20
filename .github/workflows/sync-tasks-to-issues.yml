@@ -14,6 +14,17 @@ concurrency:
   group: sync-tasks-${{ github.ref }}
   cancel-in-progress: false
 
+# GitHub Projects Integration Setup:
+# 1. Create a project: gh project create --owner @me --title "<YourProject> Task Board"
+# 2. Get the project number: gh project list --owner @me
+# 3. Set PROJECT_NUMBER in GitHub repo settings:
+#    Settings → Secrets and variables → Actions → Variables → New repository variable
+#    Name: PROJECT_NUMBER, Value: <your-project-number>
+# 4. The project will auto-create status field values as issues are added
+
+env:
+  PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+
 jobs:
   sync-tasks:
     runs-on: ubuntu-latest
@@ -32,9 +43,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Create labels with colors if they don't exist
-          gh label create "5day-task" --color "0052CC" --description "Task from 5DayDocs system" 2>/dev/null || true
           gh label create "backlog" --color "E4E669" --description "In backlog folder" 2>/dev/null || true
-          gh label create "sprint" --color "FFA500" --description "In next folder (sprint queue)" 2>/dev/null || true
+          gh label create "next" --color "FFA500" --description "In next folder" 2>/dev/null || true
           gh label create "in-progress" --color "0E8A16" --description "In working folder" 2>/dev/null || true
           gh label create "review" --color "C2E0C6" --description "In review folder" 2>/dev/null || true
           gh label create "completed" --color "98FB98" --description "In live folder" 2>/dev/null || true
@@ -111,23 +121,23 @@ jobs:
               LABELS=""
               case "$file" in
                 *"backlog"*)
-                  LABELS="backlog,5day-task"
+                  LABELS="backlog"
                   STATUS="Backlog"
                   ;;
                 *"next"*)
-                  LABELS="sprint,5day-task"
-                  STATUS="Sprint Queue"
+                  LABELS="next"
+                  STATUS="Next"
                   ;;
                 *"working"*)
-                  LABELS="in-progress,5day-task"
+                  LABELS="in-progress"
                   STATUS="Working"
                   ;;
                 *"review"*)
-                  LABELS="review,5day-task"
+                  LABELS="review"
                   STATUS="In Review"
                   ;;
                 *"live"*)
-                  LABELS="completed,5day-task"
+                  LABELS="completed"
                   STATUS="Live"
                   ;;
                 *)
@@ -173,7 +183,7 @@ jobs:
                 gh issue edit $ISSUE_NUMBER --body "$BODY"
 
                 # Remove all old status labels
-                for old_label in backlog sprint in-progress review completed; do
+                for old_label in backlog next in-progress review completed; do
                   gh issue edit $ISSUE_NUMBER --remove-label "$old_label" 2>/dev/null || true
                 done
 
@@ -195,6 +205,31 @@ jobs:
                     echo "  ✓ Reopened issue (moved from live)"
                   fi
                   echo "  ✓ Updated to status: $STATUS"
+                fi
+              fi
+
+              # Add issue to GitHub Project (if configured)
+              if [ -n "$PROJECT_NUMBER" ]; then
+                echo "  Adding to project #$PROJECT_NUMBER..."
+
+                # Add to project (idempotent - won't duplicate if already added)
+                gh project item-add $PROJECT_NUMBER --owner @me --url "https://github.com/${{ github.repository }}/issues/$ISSUE_NUMBER" 2>/dev/null || echo "  Note: Issue may already be in project"
+
+                echo "  ✓ Added to project"
+
+                # Update project item status to match folder location
+                echo "  Setting project status to: $STATUS"
+
+                # Get the project item ID
+                ITEM_ID=$(gh project item-list $PROJECT_NUMBER --owner @me --format json --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id" 2>/dev/null || echo "")
+
+                if [ -n "$ITEM_ID" ]; then
+                  # Update the Status field to match the task folder
+                  gh project item-edit --id "$ITEM_ID" --project-id $PROJECT_NUMBER --field "Status" --text "$STATUS" 2>/dev/null || echo "  Note: Status field may need to be created in project settings"
+
+                  echo "  ✓ Updated project status to: $STATUS"
+                else
+                  echo "  Note: Could not find project item (may need to wait for sync)"
                 fi
               fi
             else

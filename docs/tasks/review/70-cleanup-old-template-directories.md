@@ -1,5 +1,9 @@
 # Task 70: Clean Up Old Template Directories
 
+**Feature**: none
+**Created**: 2025-10-19
+
+
 ## Objective
 Remove the old, now-empty template directories after migration is complete
 
@@ -25,7 +29,9 @@ rmdir templates/github-workflows 2>/dev/null
 - Tasks 67, 68, and 69 must be completed
 - Verify setup.sh works with new paths before cleanup
 
-## Success Criteria
+## Success criteria
 - Old template directories removed
 - Only `/templates/` with new structure remains
-- setup.sh continues to work correctly
+
+## Problem
+[Description of what needs to be done]

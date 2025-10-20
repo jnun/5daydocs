@@ -1,5 +1,9 @@
 # Task 67: Move Project Templates to Unified Structure
 
+**Feature**: none
+**Created**: 2025-10-19
+
+
 ## Objective
 Move README.md and STATE.md templates from scattered locations to `/templates/project/`
 
@@ -18,6 +22,8 @@ git mv docs/work/templates/STATE.md.template templates/project/
 ## Dependencies
 - Task 66 must be completed first (directory structure exists)
 
-## Success Criteria
+## Success criteria
 - All project template files in `/templates/project/`
-- Git history preserved via `git mv`
+
+## Problem
+[Description of what needs to be done]

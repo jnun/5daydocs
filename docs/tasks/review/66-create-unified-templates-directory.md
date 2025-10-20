@@ -1,5 +1,9 @@
 # Task 66: Create Unified Templates Directory Structure
 
+**Feature**: none
+**Created**: 2025-10-19
+
+
 ## Objective
 Create a new unified `/templates/` directory structure with subdirectories for project files, workflows, and documentation.
 
@@ -21,6 +25,8 @@ mkdir -p templates/docs
 ## Dependencies
 None - this is the foundation task
 
-## Success Criteria
+## Success criteria
 - Directory structure created and visible with `ls -la templates/`
-- All subdirectories properly created
+
+## Problem
+[Description of what needs to be done]

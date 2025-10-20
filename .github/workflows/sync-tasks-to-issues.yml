@@ -42,7 +42,7 @@ jobs:
       - name: Check if bulk sync is requested
         id: check-sync-flag
         run: |
-          SYNC_ALL=$(grep -oP 'SYNC_ALL_TASKS\*\*:\s*\K\w+' docs/STATE.md || echo "false")
+          SYNC_ALL=$(grep -oP '\*\*SYNC_ALL_TASKS\*\*:\s*\K\w+' docs/STATE.md || echo "false")
           echo "sync_all=$SYNC_ALL" >> $GITHUB_OUTPUT
           echo "Sync mode: $SYNC_ALL"
 

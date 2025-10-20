@@ -1,9 +1,13 @@
 # Task 53: Dogfood: Use GitHub Issues for 5DayDocs Project
 
+**Feature**: none
+**Created**: 2025-10-19
+
+
 ## Problem
 The 5daydocs project itself should use its own GitHub Issues workflow to demonstrate the system and "eat our own dogfood". This will help validate the workflow and provide a real-world example.
 
-## Desired Outcome
+## Success criteria
 - Enable GitHub Issues on the 5daydocs repository
 - Configure the sync-tasks-to-issues.yml workflow
 - Ensure all existing tasks in work/tasks/ sync to GitHub Issues
@@ -16,9 +20,7 @@ The 5daydocs project itself should use its own GitHub Issues workflow to demonst
 4. Create initial issues from existing tasks
 5. Document the setup process as a guide for users
 
-## Testing Criteria
 - [ ] GitHub Issues are enabled on the repository
 - [ ] Workflow syncs tasks to issues automatically
 - [ ] Moving tasks between folders updates issue labels
 - [ ] Task IDs in filenames match issue numbers
-- [ ] Bidirectional sync works (issues → tasks, tasks → issues)

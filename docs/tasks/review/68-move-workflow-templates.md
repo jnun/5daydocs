@@ -1,5 +1,9 @@
 # Task 68: Move Workflow Templates to Unified Structure
 
+**Feature**: none
+**Created**: 2025-10-19
+
+
 ## Objective
 Reorganize all CI/CD workflow templates into `/templates/workflows/` with platform-specific subdirectories
 
@@ -24,7 +28,9 @@ git mv templates/INDEX.md templates/docs/TEMPLATES_INDEX.md
 ## Dependencies
 - Task 66 must be completed first (directory structure exists)
 
-## Success Criteria
+## Success criteria
 - All workflows organized by platform
 - Documentation moved to `/templates/docs/`
-- Git history preserved
+
+## Problem
+[Description of what needs to be done]

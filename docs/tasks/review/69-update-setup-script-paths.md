@@ -1,5 +1,9 @@
 # Task 69: Update setup.sh Script for New Template Paths
 
+**Feature**: none
+**Created**: 2025-10-19
+
+
 ## Objective
 Update all template paths in `setup.sh` to use the new unified `/templates/` structure
 
@@ -20,7 +24,9 @@ templates/bitbucket-pipelines.yml.template → templates/workflows/bitbucket/bit
 ## Dependencies
 - Tasks 67 and 68 must be completed (files moved to new locations)
 
-## Success Criteria
+## Success criteria
 - setup.sh uses only new template paths
 - Running setup.sh successfully copies templates from new locations
-- No references to old template paths remain
+
+## Problem
+[Description of what needs to be done]

@@ -1,5 +1,9 @@
 # Task 71: Test setup.sh with New Template Structure
 
+**Feature**: none
+**Created**: 2025-10-19
+
+
 ## Objective
 Thoroughly test the setup.sh script to ensure it works correctly with the new unified template structure
 
@@ -33,8 +37,10 @@ rm -rf /tmp/test-5daydocs
 - All templates in new structure
 - setup.sh updated with new paths
 
-## Success Criteria
+## Success criteria
 - setup.sh runs without errors
 - Templates copied to correct locations
 - STATE.md has current date
-- All workflow options function correctly
+
+## Problem
+[Description of what needs to be done]

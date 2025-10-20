@@ -1,6 +1,10 @@
 # Task 32: Add Platform Configuration to Setup Script
 
-## Description
+**Feature**: none
+**Created**: 2025-10-19
+
+
+## Problem
 Allow users to configure their platform choice during setup:
 - GitHub with GitHub Issues (default)
 - GitHub with Jira
@@ -17,4 +21,6 @@ Configuration will determine whether GitHub Actions workflows are included.
 ## Implementation Notes
 - Use simple text-based menu (1,2,3 selection)
 - Default to GitHub + GitHub Issues if user presses Enter
-- Store choice in a config file for future reference
+
+## Success criteria
+- [ ] [Add success criteria here]

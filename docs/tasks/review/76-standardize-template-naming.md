@@ -1,5 +1,9 @@
 # Task 76: Standardize Template File Naming Convention
 
+**Feature**: none
+**Created**: 2025-10-19
+
+
 ## Objective
 Apply consistent naming convention to all template files for clarity and maintainability.
 
@@ -28,7 +32,9 @@ Apply consistent naming convention to all template files for clarity and maintai
 ## Dependencies
 - Tasks 72-75 should be completed first
 
-## Success Criteria
+## Success criteria
 - Consistent naming convention applied
 - Scripts updated to reference new names
-- Clear distinction between templates needing processing vs ready-to-use files
+
+## Problem
+[Description of what needs to be done]

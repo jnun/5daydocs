@@ -31,7 +31,6 @@ jobs:
     permissions:
       issues: write
       contents: write
-      projects: write
     
     steps:
       - name: Checkout
@@ -213,6 +212,17 @@ jobs:
               if [ -n "$PROJECT_NUMBER" ]; then
                 echo "  Adding to project #$PROJECT_NUMBER..."
 
+                # Use PAT for project operations (GITHUB_TOKEN doesn't have Projects API access)
+                if [ -z "${{ secrets.GH_PROJECT_TOKEN }}" ]; then
+                  echo "  ⚠️  WARNING: GH_PROJECT_TOKEN secret not set"
+                  echo "  Cannot add to project without a Personal Access Token"
+                  echo "  See docs/GITHUB-PROJECTS-SETUP.md for setup instructions"
+                  continue
+                fi
+
+                # Set token for gh commands
+                export GH_TOKEN="${{ secrets.GH_PROJECT_TOKEN }}"
+
                 # Add to project (idempotent - won't duplicate if already added)
                 gh project item-add $PROJECT_NUMBER --owner @me --url "https://github.com/${{ github.repository }}/issues/$ISSUE_NUMBER" 2>/dev/null || echo "  Note: Issue may already be in project"
 
@@ -232,6 +242,9 @@ jobs:
                 else
                   echo "  Note: Could not find project item (may need to wait for sync)"
                 fi
+
+                # Restore default token
+                export GH_TOKEN="${{ secrets.GITHUB_TOKEN }}"
               fi
             else
               # File deleted - close issue if it exists

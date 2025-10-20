@@ -109,19 +109,48 @@ gh project list --owner @me
 
 Look for your project name (e.g., "myapp Task Board") and note the number.
 
-### Step 6: Configure GitHub Repository
+### Step 6: Create a Personal Access Token (PAT)
+
+GitHub Actions workflows need a Personal Access Token to interact with GitHub Projects v2.
+
+1. Go to: https://github.com/settings/tokens?type=beta
+2. Click **"Generate new token"** → **"Generate new token (fine-grained)"**
+3. Configure the token:
+   - **Token name**: `5daydocs-project-automation`
+   - **Expiration**: Choose your preference (90 days, 1 year, or custom)
+   - **Repository access**: Select "Only select repositories" → Choose your repo (e.g., `5daydocs`)
+   - **Permissions**:
+     - **Repository permissions**:
+       - Issues: Read and write
+       - Metadata: Read-only (auto-selected)
+     - **Account permissions**:
+       - Projects: Read and write ← **CRITICAL**
+4. Click **"Generate token"**
+5. **COPY THE TOKEN** - you won't see it again!
+
+### Step 7: Add Tokens to GitHub Repository
 
 1. Go to your repository on GitHub
 2. Click **Settings** (top menu)
 3. Click **Secrets and variables** → **Actions** (left sidebar)
-4. Click the **Variables** tab
-5. Click **New repository variable**
-6. Enter:
-   - **Name**: `PROJECT_NUMBER`
-   - **Value**: Your project number (e.g., `1`)
-7. Click **Add variable**
 
-### Step 7: Set Up Status Field in Project
+**Add the PAT as a Secret:**
+1. Click the **Secrets** tab
+2. Click **"New repository secret"**
+3. Enter:
+   - **Name**: `GH_PROJECT_TOKEN`
+   - **Value**: Paste the token you just created
+4. Click **"Add secret"**
+
+**Add the Project Number as a Variable:**
+1. Click the **Variables** tab
+2. Click **"New repository variable"**
+3. Enter:
+   - **Name**: `PROJECT_NUMBER`
+   - **Value**: Your project number (e.g., `3`)
+4. Click **"Add variable"**
+
+### Step 8: Set Up Status Field in Project
 
 1. Go to your project: `https://github.com/users/YourUsername/projects/<PROJECT_NUMBER>`
 2. Click the **⋯** (three dots) in the top right
@@ -137,7 +166,7 @@ Look for your project name (e.g., "myapp Task Board") and note the number.
    - Live
 8. Click **Save**
 
-### Step 8: Test the Setup
+### Step 9: Test the Setup
 
 1. Move a task file between folders (e.g., from `backlog` to `next`)
 2. Commit and push:
@@ -175,8 +204,13 @@ Look for your project name (e.g., "myapp Task Board") and note the number.
 - This is a harmless warning on first run
 
 ### "Status field may need to be created"
-- Complete Step 7 above to configure the Status field
+- Complete Step 8 above to configure the Status field
 - Ensure the field options match exactly: Backlog, Next, Working, Review, Live
+
+### "WARNING: GH_PROJECT_TOKEN secret not set"
+- You haven't created or added the Personal Access Token yet
+- Complete Step 6 & 7 above to create and add the PAT
+- The workflow cannot add issues to projects without this token
 
 ### Workflow doesn't run
 - Check that `PROJECT_NUMBER` is set in repository variables

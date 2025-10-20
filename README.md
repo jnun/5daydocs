@@ -47,6 +47,19 @@ cd /path/to/your-project
 - Automation scripts
 - Edge cases and FAQs
 
+## Optional Integrations
+
+### GitHub Projects Kanban Board
+
+Create a visual kanban board that automatically syncs with your task files. Perfect for sharing progress with non-technical stakeholders.
+
+**Setup**: Follow [docs/GITHUB-PROJECTS-SETUP.md](./docs/GITHUB-PROJECTS-SETUP.md)
+
+**Features**:
+- Automatic sync: Move a file → Board updates
+- Shareable URL for partners
+- No manual board updates required
+
 ## AI Assistant Instructions
 
 **IMPORTANT: If you are an AI assistant working with this codebase, follow these steps BEFORE making any changes:**

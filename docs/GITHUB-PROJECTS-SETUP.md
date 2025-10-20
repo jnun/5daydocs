@@ -10,6 +10,41 @@ Automatically syncs your task files to a visual kanban board that non-technical 
 - **No manual updating** required
 - **Share with partners** via GitHub Projects URL
 
+## Prerequisites
+
+You need the GitHub CLI (`gh`) installed to create and manage projects.
+
+### Install GitHub CLI
+
+**macOS (Homebrew):**
+```bash
+brew install gh
+```
+
+**Linux (apt/deb):**
+```bash
+curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+sudo apt update
+sudo apt install gh
+```
+
+**Windows (winget):**
+```bash
+winget install --id GitHub.cli
+```
+
+**Other platforms:** See [https://cli.github.com/manual/installation](https://cli.github.com/manual/installation)
+
+### Authenticate with GitHub
+
+After installing, authenticate:
+```bash
+gh auth login
+```
+
+Follow the prompts to authenticate with your GitHub account.
+
 ## Status Columns
 
 The board has 5 columns matching your workflow:

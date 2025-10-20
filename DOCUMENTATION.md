@@ -473,6 +473,20 @@ When this repository is hosted on GitHub, the included GitHub Action (`.github/w
 - Updates issue labels as tasks move between folders
 - Closes issues when tasks reach `live/`
 
+### GitHub Projects Kanban Board (Optional)
+
+Visualize your tasks on a kanban board that non-technical stakeholders can view and understand. The workflow automatically:
+- Adds tasks to your GitHub Project board
+- Updates the status column based on folder location (Backlog → Next → Working → Review → Live)
+- Keeps the board in sync as you move files between folders
+
+**Setup**: See [docs/GITHUB-PROJECTS-SETUP.md](./docs/GITHUB-PROJECTS-SETUP.md) for complete installation and configuration instructions.
+
+**What you get**:
+- Visual kanban board at `https://github.com/users/YourUsername/projects/N`
+- Shareable with partners (they don't need Git knowledge)
+- Fully automated - just move files, the board updates automatically
+
 ### Jira Kanban Board (Optional)
 
 For stakeholder visibility, you can sync tasks to Jira as a kanban board:
@@ -509,9 +523,8 @@ git push  # GitHub Action closes issue
 
 ### Issue Labels
 The Action automatically applies these labels:
-- `5day-task` - Identifies all 5DayDocs tasks
 - `backlog` - Tasks in backlog folder
-- `sprint` - Tasks in next folder
+- `next` - Tasks in next folder
 - `in-progress` - Tasks in working folder
 - `review` - Tasks in review folder
 - `completed` - Tasks in live folder (issue closed)

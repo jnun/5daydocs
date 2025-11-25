@@ -1,217 +1,88 @@
 # Documentation and Workflow Guide
 
-> **Quick Reference**: See [Common Workflows](#common-workflows) to get started quickly.
+> **Quick Reference**: [Commands](#quick-reference-commands) | [File Formats](#file-formats) | [Workflows](#common-workflows)
 
 ## Philosophy
 
-**Keep what works. Change only what's broken.**
-
-5DayDocs are intentionally simple:
-- Plain folders and markdown files
-- No databases, no apps, no complexity
-- Add only tools that demonstrably improve workflow
-- Resist feature creep
-
-If it works, don't fix it. If it's clear, don't clarify it.
+Simple folder-based task management. Plain markdown files, no databases, no complexity.
 
 ## Initial Setup
 
-**First time setup after cloning/importing:**
 ```bash
-# Make setup script executable and run it
-chmod +x setup.sh
-./setup.sh
+chmod +x setup.sh && ./setup.sh
 ```
 
-**Note:** The setup script will automatically copy and make executable the `5day.sh` command interface to your project.
+Creates directory structure, initializes STATE.md, makes scripts executable.
 
-This will:
-- Create all required directories
-- Set up state tracking file (docs/work/STATE.md)
-- Make all scripts in docs/scripts/ executable
-- Create .gitignore if needed
-- Add sample content if directories are empty
+## Using 5day.sh
 
-## Using the 5day.sh Script
-
-The `5day.sh` script is a convenient command interface for running common 5DayDocs tasks. It's automatically copied and made executable by the setup script.
-
-**Usage:**
 ```bash
-# View available commands
-./5day.sh help
-
-# Create a new task
-./5day.sh newtask "Task description"
-
-# Create a new feature document
-./5day.sh newfeature feature-name
-
-# Check task status
-./5day.sh status
-
-# Check feature alignment
-./5day.sh checkfeatures
-
-# Optional: Add an alias for quicker access
-# Add this to your ~/.bashrc or ~/.zshrc:
-# alias 5day='./5day.sh'
-```
-
-**What it does:**
-- Provides quick access to daily task management operations
-- Simplifies common workflows like creating tasks, moving them through stages, and checking status
-- Run `./5day.sh` without arguments to see available commands
-
-**Manual setup (if setup.sh is not available):**
-```bash
-# Example commands - replace placeholders with actual values
-# Create directory structure
-mkdir -p docs/tasks/{backlog,next,working,review,live}
-mkdir -p docs/work/{bugs/archived,designs,examples,data}
-mkdir -p docs/{features,guides}
-mkdir -p docs/work/scripts
-
-# Create state file ($(date +%Y-%m-%d) will generate current date)
-echo "# docs/work/STATE.md\n\n**Last Updated**: $(date +%Y-%m-%d)\n**5DAY_TASK_ID**: 0\n**5DAY_BUG_ID**: 0" > docs/work/STATE.md
-
-# Make scripts executable
-chmod +x docs/scripts/*.sh
+./5day.sh help              # Show commands
+./5day.sh newtask "desc"    # Create task (auto-increments ID)
+./5day.sh newfeature name   # Create feature doc
+./5day.sh status            # Check current work
+./5day.sh checkfeatures     # Verify alignment
 ```
 
 
-## Document Conventions
+## Naming Conventions
 
-- **UPPERCASE-WORDS** = placeholders to replace with actual values
-- **kebab-case** = lowercase words separated by hyphens (e.g., fix-login-bug)
-- **OPTION1 | OPTION2** = choose one of the options
-- When you see "ID-DESCRIPTION.md" replace ID with a number and DESCRIPTION with kebab-case text
-- All paths use forward slashes (/) even on Windows
-- Commands shown are for bash/unix shells
+| File Type | Format | Example |
+|-----------|--------|---------|
+| Task/Bug files | `ID-description.md` | `[N]-fix-bug-name.md` |
+| Feature files | `feature-name.md` | `feature-name.md` |
+| Scripts | `script-name.sh` | `script-name.sh` |
+| Guides | `topic-name.md` | `topic-name.md` |
 
+**Rules:**
+- Use kebab-case (lowercase, hyphens)
+- Task/Bug IDs are sequential integers (0, 1, 2, 3...)
+- Status values: BACKLOG, NEXT, WORKING, REVIEW, LIVE
+- Bug severity: CRITICAL, HIGH, MEDIUM, LOW
 
+**Why 5DAY_ prefix?** Variables like `5DAY_TASK_ID` prevent AI from confusing tracking IDs with your project code.
 
-### Capitalization and Naming Rationale
-
-- **Capitalized root files** (e.g., `DOCUMENTATION.md`, `README.md`) are core reference files at the top level. AI and tools use these as default starting points.
-- **Lowercase, kebab-case** for all other files and folders.
-
-#### Quick Reference Table
-
-| File Type                | Example                        | Convention                |
-|--------------------------|--------------------------------|---------------------------|
-| Core/root reference      | DOCUMENTATION.md, README.md    | Capitalized, underscores  |
-| Regular docs/features    | initial-welcome-message.md     | Lowercase, kebab-case     |
-| Task/Bug files           | 01-fix-login-bug.md            | Lowercase, kebab-case     |
-| Template files           | template-feature.md             | Lowercase, kebab-case     |
-| Scripts                  | create-task.sh                  | Lowercase, kebab-case     |
-
-**Rationale:** Capitalization is used only for files that serve as primary entry points or core references. All other files use lowercase and kebab-case for clarity and consistency.
-
-### Why 5DAY_ Prefixes
-
-All 5DayDocs system variables use `5DAY_` prefix (like `5DAY_TASK_ID`) to prevent AI confusion with your actual project code. This ensures AI assistants never mix up our tracking with your variables.
-
-## Naming Conventions for 5DayDocs
-
-### File Naming
-- **Task files**: `ID-description.md` (kebab-case description)
-- **Feature files**: `feature-name.md` (kebab-case)
-- **Bug files**: `ID-description.md` (three-digit ID, kebab-case description)
-- **Scripts**: `script-name.sh` (kebab-case with .sh extension)
-- **Guides**: `topic-name.md` (kebab-case)
-
-### Code Style Guidelines (for scripts and examples)
-- **Variables**: `snake_case` for bash scripts, `camelCase` for JavaScript/TypeScript
-- **Functions**: `snake_case` for bash, `camelCase` for JS/TS
-- **Constants**: `SCREAMING_SNAKE_CASE` for all languages
-- **Classes/Components**: `PascalCase` (when applicable)
-- **Environment variables**: `SCREAMING_SNAKE_CASE`
-
-### Markdown Content
-- **Section headers**: Title Case for main sections, Sentence case for subsections
-- **Task titles**: Human readable title (e.g., "Fix Login Bug")
-- **Feature names**: Clear descriptive names (e.g., "User Authentication")
-- **Status values**: ALL CAPS (LIVE, TESTING, WORKING, REVIEW, BACKLOG)
-- **Severity levels**: ALL CAPS (CRITICAL, HIGH, MEDIUM, LOW)
-
-## Project Structure
-
+## Directory Structure
 
 ```
-/
-├── DOCUMENTATION.md             # This guide
-├── README.md                    # Quick start and setup
-├── docs/                        # Documentation (source of truth)
-│   ├── features/                # Feature specifications (one file per feature)
-│   │   └── FEATURE-NAME.md      # Status-tagged capabilities (LIVE/TESTING/BACKLOG)
-│   ├── guides/                  # Technical guides, setup instructions, architecture docs
-│   │   └── TOPIC-NAME.md        # Markdown format, technical documentation
-│   ├── ideas/                   # Brainstorming, concepts, future ideas
-│   ├── STATE.md                 # Current highest task/bug ID
-│   ├── scripts/                 # Work automation scripts
-│   │   ├── create-task.sh       # Task creation helper
-│   │   ├── create-feature.sh    # Feature creation helper
-│   │   ├── check-alignment.sh   # Feature status checker
-│   │   └── INDEX.md             # Scripts index and documentation
-│   ├── tasks/                   # Task management
-│   │   ├── backlog/             # Not prioritized
-│   │   ├── next/                # Sprint queue
-│   │   ├── working/             # Being worked on now
-│   │   ├── review/              # Awaiting approval
-│   │   ├── live/                # Completed
-│   │   └── INDEX.md             # Task folder index
-│   ├── bugs/                    # Bug reports
-│   │   ├── archived/            # Processed bug reports
-│   │   └── INDEX.md             # Bug folder index
-│   ├── designs/                 # UI mockups and wireframes
-│   ├── examples/                # Code examples and snippets
-│   └── data/                    # Test/sample data
-├── templates/                   # Templates directory
-│   ├── project/                 # Project setup templates
-│   └── workflows/               # CI/CD workflow templates
-│       ├── github/              # GitHub Actions workflows
-│       └── bitbucket/           # Bitbucket Pipelines configs
-├── scripts/                     # 5DayDocs distribution scripts
-├── setup.sh                     # Project setup script
-└── 5day.sh                      # Command interface
+docs/
+├── STATE.md           # Task/bug ID tracking
+├── features/          # Capability specifications
+├── tasks/             # Work items moving through folders
+│   ├── backlog/       # Planned work
+│   ├── next/          # Sprint queue
+│   ├── working/       # In progress
+│   ├── review/        # Awaiting approval
+│   └── live/          # Completed
+├── bugs/              # Bug reports
+│   └── archived/      # Processed bugs
+├── guides/            # Technical documentation
+├── scripts/           # Automation tools
+└── [project-specific folders]
 ```
 
 ## How It Works
 
-### Features (Source of Truth)
+## File Formats
 
-Each feature gets one file in `/docs/features/` describing how it works.
-
-**Feature File Format (Template - replace placeholders)**:
+### Feature Document
 ```markdown
-# Feature: FEATURE-NAME
+# Feature: [Feature Name]
 
-## CAPABILITY-NAME
-**Status**: STATUS-VALUE
-Description of capability
+## [Capability Name]
+**Status**: LIVE
+Description of what this capability does
+
+## [Another Capability]  
+**Status**: BACKLOG
+Description of planned capability
 ```
 
-Where:
-- FEATURE-NAME = the feature being documented
-- CAPABILITY-NAME = specific capability within the feature  
-- STATUS-VALUE = one of: BACKLOG, NEXT, WORKING, REVIEW, or LIVE
-- Description = explanation of how it works or will work
+**Status values:** BACKLOG → NEXT → WORKING → REVIEW → LIVE
 
-**Status Meanings**:
-- **BACKLOG** = Planned, not started
-- **NEXT** = Queued for this sprint
-- **WORKING** = Being worked on now
-- **REVIEW** = Built, awaiting approval
-- **LIVE** = In production or approved for deployment
-
-### Tasks (Work Items)
-
-Each task is a file with a unique ID that moves between folders.
-
-**Task File Format (Template - replace placeholders)**:
+### Task Document
 ```markdown
-# Task [NUMBER]: [Brief Description]
+# Task [N]: [Brief description of task]
 
 **Feature**: /docs/features/RELATED-FEATURE.md (or "multiple" or "none")
 **Created**: YYYY-MM-DD  <!-- Replace with actual date -->
@@ -222,86 +93,20 @@ Description of what needs to be fixed or built
 ## Success Criteria
 - [ ] First criterion
 - [ ] Second criterion
+- [ ] Third criterion
+
+## Related Tasks (optional - only if dependencies exist)
+- Complete task [X] first (reason why)
+- See also task [Y] (related work)
 ```
 
-**Placeholder meanings:**
-- ID = task number from work/STATE.md
-- BRIEF-DESCRIPTION = short summary of the task
-- RELATED-FEATURE = name of the feature file (without .md extension)
-- YYYY-MM-DD = actual date in year-month-day format (e.g., 2024-03-15)
-
-**Optional Section - Related Tasks**:
-When a task has dependencies or should be done in a specific order with other tasks, add:
+### Bug Report
 ```markdown
-## Related Tasks
-- Complete task ID-X first (reason why)
-- See also task ID-Y (related work)
-- Do this before task ID-Z (which depends on this)
-```
+# Bug: [Brief description]
 
-Only include this section when tasks have actual dependencies. Most tasks should be independent and can be worked in any order.
-
-**Task Flow**:
-1. Create in `docs/tasks/backlog/` with next ID (check docs/work/STATE.md)
-2. Sprint planning: Move to `docs/tasks/next/`
-3. Start work: Move to `docs/tasks/working/`
-4. Complete work: Move to `docs/tasks/review/`
-5. After approval: Move to `docs/tasks/live/`
-6. If blocked: Move back to `docs/tasks/next/`
-7. Run `./docs/scripts/check-alignment.sh` to check feature status
-8. Update feature doc status when capabilities go LIVE
-
-## Common Workflows
-
-### Adding a Feature
-1. Create `/docs/features/FEATURE-NAME.md` using the Feature File Format shown above
-2. Mark all capabilities as **Status**: BACKLOG initially
-3. Create tasks for each capability to build
-4. Add tasks to `docs/tasks/backlog/` following task creation process
-
-### Creating a New Task
-
-**Using the 5day.sh script (recommended)**:
-```bash
-# After running setup.sh, use the 5day command:
-./5day.sh newtask "Task description"
-```
-
-This automatically:
-- Checks the current highest ID in `docs/work/STATE.md`
-- Creates the task file in `docs/tasks/backlog/`
-- Updates `docs/work/STATE.md` with the new ID
-- Commits both files together
-
-**Where things are stored**:
-**Task IDs**: Tracked in `docs/STATE.md` (contains `5DAY_TASK_ID`)
-**New tasks**: Created in `docs/tasks/backlog/` folder
-**Task files**: Named as `ID-description.md` (e.g., `5-fix-login.md`)
-**Task format**: Each task file contains title, feature reference, creation date, problem description, and success criteria
-
-**Manual approach** (if you prefer):
-1. Check `docs/STATE.md` for the current highest task ID
-2. Create a new file in `docs/tasks/backlog/` with ID+1
-3. Update `docs/STATE.md` with the new highest ID
-4. Commit both files together
-
-
-### Bug Reports
-
-Bug reports are created in `docs/bugs/` by users, clients, or stakeholders reporting issues.
-
-**Bug File Naming**: ID-DESCRIPTION.md
-Use sequential integer IDs starting from 0 (just like tasks: 0, 1, 2, 3...)
-Keep DESCRIPTION brief and kebab-case
-Track highest bug ID in docs/work/STATE.md as 5DAY_BUG_ID
-
-**Bug Report Format (Template - replace ALL CAPS with actual values)**:
-```markdown
-# Bug: BRIEF-DESCRIPTION
-
-**Reported By**: NAME
-**Date**: YYYY-MM-DD  <!-- Use actual date -->
-**Severity**: Choose one: CRITICAL | HIGH | MEDIUM | LOW
+**Reported By**: [Name]
+**Date**: YYYY-MM-DD  <!-- Replace with actual date -->
+**Severity**: CRITICAL | HIGH | MEDIUM | LOW
 
 ## Description
 What is happening that shouldn't be
@@ -312,319 +117,137 @@ What should happen instead
 ## Steps to Reproduce
 1. First step
 2. Second step
+3. Third step
 
 ## Environment
-- Browser/OS/Version info
+Browser/OS/Device information
 ```
 
-**Severity Levels**:
-- **CRITICAL**: System down, data loss, security breach (fix immediately)
-- **HIGH**: Major feature broken, blocking users (fix this sprint)
-- **MEDIUM**: Feature partially broken, has workaround (fix next sprint)
-- **LOW**: Minor issue, cosmetic (fix when convenient)
+**Severity levels:** CRITICAL (system down) | HIGH (major feature broken) | MEDIUM (has workaround) | LOW (minor/cosmetic)
+
+## Common Workflows
+
+### Creating a Task
+
+**Automated (recommended):**
+```bash
+./5day.sh newtask "Task description"
+```
+Auto-increments ID from STATE.md, creates file in backlog/, updates STATE.md.
+
+**Manual:**
+1. Check `docs/STATE.md` for current `5DAY_TASK_ID`
+2. Create `docs/tasks/backlog/[ID+1]-description.md`
+3. Update `5DAY_TASK_ID` in STATE.md
+4. Commit both files together
+
+### Moving Tasks Through Pipeline
+
+```bash
+git mv docs/tasks/backlog/ID-name.md docs/tasks/next/      # Queue for sprint
+git mv docs/tasks/next/ID-name.md docs/tasks/working/      # Start work
+git mv docs/tasks/working/ID-name.md docs/tasks/review/    # Submit for review
+git mv docs/tasks/review/ID-name.md docs/tasks/live/       # Complete
+
+# If blocked:
+git mv docs/tasks/working/ID-name.md docs/tasks/next/      # Move back to queue
+```
+
+### Creating a Feature
+
+```bash
+./5day.sh newfeature feature-name
+```
+Creates `docs/features/feature-name.md` with template. Mark capabilities as BACKLOG initially, update to LIVE when completed.
 
 ### Converting Bugs to Tasks
 
-When ready to fix a bug:
-1. Review bug report in `docs/bugs/`
-2. Create a task following the normal task creation process
-3. Reference the bug report in the task:
-   ```markdown
-   # Task [NUMBER]: [Title Describing Fix]
+1. Create task: `./5day.sh newtask "Fix [bug description]"`
+2. Reference bug in task: `**Bug Report**: /docs/bugs/ID-description.md`
+3. Archive bug: `mv docs/bugs/ID-description.md docs/bugs/archived/`
 
-   **Bug Report**: /docs/bugs/ID-DESCRIPTION.md
-   **Feature**: /docs/features/RELATED-FEATURE.md
-   ```
-4. Move bug report to `docs/bugs/archived/` after task is created:
-   ```bash
-   mkdir -p docs/bugs/archived
-   mv docs/bugs/ID-DESCRIPTION.md docs/bugs/archived/
-   ```
-5. Proceed with task through normal workflow
+### Checking Alignment
 
-### Task Review Process
+```bash
+./5day.sh checkfeatures
+```
+Verifies feature statuses match task locations. Run after moving tasks to review/live.
 
-When a task is complete:
-1. Developer moves task to `docs/tasks/review/`
-2. Reviewer checks success criteria are met
-3. If approved: Move to `docs/tasks/live/`
-4. If rejected: Move back to `docs/tasks/next/` with notes
-5. Update related feature status if applicable
+## Key Concepts
 
-## Data Architecture
+**Features = Permanent** - What capabilities exist in the system
+**Tasks = Temporary** - Work being done to build/improve capabilities
 
-Documentation about your data layer belongs in `docs/data/` - it's reference material for understanding your project's data setup.
+A feature can be LIVE while having backlog tasks for enhancements. Update feature status to LIVE when first capability works, not when all possible work is done.
 
-The `docs/data/` directory should contain:
-- What database/framework you're using
-- Where schemas and migrations live in your codebase
-- How to run migrations and modify the database
-- Architecture decisions and trade-offs
+## STATE.md Format
 
-Most frameworks have their own locations for seed data (Prisma has prisma/seed.ts, Rails has db/seeds.rb, etc). Use those instead of creating duplicate structures.
-
-Keep documentation simple and clear. The goal is to help anyone working on tasks know where to look and what commands to run.
-
-### Git Workflow (Optional)
-
-For teams using git branches:
-1. Branch naming: `task/ID-DESCRIPTION` (matches task filename)
-2. One branch per task in `docs/tasks/working/`
-3. PR title: "Task [NUMBER]: Brief Description"
-4. PR description: Link to task file and success criteria
-5. Merge to main after task moves to `live/`
-6. Delete branch after merge
-
-### Finding Things
-- **What works now?** → Check features marked LIVE
-- **What's being built?** → Check `docs/tasks/working/` folder  
-- **What's up next?** → Check `docs/tasks/next/` folder
-- **What needs prioritizing?** → Check `docs/tasks/backlog/` folder
-
-## Task Numbering
-
-- Start at 0, increment by 1
-- **ALWAYS check work/STATE.md for highest ID before creating**
-- **ALWAYS update work/STATE.md after creating a new task**
-- Number never changes once assigned
-- Format: ID-DESCRIPTION.md (where ID is the number, DESCRIPTION is kebab-case: words-separated-by-hyphens)
-- Reference as "task #ID" or "task ID" (where ID is the actual number)
-
-### work/STATE.md Format
 ```markdown
-# work/STATE.md
+# docs/STATE.md
 
 **Last Updated**: YYYY-MM-DD
-**5DAY_TASK_ID**: ID
-**5DAY_BUG_ID**: ID
+**5DAY_VERSION**: X.X.X
+**5DAY_TASK_ID**: [N]
+**5DAY_BUG_ID**: [N]
+**SYNC_ALL_TASKS**: true | false
 ```
 
-**Example**:
-```markdown
-# work/STATE.md
+**Critical:** STATE.md is the source of truth for IDs. Next task = current `5DAY_TASK_ID` + 1. Don't count files.
 
-**Last Updated**: 2024-01-15
-**5DAY_TASK_ID**: 42
-**5DAY_BUG_ID**: 7
-```
+## Automation Scripts
 
-**Critical**: Count tasks by STATE.md, not by number of files. If STATE.md shows highest ID is N, next task is N+1.
-Always use the ID from work/STATE.md, not a count of existing task files.
+Scripts in `docs/scripts/` automate common workflows. Run `./5day.sh help` for available commands.
 
-## Sprint Planning
-
-Move tasks through the pipeline using git mv:
-```bash
-# For all commands below: replace ID-DESCRIPTION.md with actual filename  
-# Pattern: NUMBER-KEBAB-CASE-DESCRIPTION.md
-
-git mv docs/tasks/backlog/ID-DESCRIPTION.md docs/tasks/next/    # planning sprint
-git mv docs/tasks/next/ID-DESCRIPTION.md docs/tasks/working/    # starting work
-git mv docs/tasks/working/ID-DESCRIPTION.md docs/tasks/next/    # if blocked
-```
-
-- `docs/tasks/next/` = your sprint queue
-- `docs/tasks/working/` = what you're working on RIGHT NOW (keep minimal)
-- Blocked tasks go back to `docs/tasks/next/` to be reworked
-
-## Scripts Directory
-
-The `docs/scripts/` directory contains 5DayDocs automation tools for common workflows. We prioritize bash scripts for universality and avoid framework dependencies. This keeps 5DayDocs scripts separate from any application-specific scripts.
-
-### Script Naming Convention
-- **New scripts**: Use `.sh` extension and descriptive kebab-case names
-- **Examples**: `create-task.sh`, `move-to-review.sh`, `check-status.sh`
-- **Legacy**: Existing `.ts` and `.js` scripts are being phased out
-
-### Creating Automation Scripts
-
+**Creating custom scripts:**
 ```bash
 #!/bin/bash
-# Script: docs/scripts/SCRIPT-NAME.sh
-# Purpose: Brief description
-# Usage: ./docs/scripts/SCRIPT-NAME.sh [arguments]
-
-set -e  # Exit on error
-
-# Script logic here
+# docs/scripts/script-name.sh
+set -e
+# Your automation here
 ```
 
-**Important**: All scripts must be made executable:
-```bash
-chmod +x docs/scripts/SCRIPT-NAME.sh
-```
+Make executable: `chmod +x docs/scripts/script-name.sh`
 
-### Provided Automation Scripts
+## Optional Integrations
 
-After running `./setup.sh`, these scripts will be available in `docs/scripts/`:
+**GitHub Issues/Projects:** Sync tasks to visual boards for stakeholders. See `.github/workflows/` for setup.
 
-| Script | Purpose | Usage |
-|--------|---------|-------|
-| `setup.sh` | Initial setup (in root) | `./setup.sh` |
-| `create-task.sh` | Create new task with auto-ID | `./docs/scripts/create-task.sh "Description" [feature]` |
-| `check-alignment.sh` | Check feature/task alignment | `./docs/scripts/check-alignment.sh` |
-
-## Integration Options
-
-### GitHub Issues (Optional)
-
-When this repository is hosted on GitHub, the included GitHub Action (`.github/workflows/sync-tasks-to-issues.yml`) automatically:
-- Creates GitHub issues when tasks are committed to `backlog/` or `next/`
-- Updates issue labels as tasks move between folders
-- Closes issues when tasks reach `live/`
-
-### GitHub Projects Kanban Board (Optional)
-
-Visualize your tasks on a kanban board that non-technical stakeholders can view and understand. The workflow automatically:
-- Adds tasks to your GitHub Project board
-- Updates the status column based on folder location (Backlog → Next → Working → Review → Live)
-- Keeps the board in sync as you move files between folders
-
-**Setup**: See [docs/GITHUB-PROJECTS-SETUP.md](./docs/GITHUB-PROJECTS-SETUP.md) for complete installation and configuration instructions.
-
-**What you get**:
-- Visual kanban board at `https://github.com/users/YourUsername/projects/N`
-- Shareable with partners (they don't need Git knowledge)
-- Fully automated - just move files, the board updates automatically
-
-### Jira Kanban Board (Optional)
-
-For stakeholder visibility, you can sync tasks to Jira as a kanban board:
-- Automatically creates/updates Jira tickets based on folder movements
-- Imports Jira-created tickets back to Git (maintaining Git as source of truth)
-- Automatic conflict resolution with Git always winning
-- Works with both GitHub and Bitbucket repositories
-
-**Setup Guides**:
-- [Basic Setup](./docs/guides/jira-kanban-setup.md) - One-way sync for visualization
-- [Full Sync with Git Authority](./docs/guides/git-source-of-truth-sync.md) - Two-way sync with automatic reconciliation
-
-### How It Works
-Simply use your normal git workflow. The GitHub Action handles everything:
-
-```bash
-# Example workflow (replace ID and DESCRIPTION with actual values)
-# Creating a task:
-echo "# Task 123: Fix Login Bug" > docs/tasks/backlog/123-fix-login-bug.md
-git add docs/tasks/backlog/123-fix-login-bug.md
-git commit -m "Add task 123: Fix Login Bug"
-git push  # GitHub Action creates issue automatically
-
-# Moving through pipeline:
-git mv docs/tasks/backlog/ID-DESCRIPTION.md docs/tasks/working/
-git commit -m "Start task ID"
-git push  # GitHub Action updates issue label
-
-# Completing:
-git mv docs/tasks/review/ID-DESCRIPTION.md docs/tasks/live/
-git commit -m "Complete task ID"
-git push  # GitHub Action closes issue
-```
-
-### Issue Labels
-The Action automatically applies these labels:
-- `backlog` - Tasks in backlog folder
-- `next` - Tasks in next folder
-- `in-progress` - Tasks in working folder
-- `review` - Tasks in review folder
-- `completed` - Tasks in live folder (issue closed)
-
-### No Additional Tools Required
-The integration works entirely through GitHub Actions. No need to install GitHub CLI or run special commands locally.
-
-### Disabling Integration
-To disable: Simply delete `.github/workflows/sync-tasks-to-issues.yml`
+**Jira:** Two-way sync with Git as source of truth. See workflow templates in repository.
 
 ## Quick Reference Commands
 
 ```bash
-# Check current task status
-ls docs/tasks/working/      # What's being worked on
-ls docs/tasks/next/         # What's in the queue
-ls docs/tasks/backlog/      # What needs prioritization
+# Creating
+./5day.sh newtask "description"          # Create task
+./5day.sh newfeature name                 # Create feature
+./5day.sh status                          # Check current work
+./5day.sh checkfeatures                   # Verify alignment
 
-# Move tasks through workflow
-git mv docs/tasks/backlog/ID-name.md docs/tasks/next/    # Queue for sprint
-git mv docs/tasks/next/ID-name.md docs/tasks/working/     # Start work
-git mv docs/tasks/working/ID-name.md docs/tasks/review/   # Submit for review
-git mv docs/tasks/review/ID-name.md docs/tasks/live/      # Complete task
+# Moving tasks
+git mv docs/tasks/backlog/ID-name.md docs/tasks/next/      # Queue
+git mv docs/tasks/next/ID-name.md docs/tasks/working/      # Start
+git mv docs/tasks/working/ID-name.md docs/tasks/review/    # Submit
+git mv docs/tasks/review/ID-name.md docs/tasks/live/       # Complete
+
+# Viewing
+ls docs/tasks/working/    # Current work
+ls docs/tasks/next/       # Sprint queue
+ls docs/tasks/backlog/    # Planned work
+ls docs/features/         # All capabilities
 ```
 
-## Feature-Task Alignment
+## Common Issues
 
-### Key Principle
-Features track **what capabilities exist**, while tasks track **work being done**. A feature can be LIVE even while having tasks in backlog for enhancements.
+**Task doesn't relate to a feature?** Use `**Feature**: none` for infrastructure/tooling tasks.
 
-### Checking Alignment
-Run the analysis script to check feature-task alignment:
-```bash
-./docs/scripts/check-alignment.sh
-```
+**Task relates to multiple features?** Use `**Feature**: multiple` and list them in Problem section.
 
-This script will:
-- Show all features and their current status
-- List tasks that reference each feature
-- Identify misalignments between task locations and feature statuses
-- Find orphaned tasks without feature references
+**Scripts not executable?** Run `chmod +x docs/scripts/*.sh` or `./setup.sh`
 
-### When to Update Feature Status
-- When a capability first goes LIVE → Update feature to LIVE
-- When starting work on a new capability → Keep feature status unchanged
-- Tasks are temporary, features are permanent
-- Feature status = highest completed capability state
+**Missing directories?** Run `./setup.sh`
 
-### Best Practices
-- **For AI Assistants**: Always run the alignment check after moving tasks to review or live
-- **For Developers**: Check alignment before sprint planning
-- **For Features**: Track individual capability statuses within the feature doc
-
-## Edge Cases & FAQs
-
-**Q: What if a task doesn't relate to any feature?**
-A: Use `**Feature**: none` for infrastructure, tooling, or documentation tasks.
-
-**Q: What if a task relates to multiple features?**
-A: Use `**Feature**: multiple` and list features in the Problem section.
-
-**Q: What if a bug has no existing feature?**
-A: Create the feature doc first (as BACKLOG), then create the bug task.
-
-**Q: Can I skip review and go straight to live?**
-A: No. All tasks must pass through review for quality control.
-
-**Q: What if I need to work on an urgent bug?**
-A: Move directly from `backlog/` to `working/`, document the urgency in the task.
-
-**Q: How do I handle tasks that get stuck?**
-A: After 2 weeks in `working/`, move back to `next/` and add blocker notes.
-
-## Troubleshooting
-
-**Scripts not executable?**
-```bash
-# Quick fix for all scripts
-chmod +x docs/scripts/*.sh
-chmod +x 5day.sh
-# Or run the setup script
-./setup.sh
-```
-
-**Missing directories?** Run `./setup.sh` or create manually:
-```bash
-mkdir -p docs/tasks/{backlog,next,working,review,live}
-mkdir -p docs/work/{bugs/archived,designs,examples,data}
-mkdir -p docs/{features,guides}
-mkdir -p docs/work/scripts
-```
-
-**Task ID conflicts?** Always check docs/STATE.md first. The STATE.md file is the source of truth for task IDs.
-
-**Git status showing deleted files?** This is normal after reorganization. Review and commit changes when ready.
-
-**Permission denied when running scripts?**
-- Ensure the script is executable: `ls -la docs/scripts/`
-- Run with bash directly: `bash docs/scripts/script-name.sh`
-- Or make executable: `chmod +x docs/scripts/script-name.sh`
+**Task ID conflicts?** Always check `docs/STATE.md` first - it's the source of truth.
 
 ---
-*Simple, folder-based task management with clear feature documentation*
+
+*Simple folder-based task management. Plain markdown files, no complexity.*

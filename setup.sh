@@ -123,6 +123,7 @@ safe_mkdir "docs/data"
 safe_mkdir "docs/scripts"
 safe_mkdir "docs/features"
 safe_mkdir "docs/guides"
+safe_mkdir "docs/tests"
 
 # Add .gitkeep files to preserve empty directories
 echo ""
@@ -140,11 +141,11 @@ echo "Managing state tracking files..."
 if [ ! -f docs/STATE.md ]; then
     # Create new STATE.md
     # Check if template exists in source directory
-    if [ -f "$FIVEDAY_SOURCE_DIR/templates/project/STATE.md.template" ]; then
+    if [ -f "$FIVEDAY_SOURCE_DIR/src/templates/project/STATE.md.template" ]; then
         # Copy template and replace placeholders
         sed -e "s/{{DATE}}/$(date +%Y-%m-%d)/g" \
             -e "s/{{VERSION}}/$CURRENT_VERSION/g" \
-            "$FIVEDAY_SOURCE_DIR/templates/project/STATE.md.template" > docs/STATE.md
+            "$FIVEDAY_SOURCE_DIR/src/templates/project/STATE.md.template" > docs/STATE.md
         echo "✓ Created docs/STATE.md from template"
     else
         # Fallback to inline generation if template doesn't exist
@@ -261,8 +262,11 @@ INDEX_FILES_COPIED=0
 
 # Copy README.md if it doesn't exist
 if [ ! -f README.md ]; then
-    if [ -f "$FIVEDAY_SOURCE_DIR/README.md" ]; then
-        # Create a project-specific README with 5DayDocs reference
+    if [ -f "$FIVEDAY_SOURCE_DIR/src/README.md" ]; then
+        cp "$FIVEDAY_SOURCE_DIR/src/README.md" README.md
+        echo "✓ Copied project README.md"
+    elif [ -f "$FIVEDAY_SOURCE_DIR/README.md" ]; then
+        # Fallback to creating a project-specific README
         cat > README.md << README_EOF
 # Project Name
 
@@ -305,8 +309,8 @@ fi
 
 # Copy DOCUMENTATION.md if it doesn't exist or in update mode
 if [ ! -f DOCUMENTATION.md ] || $UPDATE_MODE; then
-    if [ -f "$FIVEDAY_SOURCE_DIR/DOCUMENTATION.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/DOCUMENTATION.md" DOCUMENTATION.md
+    if [ -f "$FIVEDAY_SOURCE_DIR/src/DOCUMENTATION.md" ]; then
+        cp "$FIVEDAY_SOURCE_DIR/src/DOCUMENTATION.md" DOCUMENTATION.md
         echo "✓ Copied DOCUMENTATION.md"
         ((FILES_COPIED++))
     else
@@ -316,27 +320,40 @@ else
     echo "⚠ DOCUMENTATION.md already exists, skipping"
 fi
 
+# Copy CLAUDE.md if it doesn't exist or in update mode
+if [ ! -f CLAUDE.md ] || $UPDATE_MODE; then
+    if [ -f "$FIVEDAY_SOURCE_DIR/src/CLAUDE.md" ]; then
+        cp "$FIVEDAY_SOURCE_DIR/src/CLAUDE.md" CLAUDE.md
+        echo "✓ Copied CLAUDE.md"
+        ((FILES_COPIED++))
+    else
+        echo "⚠ CLAUDE.md not found in source directory"
+    fi
+else
+    echo "⚠ CLAUDE.md already exists, skipping"
+fi
+
 # Copy template files
 echo "Setting up template files..."
 if [ ! -f docs/tasks/TEMPLATE-task.md ] || $UPDATE_MODE; then
-    if [ -f "$FIVEDAY_SOURCE_DIR/docs/tasks/TEMPLATE-task.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/docs/tasks/TEMPLATE-task.md" docs/tasks/
+    if [ -f "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-task.md" ]; then
+        cp "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-task.md" docs/tasks/
         echo "✓ Copied task template"
         ((FILES_COPIED++))
     fi
 fi
 
 if [ ! -f docs/bugs/TEMPLATE-bug.md ] || $UPDATE_MODE; then
-    if [ -f "$FIVEDAY_SOURCE_DIR/docs/bugs/TEMPLATE-bug.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/docs/bugs/TEMPLATE-bug.md" docs/bugs/
+    if [ -f "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-bug.md" ]; then
+        cp "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-bug.md" docs/bugs/
         echo "✓ Copied bug template"
         ((FILES_COPIED++))
     fi
 fi
 
 if [ ! -f docs/features/TEMPLATE-feature.md ] || $UPDATE_MODE; then
-    if [ -f "$FIVEDAY_SOURCE_DIR/docs/features/TEMPLATE-feature.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/docs/features/TEMPLATE-feature.md" docs/features/
+    if [ -f "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-feature.md" ]; then
+        cp "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-feature.md" docs/features/
         echo "✓ Copied feature template"
         ((FILES_COPIED++))
     fi
@@ -344,34 +361,42 @@ fi
 
 # Copy scripts (all go in docs/scripts/)
 echo "Setting up automation scripts..."
-if [ -f "$FIVEDAY_SOURCE_DIR/docs/scripts/check-alignment.sh" ]; then
-    cp "$FIVEDAY_SOURCE_DIR/docs/scripts/check-alignment.sh" docs/scripts/
+if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/scripts/check-alignment.sh" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/src/docs/scripts/check-alignment.sh" docs/scripts/
     chmod +x docs/scripts/check-alignment.sh
     echo "✓ Copied check-alignment.sh to docs/scripts/"
     ((FILES_COPIED++))
     ((SCRIPTS_READY++))
 fi
 
-if [ -f "$FIVEDAY_SOURCE_DIR/docs/scripts/create-task.sh" ]; then
-    cp "$FIVEDAY_SOURCE_DIR/docs/scripts/create-task.sh" docs/scripts/
+if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/scripts/create-task.sh" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/src/docs/scripts/create-task.sh" docs/scripts/
     chmod +x docs/scripts/create-task.sh
     echo "✓ Copied create-task.sh to docs/scripts/"
     ((FILES_COPIED++))
     ((SCRIPTS_READY++))
 fi
 
-if [ -f "$FIVEDAY_SOURCE_DIR/docs/scripts/create-feature.sh" ]; then
-    cp "$FIVEDAY_SOURCE_DIR/docs/scripts/create-feature.sh" docs/scripts/
+if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/scripts/create-feature.sh" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/src/docs/scripts/create-feature.sh" docs/scripts/
     chmod +x docs/scripts/create-feature.sh
     echo "✓ Copied create-feature.sh to docs/scripts/"
     ((FILES_COPIED++))
     ((SCRIPTS_READY++))
 fi
 
+if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/scripts/ai-context.sh" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/src/docs/scripts/ai-context.sh" docs/scripts/
+    chmod +x docs/scripts/ai-context.sh
+    echo "✓ Copied ai-context.sh to docs/scripts/"
+    ((FILES_COPIED++))
+    ((SCRIPTS_READY++))
+fi
+
 # Copy the main 5day.sh command script to project root
-if [ -f "$FIVEDAY_SOURCE_DIR/5day.sh" ]; then
+if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/scripts/5day.sh" ]; then
     if [ ! -f ./5day.sh ] || $UPDATE_MODE; then
-        cp "$FIVEDAY_SOURCE_DIR/5day.sh" ./5day.sh
+        cp "$FIVEDAY_SOURCE_DIR/src/docs/scripts/5day.sh" ./5day.sh
         chmod +x ./5day.sh
         echo "✓ Copied 5day.sh command script to project root"
         ((FILES_COPIED++))
@@ -397,9 +422,9 @@ if [ "$PLATFORM" != "bitbucket-jira" ]; then
         echo "  Note: Jira integration workflows are not yet implemented"
         echo "  You'll need to configure Jira integration manually"
     else
-        # Copy GitHub Issues workflow from source .github/workflows/
-        if [ -f "$FIVEDAY_SOURCE_DIR/.github/workflows/sync-tasks-to-issues.yml" ]; then
-            cp "$FIVEDAY_SOURCE_DIR/.github/workflows/sync-tasks-to-issues.yml" .github/workflows/
+        # Copy GitHub Issues workflow from templates
+        if [ -f "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-issues.yml" ]; then
+            cp "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-issues.yml" .github/workflows/
             echo "✓ Copied sync-tasks-to-issues.yml"
         fi
         echo "  Remember to configure secrets in your GitHub repository settings"
@@ -409,23 +434,23 @@ if [ "$PLATFORM" != "bitbucket-jira" ]; then
     echo "Setting up GitHub issue and PR templates..."
     mkdir -p .github/ISSUE_TEMPLATE
 
-    if [ -f "$FIVEDAY_SOURCE_DIR/.github/ISSUE_TEMPLATE/bug_report.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/.github/ISSUE_TEMPLATE/bug_report.md" .github/ISSUE_TEMPLATE/
+    if [ -f "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/bug_report.md" ]; then
+        cp "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/bug_report.md" .github/ISSUE_TEMPLATE/
         echo "✓ Copied bug report template"
     fi
 
-    if [ -f "$FIVEDAY_SOURCE_DIR/.github/ISSUE_TEMPLATE/feature_request.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/.github/ISSUE_TEMPLATE/feature_request.md" .github/ISSUE_TEMPLATE/
+    if [ -f "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/feature_request.md" ]; then
+        cp "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/feature_request.md" .github/ISSUE_TEMPLATE/
         echo "✓ Copied feature request template"
     fi
 
-    if [ -f "$FIVEDAY_SOURCE_DIR/.github/ISSUE_TEMPLATE/task.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/.github/ISSUE_TEMPLATE/task.md" .github/ISSUE_TEMPLATE/
+    if [ -f "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/task.md" ]; then
+        cp "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/task.md" .github/ISSUE_TEMPLATE/
         echo "✓ Copied task template"
     fi
 
-    if [ -f "$FIVEDAY_SOURCE_DIR/.github/pull_request_template.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/.github/pull_request_template.md" .github/
+    if [ -f "$FIVEDAY_SOURCE_DIR/templates/github/pull_request_template.md" ]; then
+        cp "$FIVEDAY_SOURCE_DIR/templates/github/pull_request_template.md" .github/
         echo "✓ Copied pull request template"
     fi
 else

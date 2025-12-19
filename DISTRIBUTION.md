@@ -12,7 +12,8 @@ This project uses a single repository for both development and distribution of t
 
 **There is no separate distribution repository.** All users receive the same repository, including its project history and management artifacts.
 
-docs/
+- `src/`: Contains the clean, distributable version of the project files.
+- `docs/`: Contains the internal project management (dogfooding) for 5DayDocs itself.
 
 ## Distribution Process
 
@@ -33,30 +34,33 @@ When preparing the repository for distribution, we provide users with:
 
 **Folder Structure:**
 ```
-docs/
+src/
+├── CLAUDE.md
+├── DOCUMENTATION.md
+├── README.md
+├── docs/
+│   └── scripts/
+│       ├── 5day.sh
+│       ├── create-task.sh
+│       ├── create-feature.sh
+│       ├── check-alignment.sh
+│       └── ai-context.sh
+└── templates/
+    ├── project/
+    └── workflows/
+        ├── github/
+        └── bitbucket/
+
+docs/ (Dogfooding - Internal Use)
 ├── features/
 ├── guides/
 ├── ideas/
+├── tests/
 ├── STATE.md
 └── work/
     ├── tasks/
-    │   ├── backlog/
-    │   ├── next/
-    │   ├── working/
-    │   ├── review/
-    │   └── live/
     ├── bugs/
-    │   └── archived/
-    ├── scripts/
-    ├── designs/
-    ├── examples/
-    └── data/
-templates/
-├── project/
-└── workflows/
-    ├── github/
-    └── bitbucket/
-scripts/
+    └── scripts/
 ```
 
 Some internal files and folders (such as this `DISTRIBUTION.md`, internal documentation, and project-specific content) are not intended for end users, but remain in the repository for transparency and development purposes.

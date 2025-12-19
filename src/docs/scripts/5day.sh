@@ -25,13 +25,16 @@ show_help() {
     echo "  newfeature <name>         Create a new feature document"
     echo "  checkfeatures             Analyze feature alignment across docs"
     echo "  status                    Show current task status"
+    echo "  ai-context                Generate context summary for AI agents"
     echo "  help                      Show this help message"
     echo ""
     echo -e "${BLUE}Examples:${NC}"
     echo "  5day newtask \"Fix login authentication bug\""
     echo "  5day newfeature user-profile"
     echo "  5day checkfeatures"
+    echo "  5day checkfeatures"
     echo "  5day status"
+    echo "  5day ai-context"
     echo ""
 }
 
@@ -241,6 +244,17 @@ show_status() {
     fi
 }
 
+# Function to get AI context
+get_ai_context() {
+    if [ -x "$PROJECT_ROOT/docs/scripts/ai-context.sh" ]; then
+        "$PROJECT_ROOT/docs/scripts/ai-context.sh"
+    else
+        echo -e "${RED}ERROR: ai-context.sh not found or not executable${NC}"
+        echo "Run: chmod +x docs/scripts/ai-context.sh"
+        exit 1
+    fi
+}
+
 # Main command router
 case "$1" in
     newtask)
@@ -256,6 +270,9 @@ case "$1" in
         ;;
     status)
         show_status
+        ;;
+    ai-context)
+        get_ai_context
         ;;
     help|--help|-h|"")
         show_help

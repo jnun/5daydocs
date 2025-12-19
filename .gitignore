@@ -62,7 +62,6 @@ work/designs/*.xd
 
 # AI Assistant Configuration
 # (Users should create their own CLAUDE.md for their project)
-CLAUDE.md
 
 # Documentation builds (if using doc generators)
 docs/_build/

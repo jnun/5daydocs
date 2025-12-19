@@ -1,102 +1,32 @@
 #!/bin/bash
 
 # build-distribution.sh
-# Builds the clean 5daydocs distribution repository from the dogfooding version
+# Installs templates into the current repo for dogfooding/testing
 
 set -e
 
-# Read VERSION file
-if [ -f "VERSION" ]; then
-    CURRENT_VERSION=$(cat VERSION | tr -d '\n')
-else
-    CURRENT_VERSION="1.0.0"
-fi
+echo "🔨 Installing templates for dogfooding..."
 
-# Configuration
-DIST_REPO="5daydocs"
-DIST_PATH="../${DIST_REPO}"
-CURRENT_DIR=$(pwd)
+# Install GitHub workflows from templates
+echo "⚙️  Installing GitHub workflows..."
+mkdir -p .github/workflows
+cp templates/workflows/github/*.yml .github/workflows/
+echo "✓ Installed workflows to .github/workflows/"
 
-echo "🔨 Building 5daydocs distribution..."
+# Install GitHub issue and PR templates
+echo "📋 Installing GitHub templates..."
+mkdir -p .github/ISSUE_TEMPLATE
+cp templates/github/ISSUE_TEMPLATE/*.md .github/ISSUE_TEMPLATE/
+cp templates/github/pull_request_template.md .github/
+echo "✓ Installed GitHub templates to .github/"
 
-# Check if distribution repo exists
-if [ ! -d "$DIST_PATH" ]; then
-    echo "📦 Creating distribution repository at $DIST_PATH"
-    mkdir -p "$DIST_PATH"
-    cd "$DIST_PATH"
-    git init
-    cd "$CURRENT_DIR"
-else
-    echo "✓ Distribution repository exists at $DIST_PATH"
-fi
-
-# Clean distribution directory (preserve .git)
-echo "🧹 Cleaning distribution directory..."
-cd "$DIST_PATH"
-git rm -rf . 2>/dev/null || true
-find . -mindepth 1 -name '.git' -prune -o -exec rm -rf {} + 2>/dev/null || true
-cd "$CURRENT_DIR"
-
-# Copy core scripts
-echo "📄 Copying core scripts..."
-cp 5day.sh "$DIST_PATH/"
-cp setup.sh "$DIST_PATH/"  # Already has safe directory creation
-chmod +x "$DIST_PATH/5day.sh"
-chmod +x "$DIST_PATH/setup.sh"
-
-# Copy templates
-echo "📋 Copying templates..."
-cp -r templates "$DIST_PATH/"
-
-# Copy documentation (selective)
-echo "📚 Copying documentation..."
-cp LICENSE "$DIST_PATH/" 2>/dev/null || true
-cp CLAUDE.md "$DIST_PATH/"
-
-# Copy VERSION file
-echo "📋 Copying VERSION file..."
-cp VERSION "$DIST_PATH/"
-
-# Copy distribution templates
-echo "📝 Copying distribution templates..."
-cp templates/project/README.md "$DIST_PATH/README.md"
-
-# Note: No .gitignore needed for submodule distribution
-# Users manage their own .gitignore in their project
-
-# Create empty folder structure with .gitkeep files
-echo "📁 Creating folder structure..."
-mkdir -p "$DIST_PATH/docs/tasks/"{backlog,next,working,review,live}
-mkdir -p "$DIST_PATH/docs/bugs/archived"
-mkdir -p "$DIST_PATH/docs/"{scripts,designs,examples,data}
-mkdir -p "$DIST_PATH/docs/"{features,guides,ideas}
-
-# Add .gitkeep to preserve empty directories
-find "$DIST_PATH/docs" -type d -empty -exec touch {}/.gitkeep \;
-
-# Create initial STATE.md from template
-echo "📊 Creating initial STATE.md..."
-sed -e "s/{{DATE}}/$(date +%Y-%m-%d)/g" \
-    -e "s/{{VERSION}}/$CURRENT_VERSION/g" \
-    templates/project/STATE.md.template > "$DIST_PATH/docs/STATE.md"
-
-# Update setup.sh paths for distribution use
-echo "🔧 Adjusting setup.sh for distribution..."
-cd "$DIST_PATH"
-# The setup.sh should work from the submodule directory
-# Users will run ./5daydocs/setup.sh from their project root
-
-# Git operations
-echo "📤 Preparing distribution repository..."
-git add .
-git commit -m "Build distribution from dogfooding repository" || echo "No changes to commit"
-
-echo "✅ Distribution build complete!"
 echo ""
-echo "Next steps:"
-echo "1. cd $DIST_PATH"
-echo "2. git remote add origin https://github.com/yourusername/5daydocs.git"
-echo "3. git push -u origin main"
+echo "✅ Templates installed successfully!"
 echo ""
-echo "Users can then add as submodule:"
-echo "git submodule add https://github.com/yourusername/5daydocs.git 5daydocs"
+echo "Installed files:"
+echo "  - .github/workflows/sync-tasks-to-issues.yml"
+echo "  - .github/ISSUE_TEMPLATE/*.md"
+echo "  - .github/pull_request_template.md"
+echo ""
+echo "These files are now live for dogfooding/testing."
+echo "Edit the source files in templates/ and re-run this script to update."

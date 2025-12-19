@@ -1,0 +1,248 @@
+# Bitbucket Pipelines configuration for syncing 5DayDocs tasks to Jira
+# Place this file as bitbucket-pipelines.yml in your repository root
+
+image: atlassian/default-image:3
+
+pipelines:
+  default:
+    - step:
+        name: Sync 5DayDocs Tasks to Jira
+        script:
+          # Install jq for JSON processing
+          - apt-get update && apt-get install -y jq
+
+          # Get changed files (or all tasks on manual trigger)
+          - |
+            if [ "$BITBUCKET_PIPELINE_TRIGGER_TYPE" == "MANUAL" ]; then
+              # Manual trigger - sync all tasks
+              TASK_FILES=$(find work/tasks -name '*.md' -not -name '*TEMPLATE*')
+            else
+              # Push trigger - only changed files in the commit
+              TASK_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E 'work/tasks/.*\.md' | grep -v TEMPLATE || true)
+            fi
+
+          # Process each task file
+          - |
+            for file in $TASK_FILES; do
+              # Skip if file doesn't exist (deleted)
+              if [ ! -f "$file" ]; then
+                continue
+              fi
+
+              # Extract task info
+              TASK_ID=$(basename "$file" | cut -d'-' -f1)
+              TASK_TITLE=$(grep '^# Task' "$file" | sed 's/# Task [0-9]*: //' || echo "Task $TASK_ID")
+              FEATURE=$(grep '^\*\*Feature\*\*:' "$file" | sed 's/\*\*Feature\*\*: //' || echo "General")
+              PROBLEM=$(sed -n '/## Problem/,/## Success criteria/p' "$file" | sed '1d;$d' | head -c 1000 || echo "See task file")
+              CRITERIA=$(sed -n '/## Success criteria/,/## Notes\|$/p' "$file" | sed '1d' | head -c 1000 || echo "See task file")
+
+              # Determine Jira status based on folder
+              case "$file" in
+                *"backlog"*)
+                  JIRA_STATUS="To Do"
+                  JIRA_LABELS='["5day-task","backlog"]'
+                  ;;
+                *"next"*)
+                  JIRA_STATUS="Ready for Dev"
+                  JIRA_LABELS='["5day-task","sprint"]'
+                  ;;
+                *"working"*)
+                  JIRA_STATUS="In Progress"
+                  JIRA_LABELS='["5day-task","working"]'
+                  ;;
+                *"review"*)
+                  JIRA_STATUS="In Review"
+                  JIRA_LABELS='["5day-task","review"]'
+                  ;;
+                *"live"*)
+                  JIRA_STATUS="Done"
+                  JIRA_LABELS='["5day-task","completed"]'
+                  ;;
+              esac
+
+              # Check if issue exists (using JQL search)
+              SEARCH_RESPONSE=$(curl -s -X GET \
+                -H "Authorization: Basic $(echo -n $JIRA_EMAIL:$JIRA_API_TOKEN | base64)" \
+                -H "Accept: application/json" \
+                "$JIRA_BASE_URL/rest/api/3/search?jql=project=$JIRA_PROJECT_KEY%20AND%20summary~\"Task%20$TASK_ID:\"%20ORDER%20BY%20created%20DESC&maxResults=1")
+
+              ISSUE_KEY=$(echo "$SEARCH_RESPONSE" | jq -r '.issues[0].key // empty')
+
+              if [ -z "$ISSUE_KEY" ]; then
+                # Create new Jira issue
+                CREATE_PAYLOAD=$(cat <<EOF
+              {
+                "fields": {
+                  "project": {
+                    "key": "$JIRA_PROJECT_KEY"
+                  },
+                  "summary": "Task $TASK_ID: $TASK_TITLE",
+                  "description": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                      {
+                        "type": "heading",
+                        "attrs": {"level": 2},
+                        "content": [{"type": "text", "text": "5DayDocs Task"}]
+                      },
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {"type": "text", "text": "Feature: ", "marks": [{"type": "strong"}]},
+                          {"type": "text", "text": "$FEATURE"}
+                        ]
+                      },
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {"type": "text", "text": "Bitbucket Path: ", "marks": [{"type": "strong"}]},
+                          {"type": "text", "text": "$file"}
+                        ]
+                      },
+                      {
+                        "type": "heading",
+                        "attrs": {"level": 3},
+                        "content": [{"type": "text", "text": "Problem"}]
+                      },
+                      {
+                        "type": "paragraph",
+                        "content": [{"type": "text", "text": "$PROBLEM"}]
+                      },
+                      {
+                        "type": "heading",
+                        "attrs": {"level": 3},
+                        "content": [{"type": "text", "text": "Success criteria"}]
+                      },
+                      {
+                        "type": "paragraph",
+                        "content": [{"type": "text", "text": "$CRITERIA"}]
+                      },
+                      {
+                        "type": "rule"
+                      },
+                      {
+                        "type": "paragraph",
+                        "content": [
+                          {"type": "text", "text": "Synced from Bitbucket: "},
+                          {"type": "text", "text": "$BITBUCKET_WORKSPACE/$BITBUCKET_REPO_SLUG", "marks": [{"type": "link", "attrs": {"href": "https://bitbucket.org/$BITBUCKET_WORKSPACE/$BITBUCKET_REPO_SLUG"}}]}
+                        ]
+                      }
+                    ]
+                  },
+                  "issuetype": {
+                    "name": "Task"
+                  },
+                  "labels": $JIRA_LABELS
+                }
+              }
+              EOF
+              )
+
+                RESPONSE=$(curl -s -X POST \
+                  -H "Authorization: Basic $(echo -n $JIRA_EMAIL:$JIRA_API_TOKEN | base64)" \
+                  -H "Accept: application/json" \
+                  -H "Content-Type: application/json" \
+                  "$JIRA_BASE_URL/rest/api/3/issue" \
+                  -d "$CREATE_PAYLOAD")
+
+                NEW_KEY=$(echo "$RESPONSE" | jq -r '.key // empty')
+                if [ -n "$NEW_KEY" ]; then
+                  echo "Created Jira issue $NEW_KEY for task $TASK_ID"
+
+                  # Transition to correct status
+                  if [ "$JIRA_STATUS" != "To Do" ]; then
+                    # Get available transitions
+                    TRANSITIONS=$(curl -s -X GET \
+                      -H "Authorization: Basic $(echo -n $JIRA_EMAIL:$JIRA_API_TOKEN | base64)" \
+                      -H "Accept: application/json" \
+                      "$JIRA_BASE_URL/rest/api/3/issue/$NEW_KEY/transitions")
+
+                    # Find transition ID for target status
+                    TRANSITION_ID=$(echo "$TRANSITIONS" | jq -r ".transitions[] | select(.to.name==\"$JIRA_STATUS\") | .id")
+
+                    if [ -n "$TRANSITION_ID" ]; then
+                      curl -s -X POST \
+                        -H "Authorization: Basic $(echo -n $JIRA_EMAIL:$JIRA_API_TOKEN | base64)" \
+                        -H "Content-Type: application/json" \
+                        "$JIRA_BASE_URL/rest/api/3/issue/$NEW_KEY/transitions" \
+                        -d "{\"transition\": {\"id\": \"$TRANSITION_ID\"}}"
+                    fi
+                  fi
+                else
+                  echo "Failed to create Jira issue for task $TASK_ID"
+                  echo "Response: $RESPONSE"
+                fi
+              else
+                # Update existing issue
+                echo "Updating Jira issue $ISSUE_KEY for task $TASK_ID"
+
+                # Update labels
+                curl -s -X PUT \
+                  -H "Authorization: Basic $(echo -n $JIRA_EMAIL:$JIRA_API_TOKEN | base64)" \
+                  -H "Content-Type: application/json" \
+                  "$JIRA_BASE_URL/rest/api/3/issue/$ISSUE_KEY" \
+                  -d "{\"fields\": {\"labels\": $JIRA_LABELS}}"
+
+                # Transition to correct status
+                TRANSITIONS=$(curl -s -X GET \
+                  -H "Authorization: Basic $(echo -n $JIRA_EMAIL:$JIRA_API_TOKEN | base64)" \
+                  -H "Accept: application/json" \
+                  "$JIRA_BASE_URL/rest/api/3/issue/$ISSUE_KEY/transitions")
+
+                TRANSITION_ID=$(echo "$TRANSITIONS" | jq -r ".transitions[] | select(.to.name==\"$JIRA_STATUS\") | .id")
+
+                if [ -n "$TRANSITION_ID" ]; then
+                  curl -s -X POST \
+                    -H "Authorization: Basic $(echo -n $JIRA_EMAIL:$JIRA_API_TOKEN | base64)" \
+                    -H "Content-Type: application/json" \
+                    "$JIRA_BASE_URL/rest/api/3/issue/$ISSUE_KEY/transitions" \
+                    -d "{\"transition\": {\"id\": \"$TRANSITION_ID\"}}"
+                  echo "Transitioned $ISSUE_KEY to $JIRA_STATUS"
+                fi
+
+                # Add comment about the update
+                COMMENT_PAYLOAD=$(cat <<EOF
+              {
+                "body": {
+                  "type": "doc",
+                  "version": 1,
+                  "content": [
+                    {
+                      "type": "paragraph",
+                      "content": [
+                        {"type": "text", "text": "Task moved to folder: "},
+                        {"type": "text", "text": "$(dirname "$file" | xargs basename)", "marks": [{"type": "code"}]},
+                        {"type": "text", "text": " (Status: $JIRA_STATUS)"}
+                      ]
+                    }
+                  ]
+                }
+              }
+              EOF
+              )
+                curl -s -X POST \
+                  -H "Authorization: Basic $(echo -n $JIRA_EMAIL:$JIRA_API_TOKEN | base64)" \
+                  -H "Content-Type: application/json" \
+                  "$JIRA_BASE_URL/rest/api/3/issue/$ISSUE_KEY/comment" \
+                  -d "$COMMENT_PAYLOAD"
+              fi
+            done
+
+  branches:
+    main:
+      - step:
+          name: Sync 5DayDocs Tasks to Jira
+          trigger: automatic
+          script:
+            # Same script as above
+            - apt-get update && apt-get install -y jq
+            - |
+              TASK_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E 'work/tasks/.*\.md' | grep -v TEMPLATE || true)
+              # ... rest of the script from above ...
+
+# Repository Variables required (set in Bitbucket Repository Settings -> Repository variables):
+# - JIRA_BASE_URL: Your Jira instance URL (e.g., https://company.atlassian.net)
+# - JIRA_EMAIL: Email address for Jira API authentication
+# - JIRA_API_TOKEN: Jira API token (create at https://id.atlassian.com/manage-profile/security/api-tokens)
+# - JIRA_PROJECT_KEY: The Jira project key (e.g., PROJ)

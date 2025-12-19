@@ -2,6 +2,16 @@
 
 **The simplest, easiest to use, smallest possible folder-based project management tool.**
 
+## Dev Cycle on this 
+This is a tool developers can use to manage projects in simple text files
+
+* We write source code in src/
+* We run update.sh to test locally
+* We dogfood the tool by running update.sh to update our local files
+* The files in ./ and docs/ are for helping us build the tool
+* The files in ./ and docs/ are not the project we distribute, but how the sausage is made
+* When installed by a developer, it serves the same role it does in this repository
+
 ## Core Philosophy
 
 - **Simple**: Just folders and markdown files. No databases, no apps.

@@ -1,23 +1,49 @@
-# Documentation Workflow
+# Documentation and Workflow Guide
+
+> **Quick Reference**: [Setup](#initial-setup) | [Commands](#quick-reference-commands) | [File Formats](#file-formats) | [Workflows](#common-workflows)
+
+## Philosophy
+
+Simple folder-based task management. Plain markdown files, no databases, no complexity.
 
 - **Features** (`docs/features/`) - Permanent specifications defining what to build
 - **Tasks** (`docs/tasks/`) - Temporary work items moving through folders
-- **STATE.md** (`docs/STATE.md`) - Sequential ID tracking
+- **STATE.md** (`docs/STATE.md`) - Sequential ID tracking (source of truth)
 
-## Core Structure
+## Initial Setup
+
+```bash
+chmod +x setup.sh && ./setup.sh
+```
+
+Creates directory structure, initializes STATE.md, makes scripts executable.
+
+## Using 5day.sh
+
+```bash
+./5day.sh help              # Show all commands
+./5day.sh newtask "desc"    # Create task (auto-increments ID)
+./5day.sh newfeature name   # Create feature doc
+./5day.sh status            # Check current work
+./5day.sh checkfeatures     # Verify alignment
+```
+
+## Directory Structure
 
 ```
 docs/
-├── STATE.md            # Current task and bug IDs
+├── STATE.md            # Task/bug ID tracking (source of truth)
 ├── VERSION             # 5DayDocs version identifier
 ├── api/                # API documentation
 ├── bugs/               # Bug reports (template: TEMPLATE-bug.md)
+│   └── archived/       # Processed bugs
 ├── data/               # Data references and database seeding content
 ├── design/             # Design outlines, standards, and descriptions
 ├── examples/           # Files, text, and examples used for work
 ├── features/           # Capability specifications (template: TEMPLATE-feature.md)
-├── guides/             # Guides, outlines, and tutorials
+├── guides/             # Technical guides, user manuals, process docs
 ├── ideas/              # Concepts not yet formalized as features
+├── scripts/            # Automation tools
 ├── tests/              # Test plans, cases, and validation results
 └── tasks/              # Work items (template: TEMPLATE-task.md)
     ├── backlog/        # Planned work
@@ -29,159 +55,246 @@ docs/
 
 ## Naming Conventions
 
-**Task and Bug Files**:
-- Format: `ID-description.md`
-- ID: Sequential number (0, 1, 2, 3...)
-- Description: Lowercase, kebab-case, action-oriented
-- Example: `12-fix-authentication-error.md`
+| File Type | Format | Example |
+|-----------|--------|---------|
+| Task/Bug files | `ID-description.md` | `12-fix-authentication-error.md` |
+| Feature files | `feature-name.md` | `user-authentication.md` |
+| Scripts | `script-name.sh` | `create-task.sh` |
+| Guides | `topic-name.md` | `deployment-guide.md` |
 
-**Feature Files**:
-- Format: `feature-name.md`
-- No ID prefix
-- Lowercase, kebab-case
-- Example: `user-authentication.md`
+**Rules:**
+- Use kebab-case (lowercase, hyphens)
+- Task/Bug IDs are sequential integers (0, 1, 2, 3...)
+- Status values: BACKLOG, NEXT, WORKING, REVIEW, LIVE
+- Bug severity: CRITICAL, HIGH, MEDIUM, LOW
 
-**All other files**:
-- Lowercase except root documentation (README.md, DOCUMENTATION.md)
-- Use kebab-case for multi-word names
+**Why 5DAY_ prefix?** Variables like `5DAY_TASK_ID` in STATE.md prevent AI from confusing tracking IDs with your project code.
 
-## Feature Documents
+## File Formats
 
-Features define what to build. Use `docs/features/TEMPLATE-feature.md` as the structure template.
+### Feature Document
+```markdown
+# Feature: [Feature Name]
 
-## Task Documents
+## [Capability Name]
+**Status**: LIVE
+Description of what this capability does
 
-Tasks define specific work and move through folders as they progress. Use `docs/tasks/TEMPLATE-task.md` as the structure template.
+## [Another Capability]
+**Status**: BACKLOG
+Description of planned capability
+```
 
-## Workflow
+**Status values:** BACKLOG → NEXT → WORKING → REVIEW → LIVE
 
-Tasks move through folders:
+Use `docs/features/TEMPLATE-feature.md` as the structure template.
 
-1. **backlog/** - Planned work
-2. **next/** - Current sprint
-3. **working/** - In progress
-4. **review/** - Built, needs testing and approval
-5. **live/** - Approved and promoted to production
+### Task Document
+```markdown
+# Task [N]: [Brief description of task]
 
-Move priority tasks from `backlog/` to `next/` to start a sprint. Work progresses: `working/` → `review/` → `live/`.
+**Feature**: /docs/features/RELATED-FEATURE.md (or "multiple" or "none")
+**Created**: YYYY-MM-DD
 
-## Essential Operations
+## Problem
+Description of what needs to be fixed or built
+
+## Success Criteria
+- [ ] First criterion
+- [ ] Second criterion
+- [ ] Third criterion
+
+## Related Tasks (optional - only if dependencies exist)
+- Complete task [X] first (reason why)
+- See also task [Y] (related work)
+```
+
+Use `docs/tasks/TEMPLATE-task.md` as the structure template.
+
+### Bug Report
+```markdown
+# Bug: [Brief description]
+
+**Reported By**: [Name]
+**Date**: YYYY-MM-DD
+**Severity**: CRITICAL | HIGH | MEDIUM | LOW
+
+## Description
+What is happening that shouldn't be
+
+## Expected Behavior
+What should happen instead
+
+## Steps to Reproduce
+1. First step
+2. Second step
+3. Third step
+
+## Environment
+Browser/OS/Device information
+```
+
+**Severity levels:**
+- **CRITICAL** - System down or data loss
+- **HIGH** - Major feature broken, no workaround
+- **MEDIUM** - Feature impaired but has workaround
+- **LOW** - Minor issue or cosmetic
+
+Use `docs/bugs/TEMPLATE-bug.md` as the structure template.
+
+## Common Workflows
 
 ### Creating a Task
 
-**Automated**:
+**Automated (recommended):**
 ```bash
 ./5day.sh newtask "Task description"
 ```
 Auto-increments ID from `docs/STATE.md`, creates file in `docs/tasks/backlog/`, updates STATE.md.
 
-**Manual**:
-1. Get next ID from `docs/STATE.md`
+**Manual:**
+1. Check `docs/STATE.md` for current `5DAY_TASK_ID`
 2. Create `docs/tasks/backlog/[ID+1]-description.md`
-3. Update `docs/STATE.md`
+3. Update `5DAY_TASK_ID` in STATE.md
 4. Commit both files together
 
-### Moving Tasks
+### Moving Tasks Through Pipeline
 
 ```bash
-# Move through the pipeline (replace ID-description.md with actual filename)
-git mv docs/tasks/backlog/ID-description.md docs/tasks/next/      # Queue it
-git mv docs/tasks/next/ID-description.md docs/tasks/working/      # Start work
-git mv docs/tasks/working/ID-description.md docs/tasks/review/    # Submit
-git mv docs/tasks/review/ID-description.md docs/tasks/live/       # Complete
+git mv docs/tasks/backlog/ID-name.md docs/tasks/next/      # Queue for sprint
+git mv docs/tasks/next/ID-name.md docs/tasks/working/      # Start work
+git mv docs/tasks/working/ID-name.md docs/tasks/review/    # Submit for review
+git mv docs/tasks/review/ID-name.md docs/tasks/live/       # Complete
+
+# If blocked:
+git mv docs/tasks/working/ID-name.md docs/tasks/next/      # Move back to queue
 ```
 
-### Updating Features
+### Creating a Feature
 
-- Features = permanent documentation
-- Tasks = temporary work items
-- Update feature status to LIVE when first capability works
-- Update capability checkboxes as they complete
-- LIVE features can have backlog tasks for enhancements
+```bash
+./5day.sh newfeature feature-name
+```
+Creates `docs/features/feature-name.md` with template. Mark capabilities as BACKLOG initially, update to LIVE when completed.
+
+### Converting Bugs to Tasks
+
+1. Create task: `./5day.sh newtask "Fix [bug description]"`
+2. Reference bug in task: `**Bug Report**: /docs/bugs/ID-description.md`
+3. Archive bug: `git mv docs/bugs/ID-description.md docs/bugs/archived/`
+
+### Checking Alignment
+
+```bash
+./5day.sh checkfeatures
+```
+Verifies feature statuses match task locations. Run after moving tasks to review/live.
+
+## Key Concepts
+
+**Features = Permanent** - What capabilities exist in the system
+**Tasks = Temporary** - Work being done to build/improve capabilities
+
+A feature can be LIVE while having backlog tasks for enhancements. Update feature status to LIVE when first capability works, not when all possible work is done.
 
 ## What to Read
 
-- **Feature files** - Specifications and requirements
+- **Feature files** - Specifications and requirements for capabilities
 - **Task files** - Current work scope and success criteria
-- **STATE.md** - Task and bug ID tracking
+- **STATE.md** - Task and bug ID tracking (source of truth)
+- **Templates** - Use `TEMPLATE-*.md` files as structure guides
 
 ## Guides & Tests
 
 ### Guides (`docs/guides/`)
 Permanent documentation for how things work.
-- **Technical Guides**: Architecture, API usage, setup.
-- **User Manuals**: How to use the features.
-- **Process Docs**: Team workflows (like this one).
+- **Technical Guides**: Architecture, API usage, setup
+- **User Manuals**: How to use the features
+- **Process Docs**: Team workflows (like this one)
 
 ### Tests (`docs/tests/`)
-Validation artifacts.
-- **Test Plans**: Strategy for testing features.
-- **Test Cases**: Specific scenarios to verify.
-- **Validation Results**: Proof of testing (logs, screenshots).
-
-
-## Bug Reports
-
-Format: `ID-description.md` in `docs/bugs/`
-- IDs tracked in `docs/STATE.md` as `5DAY_BUG_ID`
-- Sequential IDs: 0, 1, 2, 3...
-- Use `docs/bugs/TEMPLATE-bug.md` as structure template
-
-**Convert bug to task**:
-1. Create task referencing bug
-2. Move bug to `docs/bugs/archived/`
+Validation artifacts and test documentation.
+- **Test Plans**: Strategy for testing features
+- **Test Cases**: Specific scenarios to verify
+- **Validation Results**: Proof of testing (logs, screenshots)
 
 ## STATE.md Format
-
-Check `docs/STATE.md` before creating tasks or bugs.
 
 ```markdown
 # STATE.md
 
 **Last Updated**: YYYY-MM-DD
 **5DAY_VERSION**: X.X.X
-**5DAY_TASK_ID**: <number>  // current highest task ID, next task = prior + 1
-**5DAY_BUG_ID**: <number>    // current highest bug ID, next bug = prior + 1
+**5DAY_TASK_ID**: <number>
+**5DAY_BUG_ID**: <number>
 **SYNC_ALL_TASKS**: <boolean>
 ```
 
-Rules:
-- Next ID = Current ID + 1
-- IDs never change
-- STATE.md is source of truth
+**Critical Rules:**
+- STATE.md is the source of truth for IDs
+- Next task ID = current `5DAY_TASK_ID` + 1
+- IDs never change or reuse
+- Don't count files - always check STATE.md first
 
-## Key Rules
+## Automation Scripts
 
-1. Always check `docs/STATE.md` first for current IDs
-2. IDs come from STATE.md, not file counts
-3. Move files with `git mv` to preserve history
-4. Update feature status to LIVE only when capability first works
-5. Features are permanent, tasks are temporary
-6. One task = one file moving through folders
-7. Commit STATE.md with new task/bug files
-8. Read features for specs, tasks for work scope
+Scripts in `docs/scripts/` automate common workflows. Run `./5day.sh help` for available commands.
 
-## Quick Commands
+**Creating custom scripts:**
+```bash
+#!/bin/bash
+# docs/scripts/script-name.sh
+set -e
+# Your automation here
+```
+
+Make executable: `chmod +x docs/scripts/script-name.sh`
+
+## Optional Integrations
+
+**GitHub Issues/Projects:** Sync tasks to visual boards for stakeholders. See `.github/workflows/` for setup.
+
+**Jira:** Two-way sync with Git as source of truth. See workflow templates in repository.
+
+## Quick Reference Commands
 
 ```bash
-# Create task
-./5day.sh newtask "Description"
+# Creating
+./5day.sh newtask "description"          # Create task
+./5day.sh newfeature name                 # Create feature
+./5day.sh status                          # Check current work
+./5day.sh checkfeatures                   # Verify alignment
 
-# Move tasks
-git mv docs/tasks/backlog/ID-name.md docs/tasks/next/
-git mv docs/tasks/next/ID-name.md docs/tasks/working/
-git mv docs/tasks/working/ID-name.md docs/tasks/review/
-git mv docs/tasks/review/ID-name.md docs/tasks/live/
+# Moving tasks
+git mv docs/tasks/backlog/ID-name.md docs/tasks/next/      # Queue
+git mv docs/tasks/next/ID-name.md docs/tasks/working/      # Start
+git mv docs/tasks/working/ID-name.md docs/tasks/review/    # Submit
+git mv docs/tasks/review/ID-name.md docs/tasks/live/       # Complete
 
-# Check alignment
+# Checking alignment
 ./docs/scripts/check-alignment.sh
 
-# List work
-ls docs/tasks/next/         # Current sprint
-ls docs/tasks/backlog/      # Planned work
-ls docs/features/           # All capabilities
+# Viewing work
+ls docs/tasks/working/    # Current work
+ls docs/tasks/next/       # Sprint queue
+ls docs/tasks/backlog/    # Planned work
+ls docs/features/         # All capabilities
 ```
+
+## Common Issues
+
+**Task doesn't relate to a feature?** Use `**Feature**: none` for infrastructure/tooling tasks.
+
+**Task relates to multiple features?** Use `**Feature**: multiple` and list them in Problem section.
+
+**Scripts not executable?** Run `chmod +x docs/scripts/*.sh` or `./setup.sh`
+
+**Missing directories?** Run `./setup.sh`
+
+**Task ID conflicts?** Always check `docs/STATE.md` first - it's the source of truth, not file counts.
+
+**Need to move task back?** If blocked, use `git mv` to move from `working/` back to `next/` or `backlog/`.
 
 ---
 
-*Plain folders and markdown. That's it.*
+*Simple folder-based task management. Plain markdown files, no complexity.*

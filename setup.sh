@@ -73,11 +73,12 @@ echo ""
 # Change to target directory
 cd "$TARGET_PATH"
 
-# Check if we're in the 5daydocs source directory
+# Self-installation is allowed for dogfooding
+# When TARGET_PATH equals FIVEDAY_SOURCE_DIR, we're testing on ourselves
 if [ "$TARGET_PATH" = "$FIVEDAY_SOURCE_DIR" ]; then
-    echo "❌ Error: Cannot install 5DayDocs into its own source directory."
-    echo "Please specify a different project path."
-    exit 1
+    echo "ℹ️  Dogfood mode: Installing 5DayDocs into its own source directory."
+    echo "   This will sync src/ templates to docs/"
+    echo ""
 fi
 
 # Check if 5DayDocs is already installed
@@ -166,19 +167,18 @@ else
         echo "  Preserving existing STATE.md values during update..."
 
         # Extract existing values with robust parsing and validation
-        EXISTING_VERSION=$(awk '/5DAY_VERSION/{print $NF}' docs/STATE.md 2>/dev/null)
-        EXISTING_TASK_ID=$(grep "5DAY_TASK_ID" docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
-        EXISTING_BUG_ID=$(grep "5DAY_BUG_ID" docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
-        EXISTING_SYNC_FLAG=$(awk '/SYNC_ALL_TASKS/{print $NF}' docs/STATE.md 2>/dev/null)
-        EXISTING_DATE=$(grep "Last Updated" docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | sed 's/[[:space:]]*$//' | head -1)
+        # Match field lines (format: **FIELD**: value), not comments
+        EXISTING_VERSION=$(grep '^\*\*5DAY_VERSION\*\*:' docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | head -1)
+        EXISTING_TASK_ID=$(grep '^\*\*5DAY_TASK_ID\*\*:' docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
+        EXISTING_BUG_ID=$(grep '^\*\*5DAY_BUG_ID\*\*:' docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
+        EXISTING_SYNC_FLAG=$(grep '^\*\*SYNC_ALL_TASKS\*\*:' docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | head -1)
+        EXISTING_DATE=$(grep '^\*\*Last Updated\*\*:' docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | sed 's/[[:space:]]*$//' | head -1)
 
         # Validate and sanitize extracted values
-        # Preserve existing version or use current if missing
-        if [ -n "$EXISTING_VERSION" ]; then
-            PRESERVE_VERSION="$EXISTING_VERSION"
-        else
-            PRESERVE_VERSION="$CURRENT_VERSION"
-            echo "    Info: Adding version field: $CURRENT_VERSION"
+        # Always update to current version (this is an update operation)
+        PRESERVE_VERSION="$CURRENT_VERSION"
+        if [ "$EXISTING_VERSION" != "$CURRENT_VERSION" ]; then
+            echo "    Updating version: $EXISTING_VERSION → $CURRENT_VERSION"
         fi
 
         # Ensure IDs are valid numbers, default to 0 if not
@@ -204,19 +204,11 @@ else
             echo "    Info: Adding SYNC_ALL_TASKS field: false"
         fi
 
-        # Validate date format (YYYY-MM-DD), use today if invalid
-        if [[ "$EXISTING_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-            PRESERVE_DATE="$EXISTING_DATE"
-        else
-            PRESERVE_DATE=$(date +%Y-%m-%d)
-            echo "    Warning: Invalid date format found, using today's date"
-        fi
+        # Always update date to today (this is an update operation)
+        PRESERVE_DATE=$(date +%Y-%m-%d)
 
-        echo "    Preserved Last Updated: $PRESERVE_DATE"
-        echo "    Preserved Version: $PRESERVE_VERSION"
-        echo "    Preserved Task ID: $PRESERVE_TASK_ID"
-        echo "    Preserved Bug ID: $PRESERVE_BUG_ID"
-        echo "    Preserved Sync Flag: $PRESERVE_SYNC_FLAG"
+        echo "    Updated: Last Updated=$PRESERVE_DATE, Version=$PRESERVE_VERSION"
+        echo "    Preserved: Task ID=$PRESERVE_TASK_ID, Bug ID=$PRESERVE_BUG_ID, Sync=$PRESERVE_SYNC_FLAG"
 
         # Simply rewrite STATE.md with preserved values
         cat > docs/STATE.md << STATE_EOF
@@ -570,6 +562,11 @@ INDEX_FILES=(
 for index_file in "${INDEX_FILES[@]}"; do
     # Check if source file exists
     if [ -f "$FIVEDAY_SOURCE_DIR/$index_file" ]; then
+        # Skip if source and target are the same file (dogfood mode)
+        if [ "$FIVEDAY_SOURCE_DIR/$index_file" -ef "$TARGET_PATH/$index_file" ]; then
+            echo "→ Skipped $index_file (dogfood mode, same file)"
+            continue
+        fi
         # Check if target file exists
         if [ ! -f "$index_file" ] || $UPDATE_MODE; then
             # Ensure directory exists
@@ -630,99 +627,24 @@ INDEX_EOF
     fi
 done
 
-# Create INDEX.md for task subfolders
+# Check for legacy INDEX.md files in task subfolders (deprecated in 2.1.0+)
+LEGACY_INDEX_FILES=""
 for folder in backlog next working review live; do
-    if [ ! -f "docs/tasks/$folder/INDEX.md" ] || $UPDATE_MODE; then
-        case $folder in
-            backlog)
-                cat > "docs/tasks/$folder/INDEX.md" << 'EOF'
-# backlog/ - Task Backlog
-
-Tasks that are planned but not yet scheduled for work.
-
-## Purpose
-- Store all identified tasks
-- No commitment to timeline
-- Reviewed during planning sessions
-
-## Moving Tasks Forward
-```bash
-git mv docs/tasks/backlog/ID-task.md docs/tasks/next/
-```
-EOF
-                ;;
-            next)
-                cat > "docs/tasks/$folder/INDEX.md" << 'EOF'
-# next/ - Sprint Queue
-
-Tasks scheduled for the current or next sprint.
-
-## Purpose
-- Tasks ready to be worked on
-- Prioritized for current sprint
-- Clear scope and requirements
-
-## Starting Work
-```bash
-git mv docs/tasks/next/ID-task.md docs/tasks/working/
-```
-EOF
-                ;;
-            working)
-                cat > "docs/tasks/$folder/INDEX.md" << 'EOF'
-# working/ - Active Development
-
-Tasks currently being worked on.
-
-## Rules
-- Maximum 1 task per developer
-- Should be completed quickly
-- Move to review when done
-
-## Completing Work
-```bash
-git mv docs/tasks/working/ID-task.md docs/tasks/review/
-```
-EOF
-                ;;
-            review)
-                cat > "docs/tasks/$folder/INDEX.md" << 'EOF'
-# review/ - Pending Review
-
-Completed tasks awaiting review and approval.
-
-## Purpose
-- Code review
-- Testing verification
-- Documentation check
-
-## Approval Process
-```bash
-git mv docs/tasks/review/ID-task.md docs/tasks/live/
-```
-EOF
-                ;;
-            live)
-                cat > "docs/tasks/$folder/INDEX.md" << 'EOF'
-# live/ - Deployed/Completed
-
-Tasks that have been deployed to production or fully completed.
-
-## Purpose
-- Historical record
-- Reference for similar tasks
-- Success metrics tracking
-
-## Archive
-Tasks remain here as permanent record of completed work.
-EOF
-                ;;
-        esac
-        echo "✓ Created docs/tasks/$folder/INDEX.md"
-        ((FILES_COPIED++))
-        ((INDEX_FILES_COPIED++))
+    if [ -f "docs/tasks/$folder/INDEX.md" ]; then
+        LEGACY_INDEX_FILES="$LEGACY_INDEX_FILES docs/tasks/$folder/INDEX.md"
     fi
 done
+
+if [ -n "$LEGACY_INDEX_FILES" ]; then
+    echo ""
+    echo "⚠️  Legacy INDEX.md files detected in task subfolders."
+    echo "   These files are no longer used and may interfere with task counting."
+    echo "   Please delete them:"
+    for f in $LEGACY_INDEX_FILES; do
+        echo "     rm $f"
+    done
+    echo ""
+fi
 
 # Ensure all scripts are executable (double-check)
 echo "Ensuring all scripts have execute permissions..."

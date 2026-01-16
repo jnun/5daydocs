@@ -542,6 +542,24 @@ STATE_EOF
   echo "  Updated: Version=$RECONCILED_VERSION"
 fi
 
+# Check for legacy INDEX.md files in task subfolders (deprecated in 2.1.0+)
+LEGACY_INDEX_FILES=""
+for folder in backlog next working review live; do
+    if [ -f "$TARGET_PATH/docs/tasks/$folder/INDEX.md" ]; then
+        LEGACY_INDEX_FILES="$LEGACY_INDEX_FILES docs/tasks/$folder/INDEX.md"
+    fi
+done
+
+if [ -n "$LEGACY_INDEX_FILES" ]; then
+    echo ""
+    echo "⚠️  Legacy INDEX.md files detected in task subfolders."
+    echo "   These files are no longer used and may interfere with task counting."
+    echo "   Please delete them:"
+    for f in $LEGACY_INDEX_FILES; do
+        echo "     rm $f"
+    done
+fi
+
 echo ""
 echo "✅ Update complete!"
 echo "Version updated to: $CURRENT_VERSION"

@@ -9,6 +9,28 @@ Project management in markdown files. Like Jira, but folders and plain text.
 
 Updates come from upstream. Use the system as-is.
 
+## AI Agents
+
+This file governs `docs/`. Read it before modifying any task, bug, or feature.
+
+**Rules:**
+1. `docs/` is the active project management system — not source code, not stale
+2. Tasks in `review/` and `live/` are completed work — old dates mean done, not abandoned
+3. Always read `STATE.md` before creating tasks (get next ID)
+4. Use `./5day.sh` commands when available — don't create task files manually
+5. Move tasks by changing folders — folder location = status
+
+**Folder meanings:**
+| Folder | Status |
+|--------|--------|
+| `backlog/` | Planned, not started |
+| `next/` | Queued for current sprint |
+| `working/` | Actively being worked on |
+| `review/` | Done, awaiting approval |
+| `live/` | Shipped/complete |
+
+**Do not assume** old file dates mean abandoned. A task from months ago in `live/` is completed history.
+
 ---
 
 ## Structure
@@ -38,7 +60,7 @@ docs/
 
 ## Moving Tasks
 
-Tasks move through folders via `git mv`:
+Tasks move through folders. Use `git mv` or `mv` (then commit):
 
 ```bash
 git mv docs/tasks/backlog/ID-name.md docs/tasks/next/      # Queue
@@ -46,6 +68,8 @@ git mv docs/tasks/next/ID-name.md docs/tasks/working/      # Start
 git mv docs/tasks/working/ID-name.md docs/tasks/review/    # Submit
 git mv docs/tasks/review/ID-name.md docs/tasks/live/       # Complete
 ```
+
+If `git mv` fails, use `mv` and commit the change.
 
 ## Naming
 

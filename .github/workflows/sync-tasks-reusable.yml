@@ -1,0 +1,418 @@
+# 5DayDocs Reusable Workflow - Task to GitHub Issue Sync
+# https://github.com/jnun/5daydocs
+#
+# This is the engine. User projects call this workflow, they don't copy it.
+# To use in your project, see: src/templates/workflows/github/sync-tasks-to-issues.yml
+
+name: 5DayDocs Sync (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      tasks_path:
+        description: 'Path to tasks directory (default: docs/tasks)'
+        type: string
+        default: 'docs/tasks'
+      state_file:
+        description: 'Path to STATE.md file (default: docs/STATE.md)'
+        type: string
+        default: 'docs/STATE.md'
+      project_number:
+        description: 'GitHub Project number (optional)'
+        type: string
+        default: ''
+      project_owner:
+        description: 'GitHub Project owner (defaults to repository owner)'
+        type: string
+        default: ''
+      force_sync_all:
+        description: 'Force sync all tasks'
+        type: boolean
+        default: false
+    secrets:
+      github_token:
+        description: 'GitHub token with issues:write permission'
+        required: true
+      project_token:
+        description: 'GitHub token with project scope (optional, for Projects integration)'
+        required: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      issues: write
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.github_token }}
+
+      - name: Validate structure
+        env:
+          TASKS_PATH: ${{ inputs.tasks_path }}
+          STATE_FILE: ${{ inputs.state_file }}
+        run: |
+          errors=0
+
+          if [ ! -f "$STATE_FILE" ]; then
+            echo "::error::$STATE_FILE not found"
+            errors=$((errors + 1))
+          fi
+
+          if [ ! -d "$TASKS_PATH" ]; then
+            echo "::error::$TASKS_PATH directory not found"
+            errors=$((errors + 1))
+          fi
+
+          if [ "$errors" -gt 0 ]; then
+            exit 1
+          fi
+
+          echo "::notice::5DayDocs structure validated"
+
+      - name: Setup labels
+        env:
+          GH_TOKEN: ${{ secrets.github_token }}
+        run: |
+          EXISTING=$(gh label list --json name --jq '.[].name' | sort)
+
+          declare -A LABELS=(
+            ["backlog"]="E4E669:Task in backlog"
+            ["next"]="FFA500:Task queued"
+            ["in-progress"]="0E8A16:Task in progress"
+            ["review"]="C2E0C6:Task in review"
+            ["completed"]="98FB98:Task completed"
+          )
+
+          for label in "${!LABELS[@]}"; do
+            if ! echo "$EXISTING" | grep -qx "$label"; then
+              IFS=':' read -r color desc <<< "${LABELS[$label]}"
+              gh label create "$label" --color "$color" --description "$desc"
+              echo "Created label: $label"
+            fi
+          done
+
+      - name: Determine files to process
+        id: files
+        env:
+          TASKS_PATH: ${{ inputs.tasks_path }}
+          STATE_FILE: ${{ inputs.state_file }}
+          FORCE_SYNC: ${{ inputs.force_sync_all }}
+        run: |
+          SYNC_ALL="false"
+
+          if [ "$FORCE_SYNC" = "true" ]; then
+            SYNC_ALL="true"
+            echo "::notice::Force sync enabled"
+          fi
+
+          if grep -qE '^\*\*SYNC_ALL_TASKS\*\*:\s*true' "$STATE_FILE" 2>/dev/null; then
+            SYNC_ALL="true"
+            echo "::notice::Bulk sync flag detected"
+          fi
+
+          echo "sync_all=$SYNC_ALL" >> "$GITHUB_OUTPUT"
+
+          if [ "$SYNC_ALL" = "true" ]; then
+            FILES=$(find "$TASKS_PATH" -type f -name '*.md' ! -name '*INDEX*' ! -name '*TEMPLATE*' | sort)
+          else
+            BASE_SHA="${{ github.event.before }}"
+            if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+              BASE_SHA="HEAD~1"
+            fi
+            FILES=$(git diff --name-only "$BASE_SHA" HEAD -- "$TASKS_PATH/**/*.md" | grep -vE '(INDEX|TEMPLATE)' || true)
+          fi
+
+          if [ -n "$FILES" ]; then
+            echo "files<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$FILES" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+            FILE_COUNT=$(echo "$FILES" | wc -l | tr -d ' ')
+            echo "count=$FILE_COUNT" >> "$GITHUB_OUTPUT"
+            echo "::notice::Found $FILE_COUNT file(s) to process"
+          else
+            echo "files=" >> "$GITHUB_OUTPUT"
+            echo "count=0" >> "$GITHUB_OUTPUT"
+            echo "::notice::No files to process"
+          fi
+
+      - name: Build issue cache
+        id: cache
+        if: steps.files.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ secrets.github_token }}
+        run: |
+          # Fetch all task issues in one call (label pattern: task-{id})
+          gh issue list \
+            --state all \
+            --limit 1000 \
+            --json number,title,state,labels \
+            --jq '.[] | select(.labels[].name | test("^task-[0-9]+$")) | {number, state, taskLabel: (.labels[] | select(.name | test("^task-[0-9]+$")) | .name)}' \
+            > /tmp/cache.json || echo "" > /tmp/cache.json
+
+          echo "Cached $(wc -l < /tmp/cache.json | tr -d ' ') existing issues"
+
+      - name: Sync tasks
+        if: steps.files.outputs.count != '0'
+        id: sync
+        env:
+          GH_TOKEN: ${{ secrets.github_token }}
+          TASKS_PATH: ${{ inputs.tasks_path }}
+        run: |
+          echo "0" > /tmp/created
+          echo "0" > /tmp/updated
+          echo "0" > /tmp/closed
+          echo "0" > /tmp/errors
+
+          inc() { echo "$(($(cat /tmp/$1) + 1))" > /tmp/$1; }
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            echo "::group::$file"
+
+            # Validate pattern
+            if [[ ! "$file" =~ ^$TASKS_PATH/(backlog|next|working|review|live)/[0-9]+-.*\.md$ ]]; then
+              echo "::warning::Unexpected pattern: $file"
+              echo "::endgroup::"
+              continue
+            fi
+
+            TASK_ID=$(basename "$file" | grep -oE '^[0-9]+')
+            TASK_LABEL="task-$TASK_ID"
+
+            # Cache lookup
+            EXISTING=$(grep "\"taskLabel\":\"$TASK_LABEL\"" /tmp/cache.json 2>/dev/null | head -1 || true)
+            if [ -n "$EXISTING" ]; then
+              ISSUE_NUM=$(echo "$EXISTING" | jq -r '.number')
+              ISSUE_STATE=$(echo "$EXISTING" | jq -r '.state')
+            else
+              ISSUE_NUM=""
+              ISSUE_STATE=""
+            fi
+
+            # Deleted file
+            if [ ! -f "$file" ]; then
+              if [ -n "$ISSUE_NUM" ]; then
+                gh issue close "$ISSUE_NUM" --comment "Task file deleted" --reason "not_planned" || true
+                echo "Closed #$ISSUE_NUM"
+                inc closed
+              fi
+              echo "::endgroup::"
+              continue
+            fi
+
+            # Parse file
+            TITLE=$(grep -E '^# Task [0-9]+:' "$file" | sed -E 's/^# Task [0-9]+: //' | head -1)
+            if [ -z "$TITLE" ]; then
+              echo "::error file=$file::Missing title"
+              inc errors
+              echo "::endgroup::"
+              continue
+            fi
+
+            FEATURE=$(grep -E '^\*\*Feature\*\*:' "$file" | sed 's/\*\*Feature\*\*: //' | head -1 || echo "")
+            PROBLEM=$(awk '/^## Problem$/,/^## / {if (!/^##/) print}' "$file" | sed '/^[[:space:]]*$/d' | head -20 || echo "")
+            CRITERIA=$(awk '/^## Success criteria$/,/^## |^---/ {if (!/^##/ && !/^---/) print}' "$file" | sed '/^[[:space:]]*$/d' | head -20 || echo "")
+
+            case "$file" in
+              */backlog/*) STATUS_LABEL="backlog"; STATUS="Backlog" ;;
+              */next/*)    STATUS_LABEL="next"; STATUS="Next" ;;
+              */working/*) STATUS_LABEL="in-progress"; STATUS="In Progress" ;;
+              */review/*)  STATUS_LABEL="review"; STATUS="In Review" ;;
+              */live/*)    STATUS_LABEL="completed"; STATUS="Completed" ;;
+            esac
+
+            # Build body
+            BODY=$(printf '%s\n' \
+              "| Field | Value |" \
+              "|-------|-------|" \
+              "| Status | $STATUS |" \
+              "| Feature | ${FEATURE:-none} |" \
+              "| Source | \`$file\` |" \
+              "" \
+              "## Problem" \
+              "${PROBLEM:-No description}" \
+              "" \
+              "## Success Criteria" \
+              "${CRITERIA:-No criteria}")
+
+            if [ -z "$ISSUE_NUM" ]; then
+              # Create
+              ISSUE_NUM=$(gh issue create \
+                --title "Task $TASK_ID: $TITLE" \
+                --body "$BODY" \
+                --label "$TASK_LABEL" \
+                --label "$STATUS_LABEL" \
+                --json number --jq '.number')
+
+              if [ -n "$ISSUE_NUM" ]; then
+                echo "Created #$ISSUE_NUM"
+                inc created
+              else
+                echo "::error file=$file::Failed to create"
+                inc errors
+              fi
+            else
+              # Update
+              gh issue edit "$ISSUE_NUM" --title "Task $TASK_ID: $TITLE" --body "$BODY" || {
+                echo "::error::Failed to update #$ISSUE_NUM"
+                inc errors
+                echo "::endgroup::"
+                continue
+              }
+
+              # Get current state
+              DATA=$(gh issue view "$ISSUE_NUM" --json labels,state)
+              CUR_LABELS=$(echo "$DATA" | jq -r '.labels[].name' | tr '\n' ' ')
+              CUR_STATE=$(echo "$DATA" | jq -r '.state')
+
+              # Update labels
+              REMOVE=""
+              for l in backlog next in-progress review completed; do
+                [[ "$CUR_LABELS" == *"$l"* ]] && [ "$l" != "$STATUS_LABEL" ] && REMOVE="$REMOVE --remove-label $l"
+              done
+              ADD=""
+              [[ "$CUR_LABELS" != *"$STATUS_LABEL"* ]] && ADD="--add-label $STATUS_LABEL"
+              [ -n "$REMOVE" ] || [ -n "$ADD" ] && eval "gh issue edit $ISSUE_NUM $REMOVE $ADD" 2>/dev/null || true
+
+              # State transitions
+              if [ "$STATUS_LABEL" = "completed" ] && [ "$CUR_STATE" = "OPEN" ]; then
+                gh issue close "$ISSUE_NUM" --reason "completed" || true
+              elif [ "$STATUS_LABEL" != "completed" ] && [ "$CUR_STATE" = "CLOSED" ]; then
+                gh issue reopen "$ISSUE_NUM" || true
+              fi
+
+              echo "Updated #$ISSUE_NUM"
+              inc updated
+            fi
+
+            echo "::endgroup::"
+          done <<< "${{ steps.files.outputs.files }}"
+
+          echo "created=$(cat /tmp/created)" >> "$GITHUB_OUTPUT"
+          echo "updated=$(cat /tmp/updated)" >> "$GITHUB_OUTPUT"
+          echo "closed=$(cat /tmp/closed)" >> "$GITHUB_OUTPUT"
+          echo "errors=$(cat /tmp/errors)" >> "$GITHUB_OUTPUT"
+
+      - name: GitHub Projects integration
+        if: steps.files.outputs.count != '0' && inputs.project_number != ''
+        env:
+          GH_TOKEN: ${{ secrets.project_token || secrets.github_token }}
+          PROJECT_NUM: ${{ inputs.project_number }}
+          PROJECT_OWNER: ${{ inputs.project_owner || github.repository_owner }}
+          TASKS_PATH: ${{ inputs.tasks_path }}
+        run: |
+          echo "::group::Projects Integration"
+
+          # Get project via GraphQL
+          DATA=$(gh api graphql -f query='
+            query($owner: String!, $num: Int!) {
+              user(login: $owner) {
+                projectV2(number: $num) {
+                  id
+                  field(name: "Status") {
+                    ... on ProjectV2SingleSelectField { id options { id name } }
+                  }
+                }
+              }
+              organization(login: $owner) {
+                projectV2(number: $num) {
+                  id
+                  field(name: "Status") {
+                    ... on ProjectV2SingleSelectField { id options { id name } }
+                  }
+                }
+              }
+            }
+          ' -f owner="$PROJECT_OWNER" -F num="$PROJECT_NUM" 2>/dev/null || echo "{}")
+
+          PROJECT_ID=$(echo "$DATA" | jq -r '.data.user.projectV2.id // .data.organization.projectV2.id // empty')
+          if [ -z "$PROJECT_ID" ]; then
+            echo "::warning::Project not found"
+            echo "::endgroup::"
+            exit 0
+          fi
+
+          FIELD_ID=$(echo "$DATA" | jq -r '(.data.user.projectV2.field.id // .data.organization.projectV2.field.id) // empty')
+          echo "$DATA" | jq -r '(.data.user.projectV2.field.options // .data.organization.projectV2.field.options // [])[] | "\(.name)=\(.id)"' > /tmp/opts.txt
+
+          while IFS= read -r file; do
+            [ -z "$file" ] || [ ! -f "$file" ] && continue
+
+            TASK_ID=$(basename "$file" | grep -oE '^[0-9]+')
+            TASK_LABEL="task-$TASK_ID"
+
+            NODE_ID=$(gh issue list --label "$TASK_LABEL" --state all --json id --jq '.[0].id' 2>/dev/null || echo "")
+            [ -z "$NODE_ID" ] && continue
+
+            ITEM_ID=$(gh api graphql -f query='
+              mutation($pid: ID!, $cid: ID!) {
+                addProjectV2ItemById(input: {projectId: $pid, contentId: $cid}) { item { id } }
+              }
+            ' -f pid="$PROJECT_ID" -f cid="$NODE_ID" --jq '.data.addProjectV2ItemById.item.id' 2>/dev/null || echo "")
+
+            if [ -n "$ITEM_ID" ] && [ -n "$FIELD_ID" ]; then
+              case "$file" in
+                */backlog/*) SNAME="Backlog" ;;
+                */next/*)    SNAME="Todo" ;;
+                */working/*) SNAME="In Progress" ;;
+                */review/*)  SNAME="In Review" ;;
+                */live/*)    SNAME="Done" ;;
+                *)           SNAME="" ;;
+              esac
+
+              OPT_ID=$(grep "^$SNAME=" /tmp/opts.txt | cut -d= -f2 || true)
+              if [ -n "$OPT_ID" ]; then
+                gh api graphql -f query='
+                  mutation($pid: ID!, $iid: ID!, $fid: ID!, $oid: String!) {
+                    updateProjectV2ItemFieldValue(input: {projectId: $pid, itemId: $iid, fieldId: $fid, value: {singleSelectOptionId: $oid}}) { projectV2Item { id } }
+                  }
+                ' -f pid="$PROJECT_ID" -f iid="$ITEM_ID" -f fid="$FIELD_ID" -f oid="$OPT_ID" 2>/dev/null || true
+              fi
+              echo "Added task-$TASK_ID to project"
+            fi
+          done <<< "${{ steps.files.outputs.files }}"
+
+          echo "::endgroup::"
+
+      - name: Reset bulk sync flag
+        if: steps.files.outputs.sync_all == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.github_token }}
+          STATE_FILE: ${{ inputs.state_file }}
+        run: |
+          if grep -q '^\*\*SYNC_ALL_TASKS\*\*: true' "$STATE_FILE"; then
+            sed -i 's/^\*\*SYNC_ALL_TASKS\*\*: true$/\*\*SYNC_ALL_TASKS\*\*: false/' "$STATE_FILE"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add "$STATE_FILE"
+            git diff --cached --quiet || git commit -m "chore: reset SYNC_ALL_TASKS [skip ci]"
+            git push || echo "::warning::Could not push reset"
+          fi
+
+      - name: Summary
+        if: always() && steps.files.outputs.count != '0'
+        run: |
+          C="${{ steps.sync.outputs.created || '0' }}"
+          U="${{ steps.sync.outputs.updated || '0' }}"
+          X="${{ steps.sync.outputs.closed || '0' }}"
+          E="${{ steps.sync.outputs.errors || '0' }}"
+
+          {
+            echo "## Task Sync Summary"
+            echo "| Metric | Count |"
+            echo "|--------|------:|"
+            echo "| Created | $C |"
+            echo "| Updated | $U |"
+            echo "| Closed | $X |"
+            echo "| Errors | $E |"
+            echo ""
+            echo "**Total:** $((C + U + X))"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          [ "$E" -gt 0 ] && exit 1 || exit 0

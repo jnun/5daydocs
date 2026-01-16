@@ -1,4 +1,10 @@
-name: Sync Tasks to GitHub Issues
+# Sync tasks from docs/tasks/ to GitHub Issues
+# Powered by 5DayDocs: https://github.com/jnun/5daydocs
+#
+# This workflow calls the 5DayDocs reusable workflow.
+# All logic is maintained in the 5DayDocs repository - you just get updates automatically.
+
+name: Sync Tasks to Issues
 
 on:
   push:
@@ -7,257 +13,25 @@ on:
       - 'docs/STATE.md'
     branches:
       - main
-
-# Prevent concurrent runs from conflicting
-concurrency:
-  group: sync-tasks-${{ github.ref }}
-  cancel-in-progress: false
-
-# GitHub Projects Integration Setup:
-# 1. Create a project: gh project create --owner @me --title "<YourProject> Task Board"
-# 2. Get the project number: gh project list --owner @me
-# 3. Set PROJECT_NUMBER in GitHub repo settings:
-#    Settings → Secrets and variables → Actions → Variables → New repository variable
-#    Name: PROJECT_NUMBER, Value: <your-project-number>
-# 4. The project will auto-create status field values as issues are added
-
-env:
-  PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+  workflow_dispatch:
+    inputs:
+      force_sync_all:
+        description: 'Force sync all tasks'
+        type: boolean
+        default: false
 
 jobs:
-  sync-tasks:
-    runs-on: ubuntu-latest
-    permissions:
-      issues: write
-      contents: write
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Full history for reliable diff detection
-
-      - name: Create labels if they don't exist
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Create labels with colors if they don't exist
-          gh label create "backlog" --color "E4E669" --description "In backlog folder" 2>/dev/null || true
-          gh label create "next" --color "FFA500" --description "In next folder" 2>/dev/null || true
-          gh label create "in-progress" --color "0E8A16" --description "In working folder" 2>/dev/null || true
-          gh label create "review" --color "C2E0C6" --description "In review folder" 2>/dev/null || true
-          gh label create "completed" --color "98FB98" --description "In live folder" 2>/dev/null || true
-      
-      - name: Check if bulk sync is requested
-        id: check-sync-flag
-        run: |
-          SYNC_ALL=$(grep -oP '\*\*SYNC_ALL_TASKS\*\*:\s*\K\w+' docs/STATE.md || echo "false")
-          echo "sync_all=$SYNC_ALL" >> $GITHUB_OUTPUT
-          echo "Sync mode: $SYNC_ALL"
-
-      - name: Get changed task files
-        id: changed-files
-        run: |
-          if [ "${{ steps.check-sync-flag.outputs.sync_all }}" = "true" ]; then
-            # Bulk sync mode - get ALL tasks
-            echo "🔄 Bulk sync mode enabled - processing all tasks"
-            FILES=$(find docs/tasks -name '*.md' -type f 2>/dev/null | grep -vE '(INDEX|TEMPLATE)' | tr '\n' ' ')
-            echo "files=$FILES" >> $GITHUB_OUTPUT
-          else
-            # Normal mode - only changed tasks
-            echo "files=$(git diff --name-only HEAD^ HEAD | grep -E 'docs/tasks/.*\.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
-          fi
-      
-      - name: Sync tasks with GitHub issues
-        if: steps.changed-files.outputs.files != ''
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail  # Exit on error, undefined vars, pipe failures
-
-          for file in ${{ steps.changed-files.outputs.files }}; do
-            echo "Processing: $file"
-
-            # Skip template and index files
-            if [[ "$file" == *"TEMPLATE"* ]] || [[ "$file" == *"INDEX.md" ]]; then
-              echo "  Skipped (template/index file)"
-              continue
-            fi
-
-            # Extract task ID from filename
-            TASK_ID=$(basename "$file" | cut -d'-' -f1)
-
-            # Validate task ID is numeric
-            if ! [[ "$TASK_ID" =~ ^[0-9]+$ ]]; then
-              echo "  Error: Invalid task ID '$TASK_ID' in filename: $file"
-              echo "  Expected format: ID-description.md (e.g., 123-my-task.md)"
-              exit 1
-            fi
-
-            # Check if file exists (not deleted)
-            if [ -f "$file" ]; then
-              echo "  Task ID: $TASK_ID"
-
-              # Parse task metadata with validation
-              TASK_TITLE=$(grep '^# Task' "$file" | sed 's/^# Task [0-9]*: //' | head -n1)
-
-              # Validate title is not empty
-              if [ -z "$TASK_TITLE" ]; then
-                echo "  Error: Task title is missing or invalid in $file"
-                echo "  Expected format: '# Task ID: Title'"
-                exit 1
-              fi
-
-              echo "  Title: $TASK_TITLE"
-
-              # Extract metadata with safe defaults
-              FEATURE=$(grep '^\*\*Feature\*\*:' "$file" | sed 's/\*\*Feature\*\*: //' | head -n1 || echo "none")
-              PROBLEM=$(sed -n '/## Problem/,/## Success criteria/p' "$file" | sed '1d;$d' || echo "No description provided")
-              CRITERIA=$(sed -n '/## Success criteria/,/## Notes\|$/p' "$file" | sed '1d' || echo "No criteria defined")
-
-              # Determine status and labels based on folder
-              STATUS=""
-              LABELS=""
-              case "$file" in
-                *"backlog"*)
-                  LABELS="backlog"
-                  STATUS="Backlog"
-                  ;;
-                *"next"*)
-                  LABELS="next"
-                  STATUS="Next"
-                  ;;
-                *"working"*)
-                  LABELS="in-progress"
-                  STATUS="Working"
-                  ;;
-                *"review"*)
-                  LABELS="review"
-                  STATUS="In Review"
-                  ;;
-                *"live"*)
-                  LABELS="completed"
-                  STATUS="Live"
-                  ;;
-                *)
-                  echo "  Error: File '$file' doesn't match any known folder pattern"
-                  echo "  Expected: backlog, next, working, review, or live"
-                  exit 1
-                  ;;
-              esac
-
-              echo "  Status: $STATUS"
-
-              # Create issue body with metadata tracking (HTML comment for idempotent lookup)
-              BODY="<!-- 5daydocs-task-id: $TASK_ID -->"$'\n\n'"## 5DayDocs Task"$'\n\n'"**Status**: $STATUS"$'\n'"**Feature**: $FEATURE"$'\n'"**Task File**: \`$file\`"$'\n\n'"## Problem"$'\n'"$PROBLEM"$'\n\n'"## Success criteria"$'\n'"$CRITERIA"$'\n\n'"---"$'\n'"*This issue was automatically synced from the 5DayDocs task management system.*"
-
-              # Search for existing issue by metadata (more reliable than title search)
-              ISSUE_NUMBER=$(gh issue list --state all --limit 1000 --json number,body --jq ".[] | select(.body | contains(\"<!-- 5daydocs-task-id: $TASK_ID -->\")) | .number" | head -n1)
-
-              if [ -z "$ISSUE_NUMBER" ]; then
-                # No existing issue found - create new one
-                echo "  Creating new issue..."
-
-                # Convert comma-separated labels to individual --label arguments
-                LABEL_ARGS=""
-                IFS=',' read -ra LABEL_ARRAY <<< "$LABELS"
-                for label in "${LABEL_ARRAY[@]}"; do
-                  LABEL_ARGS="$LABEL_ARGS --label $label"
-                done
-
-                ISSUE_NUMBER=$(gh issue create \
-                  --title "Task $TASK_ID: $TASK_TITLE" \
-                  --body "$BODY" \
-                  $LABEL_ARGS | grep -oP '(?<=/issues/)\d+')
-
-                echo "  ✓ Created issue #$ISSUE_NUMBER"
-              else
-                # Issue exists - update it (idempotent)
-                echo "  Updating existing issue #$ISSUE_NUMBER..."
-
-                # Update title (in case it changed)
-                gh issue edit $ISSUE_NUMBER --title "Task $TASK_ID: $TASK_TITLE"
-
-                # Update body (keep metadata, update content)
-                gh issue edit $ISSUE_NUMBER --body "$BODY"
-
-                # Remove all old status labels
-                for old_label in backlog next in-progress review completed; do
-                  gh issue edit $ISSUE_NUMBER --remove-label "$old_label" 2>/dev/null || true
-                done
-
-                # Add new labels
-                IFS=',' read -ra LABEL_ARRAY <<< "$LABELS"
-                for label in "${LABEL_ARRAY[@]}"; do
-                  gh issue edit $ISSUE_NUMBER --add-label "$label" 2>/dev/null || true
-                done
-
-                # Handle state transitions
-                if [[ "$file" == *"live"* ]]; then
-                  gh issue close $ISSUE_NUMBER --comment "Task completed and moved to live" 2>/dev/null || true
-                  echo "  ✓ Closed issue (task completed)"
-                else
-                  # Reopen if it was closed but moved out of live
-                  CURRENT_STATE=$(gh issue view $ISSUE_NUMBER --json state --jq '.state')
-                  if [ "$CURRENT_STATE" = "CLOSED" ]; then
-                    gh issue reopen $ISSUE_NUMBER 2>/dev/null || true
-                    echo "  ✓ Reopened issue (moved from live)"
-                  fi
-                  echo "  ✓ Updated to status: $STATUS"
-                fi
-              fi
-
-              # Add issue to GitHub Project (if configured)
-              if [ -n "$PROJECT_NUMBER" ]; then
-                echo "  Adding to project #$PROJECT_NUMBER..."
-
-                # Use PAT for project operations (GITHUB_TOKEN doesn't have Projects API access)
-                if [ -z "${{ secrets.GH_PROJECT_TOKEN }}" ]; then
-                  echo "  ⚠️  WARNING: GH_PROJECT_TOKEN secret not set"
-                  echo "  Cannot add to project without a Personal Access Token"
-                  echo "  See docs/GITHUB-PROJECTS-SETUP.md for setup instructions"
-                  continue
-                fi
-
-                # Set token for gh commands
-                export GH_TOKEN="${{ secrets.GH_PROJECT_TOKEN }}"
-
-                # Add to project (idempotent - won't duplicate if already added)
-                gh project item-add $PROJECT_NUMBER --owner @me --url "https://github.com/${{ github.repository }}/issues/$ISSUE_NUMBER" 2>/dev/null || echo "  Note: Issue may already be in project"
-
-                echo "  ✓ Added to project"
-
-                # Update project item status to match folder location
-                echo "  Setting project status to: $STATUS"
-
-                # Get the project item ID
-                ITEM_ID=$(gh project item-list $PROJECT_NUMBER --owner @me --format json --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id" 2>/dev/null || echo "")
-
-                if [ -n "$ITEM_ID" ]; then
-                  # Update the Status field to match the task folder
-                  gh project item-edit --id "$ITEM_ID" --project-id $PROJECT_NUMBER --field "Status" --text "$STATUS" 2>/dev/null || echo "  Note: Status field may need to be created in project settings"
-
-                  echo "  ✓ Updated project status to: $STATUS"
-                else
-                  echo "  Note: Could not find project item (may need to wait for sync)"
-                fi
-
-                # Restore default token
-                export GH_TOKEN="${{ secrets.GITHUB_TOKEN }}"
-              fi
-            else
-              # File deleted - close issue if it exists
-              echo "  Task file deleted: $TASK_ID"
-
-              ISSUE_NUMBER=$(gh issue list --state all --limit 1000 --json number,body --jq ".[] | select(.body | contains(\"<!-- 5daydocs-task-id: $TASK_ID -->\")) | .number" | head -n1)
-
-              if [ -n "$ISSUE_NUMBER" ]; then
-                gh issue close $ISSUE_NUMBER --comment "Task file deleted from repository" 2>/dev/null || true
-                echo "  ✓ Closed issue #$ISSUE_NUMBER"
-              else
-                echo "  No issue found to close"
-              fi
-            fi
-          done
-
-          echo "Sync complete!"
+  sync:
+    uses: jnun/5daydocs/.github/workflows/sync-tasks-reusable.yml@main
+    with:
+      tasks_path: 'docs/tasks'
+      state_file: 'docs/STATE.md'
+      force_sync_all: ${{ inputs.force_sync_all || false }}
+      # Optional: GitHub Projects integration
+      # Uncomment and configure to sync tasks to a GitHub Project board
+      # project_number: '1'
+      # project_owner: 'your-username-or-org'
+    secrets:
+      github_token: ${{ secrets.GITHUB_TOKEN }}
+      # Uncomment if using GitHub Projects (requires PAT with project scope)
+      # project_token: ${{ secrets.GH_PROJECT_TOKEN }}

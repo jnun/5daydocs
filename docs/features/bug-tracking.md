@@ -6,7 +6,7 @@ The bug tracking system is fully implemented for capturing and managing bug repo
 
 ## Bug Report Creation
 **Status**: LIVE
-Bug reports can be created in `work/bugs/` with sequential IDs and severity levels.
+Bug reports can be created in `docs/bugs/` with sequential IDs and severity levels.
 
 ## Severity Classification
 **Status**: LIVE
@@ -20,12 +20,12 @@ Four severity levels for prioritization:
 **Status**: LIVE
 Bugs can be converted to tasks for tracking through the development pipeline:
 - Create task referencing bug report
-- Move bug to `work/bugs/archived/`
+- Move bug to `docs/bugs/archived/`
 - Track fix through standard task workflow
 
 ## Bug State Management
 **Status**: LIVE
-Automatic ID management through `work/STATE.md`:
+Automatic ID management through `docs/STATE.md`:
 - Bug IDs tracked in unified state file
 - Sequential integer IDs (0, 1, 2, ...)
 - Central tracking in "Bug State" section
@@ -33,7 +33,7 @@ Automatic ID management through `work/STATE.md`:
 
 ## Archival System
 **Status**: LIVE
-Processed bugs moved to `work/bugs/archived/` for historical reference:
+Processed bugs moved to `docs/bugs/archived/` for historical reference:
 - Maintains complete bug history
 - Keeps active bug directory clean
 - Preserves original reports

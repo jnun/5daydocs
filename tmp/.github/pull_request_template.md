@@ -2,9 +2,9 @@
 <!-- Brief description of changes -->
 
 ## Related Task(s)
-<!-- Reference task IDs from work/tasks/ -->
+<!-- Reference task IDs from docs/tasks/ -->
 - Closes #[TASK_ID]
-- Related: `work/tasks/[stage]/[ID]-[description].md`
+- Related: `docs/tasks/[stage]/[ID]-[description].md`
 
 ## Changes Made
 <!-- List key changes -->
@@ -22,15 +22,15 @@
 <!-- Which tasks are moving through the pipeline? -->
 ```bash
 # Tasks moving to review:
-git mv work/tasks/working/ID-*.md work/tasks/review/
+git mv docs/tasks/working/ID-*.md docs/tasks/review/
 
 # Tasks moving to live:
-git mv work/tasks/review/ID-*.md work/tasks/live/
+git mv docs/tasks/review/ID-*.md docs/tasks/live/
 ```
 
 ## Checklist
 - [ ] Task ID referenced in commit message
-- [ ] work/STATE.md updated if new tasks created
+- [ ] docs/STATE.md updated if new tasks created
 - [ ] Task moved to appropriate folder
 - [ ] Testing criteria from task completed
 - [ ] Documentation updated if needed

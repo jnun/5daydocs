@@ -46,19 +46,19 @@ nohup.out
 secrets/
 
 # Local data examples (expand as needed)
-docs/work/data/*.csv
-docs/work/data/*.json
-docs/work/data/*.xml
-docs/work/data/*.sql
-docs/work/data/*.db
-docs/work/data/*.sqlite
+docs/data/*.csv
+docs/data/*.json
+docs/data/*.xml
+docs/data/*.sql
+docs/data/*.db
+docs/data/*.sqlite
 
 # Design files (binary/large files)
-docs/work/designs/*.psd
-docs/work/designs/*.ai
-docs/work/designs/*.sketch
-docs/work/designs/*.fig
-docs/work/designs/*.xd
+docs/designs/*.psd
+docs/designs/*.ai
+docs/designs/*.sketch
+docs/designs/*.fig
+docs/designs/*.xd
 
 # Documentation builds (if using doc generators)
 docs/_build/

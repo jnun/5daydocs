@@ -15,10 +15,10 @@ pipelines:
           - |
             if [ "$BITBUCKET_PIPELINE_TRIGGER_TYPE" == "MANUAL" ]; then
               # Manual trigger - sync all tasks
-              TASK_FILES=$(find work/tasks -name '*.md' -not -name '*TEMPLATE*')
+              TASK_FILES=$(find docs/tasks -name '*.md' -not -name '*TEMPLATE*')
             else
               # Push trigger - only changed files in the commit
-              TASK_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E 'work/tasks/.*\.md' | grep -v TEMPLATE || true)
+              TASK_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E 'docs/tasks/.*\.md' | grep -v TEMPLATE || true)
             fi
 
           # Process each task file
@@ -238,7 +238,7 @@ pipelines:
             # Same script as above
             - apt-get update && apt-get install -y jq
             - |
-              TASK_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E 'work/tasks/.*\.md' | grep -v TEMPLATE || true)
+              TASK_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD | grep -E 'docs/tasks/.*\.md' | grep -v TEMPLATE || true)
               # ... rest of the script from above ...
 
 # Repository Variables required (set in Bitbucket Repository Settings -> Repository variables):

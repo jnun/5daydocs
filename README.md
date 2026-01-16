@@ -6,7 +6,7 @@
 - **Portable:** Works with any project, any language, any team size
 - **Transparent:** All project management is visible and editable
 - **Flexible:** Adapt the workflow to your needs
-- **Minimal root footprint:** The only file placed in your project root is `DOCUMENTATION.md`
+- **Minimal root footprint:** Only `DOCUMENTATION.md` and `5day.sh` in your project root
 - **Docs folder holds everything:** /docs holds everything related to your project tasks
 - **Submodule-friendly:** You can install 5DayDocs as a Git submodule
 
@@ -38,29 +38,32 @@ After setup, your project will have:
 
 **👉 See `DOCUMENTATION.md` in your project root for the complete workflow guide.**
 
-## CONTRIBUTING - Repository Structure
+## Development Workflow
 
-**ALL SOURCE FILES ARE IN `./src/`**
+This repo dogfoods itself. We use 5DayDocs to manage 5DayDocs.
 
-- `src/`: Contains the clean, distributable version of the project files.
-- `docs/`: Contains the internal project management (dogfooding) for 5DayDocs itself.
+```
+src/   → The product. What users receive.
+docs/  → Our task tracking. Like Jira, but markdown.
+```
 
-**Want to change what users get? Edit `./src/`**
+### How to Make Changes
 
-## For 5DayDocs Developers: Distribution & Updates
+1. **Edit in `src/`** — All product files live here
+2. **Run `./scripts/update.sh`** — Applies your changes to this repo
+3. **Test it** — Use the updated 5DayDocs on this project
+4. **If it works, commit. If it breaks, don't.**
 
-**If you are maintaining the 5daydocs repository itself**, follow this workflow to properly distribute updates to users:
+This lets you experiment safely before pushing changes.
 
-### Update & Distribution Checklist
+### Tracking Work
 
-1. **Make your changes** to the codebase (in `src/` or scripts).
-2. **Increment the VERSION file**.
-3. **Test the update process**.
-4. **Commit and push**.
+Use `docs/` to track tasks, bugs, and features:
 
-### How Update Distribution Works
-
-When users run `./scripts/update.sh`, it copies distributable files from `src/` to their project.
+```bash
+./5day.sh newtask "Add new feature"
+./5day.sh status
+```
 
 ---
 *Simple, folder-based task management with clear feature documentation*

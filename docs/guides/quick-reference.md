@@ -11,43 +11,43 @@ chmod +x setup.sh
 ### Task Management
 ```bash
 # Check current highest task ID
-cat work/STATE.md
+cat docs/STATE.md
 
 # Create new task (manual)
-echo "# Task 1: Task Title" > work/tasks/backlog/1-task-name.md
+echo "# Task 1: Task Title" > docs/tasks/backlog/1-task-name.md
 
 # Move tasks through pipeline
-mv work/tasks/backlog/1-task.md work/tasks/next/
-mv work/tasks/next/1-task.md work/tasks/working/
-mv work/tasks/working/1-task.md work/tasks/review/
-mv work/tasks/review/1-task.md work/tasks/live/
+mv docs/tasks/backlog/1-task.md docs/tasks/next/
+mv docs/tasks/next/1-task.md docs/tasks/working/
+mv docs/tasks/working/1-task.md docs/tasks/review/
+mv docs/tasks/review/1-task.md docs/tasks/live/
 ```
 
 ### Bug Management
 ```bash
 # Check current highest bug ID
-cat work/bugs/BUG_STATE.md
+cat docs/bugs/BUG_STATE.md
 
 # Create bug report
-echo "# Bug: Description" > work/bugs/001-bug-name.md
+echo "# Bug: Description" > docs/bugs/001-bug-name.md
 
 # Archive processed bug
-mv work/bugs/001-bug.md work/bugs/archived/
+mv docs/bugs/001-bug.md docs/bugs/archived/
 ```
 
 ### Status Checks
 ```bash
 # What's being worked on
-ls work/tasks/working/
+ls docs/tasks/working/
 
 # Sprint queue
-ls work/tasks/next/
+ls docs/tasks/next/
 
 # Backlog
-ls work/tasks/backlog/
+ls docs/tasks/backlog/
 
 # Completed
-ls work/tasks/live/
+ls docs/tasks/live/
 ```
 
 ## File Naming Conventions
@@ -55,7 +55,7 @@ ls work/tasks/live/
 ### Tasks
 - Format: `ID-description.md`
 - Example: `1-fix-login-bug.md`
-- ID is numeric, increments from work/STATE.md
+- ID is numeric, increments from docs/STATE.md
 - Description is kebab-case
 
 ### Bugs
@@ -111,18 +111,18 @@ git commit -m "Task #1: Fix login bug"
 1. Create `/docs/features/feature-name.md`
 2. List capabilities as BACKLOG
 3. Create tasks for each capability
-4. Add tasks to `work/tasks/backlog/`
+4. Add tasks to `docs/tasks/backlog/`
 
 ### Fixing a Bug
-1. Create bug report in `work/bugs/`
+1. Create bug report in `docs/bugs/`
 2. Create task referencing bug
-3. Move bug to `work/bugs/archived/`
+3. Move bug to `docs/bugs/archived/`
 4. Work through task pipeline
 
 ### Sprint Planning
-1. Review `work/tasks/backlog/`
-2. Move selected tasks to `work/tasks/next/`
-3. Limit `work/tasks/working/` to 1-3 tasks
+1. Review `docs/tasks/backlog/`
+2. Move selected tasks to `docs/tasks/next/`
+3. Limit `docs/tasks/working/` to 1-3 tasks
 4. Complete before taking more from `next/`
 
 ## Tips

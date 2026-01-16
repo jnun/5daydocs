@@ -9,7 +9,7 @@ pipelines:
           script:
             # Only run if task files changed
             - |
-              CHANGED_FILES=$(git diff --name-only HEAD^ HEAD | grep -E 'work/tasks/.*\.md' || true)
+              CHANGED_FILES=$(git diff --name-only HEAD^ HEAD | grep -E 'docs/tasks/.*\.md' || true)
               if [ -z "$CHANGED_FILES" ]; then
                 echo "No task files changed, skipping sync"
                 exit 0

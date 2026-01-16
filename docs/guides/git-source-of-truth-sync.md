@@ -29,7 +29,7 @@ Git Repository (auto-commit new tasks)
 ### Key Components
 
 1. **Push Sync** (`sync-tasks-to-jira.yml`)
-   - Triggers on every push to `work/tasks/**/*.md`
+   - Triggers on every push to `docs/tasks/**/*.md`
    - Updates Jira to match current Git state
    - Creates/updates/transitions tickets instantly
 
@@ -79,8 +79,8 @@ Follow the [Jira Kanban Setup Guide](./jira-kanban-setup.md) first to set up:
 
 1. **Test Git → Jira:**
    ```bash
-   echo "# Task 100: Test Push Sync" > work/tasks/backlog/100-test-push.md
-   git add work/tasks/backlog/100-test-push.md
+   echo "# Task 100: Test Push Sync" > docs/tasks/backlog/100-test-push.md
+   git add docs/tasks/backlog/100-test-push.md
    git commit -m "Test push sync"
    git push
    # Check Jira - ticket should appear
@@ -93,7 +93,7 @@ Follow the [Jira Kanban Setup Guide](./jira-kanban-setup.md) first to set up:
    - New task file should appear in appropriate folder
 
 3. **Test Conflict Resolution:**
-   - Move task in Git: `git mv work/tasks/backlog/100-*.md work/tasks/working/`
+   - Move task in Git: `git mv docs/tasks/backlog/100-*.md docs/tasks/working/`
    - Commit and push
    - Jira ticket should update to "In Progress"
 
@@ -140,7 +140,7 @@ Follow the [Jira Kanban Setup Guide](./jira-kanban-setup.md) first to set up:
 Continue working normally:
 ```bash
 # Your workflow doesn't change
-git mv work/tasks/next/30-feature.md work/tasks/working/
+git mv docs/tasks/next/30-feature.md docs/tasks/working/
 git commit -m "Start work on feature"
 git push
 ```
@@ -161,7 +161,7 @@ When resolving conflicts:
 git pull
 
 # 2. Check STATE.md for current highest ID
-cat work/STATE.md
+cat docs/STATE.md
 
 # 3. If creating tasks from Jira tickets, use next ID
 # 4. If conflict in IDs, renumber the newer one

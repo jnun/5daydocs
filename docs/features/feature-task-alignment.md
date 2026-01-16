@@ -20,7 +20,7 @@ Every task references its related feature:
 
 ## Alignment Analysis Script
 **Status**: LIVE
-`work/scripts/check-alignment.sh` validates consistency:
+`docs/scripts/check-alignment.sh` validates consistency:
 - Shows all features and current status
 - Lists tasks per feature
 - Identifies misalignments

@@ -3,7 +3,6 @@ name: Sync Tasks to GitHub Issues
 on:
   push:
     paths:
-      - 'work/tasks/**/*.md'
       - 'docs/tasks/**/*.md'
       - 'docs/STATE.md'
     branches:

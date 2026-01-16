@@ -1,6 +1,6 @@
 # Jira Kanban Board Setup Guide
 
-> **Key Principle**: The `work/tasks/` folders are the source of truth. Jira is just a visual mirror for stakeholders.
+> **Key Principle**: The `docs/tasks/` folders are the source of truth. Jira is just a visual mirror for stakeholders.
 
 ## Overview
 
@@ -113,8 +113,8 @@ Create a kanban board that matches your folder structure:
 
 1. Create a test task:
    ```bash
-   echo "# Task 999: Test Jira Sync" > work/tasks/backlog/999-test-jira.md
-   git add work/tasks/backlog/999-test-jira.md
+   echo "# Task 999: Test Jira Sync" > docs/tasks/backlog/999-test-jira.md
+   git add docs/tasks/backlog/999-test-jira.md
    git commit -m "Add test task"
    git push
    ```
@@ -123,7 +123,7 @@ Create a kanban board that matches your folder structure:
 
 3. Move the task:
    ```bash
-   git mv work/tasks/backlog/999-test-jira.md work/tasks/working/
+   git mv docs/tasks/backlog/999-test-jira.md docs/tasks/working/
    git commit -m "Start test task"
    git push
    ```
@@ -165,7 +165,7 @@ From each task file:
 Just work normally with your folders:
 ```bash
 # Your normal workflow - Jira updates automatically
-git mv work/tasks/next/30-feature.md work/tasks/working/
+git mv docs/tasks/next/30-feature.md docs/tasks/working/
 git commit -m "Start work on feature"
 git push
 ```
@@ -223,8 +223,8 @@ If a task exists in folders but sync failed:
 
 2. **Batch moves**: Move multiple tasks in one commit
    ```bash
-   git mv work/tasks/working/30-*.md work/tasks/review/
-   git mv work/tasks/working/31-*.md work/tasks/review/
+   git mv docs/tasks/working/30-*.md docs/tasks/review/
+   git mv docs/tasks/working/31-*.md docs/tasks/review/
    git commit -m "Submit tasks 30 and 31 for review"
    ```
 

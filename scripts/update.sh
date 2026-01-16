@@ -222,7 +222,7 @@ if [[ "$INSTALLED_VERSION" < "1.0.0" ]]; then
   find docs -type d -empty -exec touch {}/.gitkeep \;
 
   # Update references in markdown files
-  for file in README.md docs/INDEX.md docs/tasks/INDEX.md CLAUDE.md; do
+  for file in README.md docs/INDEX.md docs/tasks/INDEX.md DOCUMENTATION.md; do
     if [ -f "$file" ]; then
       # Update old task paths
       sed -i '' 's|work/tasks/|docs/tasks/|g' "$file" 2>/dev/null || true
@@ -435,11 +435,11 @@ if [ -d "$TARGET_PATH/.github/workflows" ]; then
   fi
 fi
 
-# Update work scripts (create directory if needed)
-if [ -d "$FIVEDAY_SOURCE_DIR/docs/scripts" ]; then
+# Update scripts from src/ (the distributable source)
+if [ -d "$FIVEDAY_SOURCE_DIR/src/docs/scripts" ]; then
   mkdir -p "$TARGET_PATH/docs/scripts"
 
-  for script in "$FIVEDAY_SOURCE_DIR/docs/scripts"/*.sh; do
+  for script in "$FIVEDAY_SOURCE_DIR/src/docs/scripts"/*.sh; do
     if [ -f "$script" ]; then
       script_name=$(basename "$script")
       cp -f "$script" "$TARGET_PATH/docs/scripts/$script_name"

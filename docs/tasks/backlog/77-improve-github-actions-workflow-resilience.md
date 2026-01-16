@@ -6,7 +6,7 @@
 ## Problem
 The GitHub Actions workflow for syncing 5DayDocs tasks to GitHub Issues had several reliability and resilience issues:
 - INDEX.md files were being processed as tasks, causing workflow failures
-- No support for submodule installations (work/tasks/ path pattern)
+- No support for submodule installations (docs/tasks/ path pattern)
 - Unreliable issue lookup using title search that could match wrong issues
 - Issue bodies never updated after creation, causing stale content
 - No concurrency control leading to potential race conditions
@@ -16,7 +16,7 @@ The GitHub Actions workflow for syncing 5DayDocs tasks to GitHub Issues had seve
 
 ## Success Criteria
 - [x] Skip INDEX.md and TEMPLATE files to prevent processing errors
-- [x] Support both installation patterns: work/tasks/ and docs/work/tasks/
+- [x] Support both installation patterns: docs/tasks/ and docs/docs/tasks/
 - [x] Implement idempotent issue lookup using HTML comment metadata
 - [x] Update issue bodies when task content changes
 - [x] Add concurrency control to prevent conflicting workflow runs

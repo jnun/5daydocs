@@ -3,7 +3,7 @@ name: Sync Tasks to GitHub Issues
 on:
   push:
     paths:
-      - 'work/tasks/**/*.md'
+      - 'docs/tasks/**/*.md'
     branches:
       - main
 
@@ -35,7 +35,7 @@ jobs:
       - name: Get changed task files
         id: changed-files
         run: |
-          echo "files=$(git diff --name-only HEAD^ HEAD | grep -E 'work/tasks/.*\.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          echo "files=$(git diff --name-only HEAD^ HEAD | grep -E 'docs/tasks/.*\.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
       
       - name: Sync tasks with GitHub issues
         if: steps.changed-files.outputs.files != ''

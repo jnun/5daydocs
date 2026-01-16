@@ -6,7 +6,7 @@ Centralized state tracking for tasks and bugs through a unified markdown file.
 
 ## Unified State Management
 **Status**: LIVE
-`work/STATE.md` tracks both task and bug IDs:
+`docs/STATE.md` tracks both task and bug IDs:
 - Tasks: Sequential integer IDs starting from 0
 - Bugs: Sequential integer IDs starting from 0
 - Single source of truth for all IDs
@@ -15,21 +15,21 @@ Centralized state tracking for tasks and bugs through a unified markdown file.
 
 ## Task ID Section
 **Status**: LIVE
-- Located in `work/STATE.md` under "Task State"
+- Located in `docs/STATE.md` under "Task State"
 - Sequential integers (0, 1, 2, ...)
 - Tracks highest used ID
 - Updated when creating tasks
 
 ## Bug ID Section
 **Status**: LIVE
-- Located in `work/STATE.md` under "Bug State"
+- Located in `docs/STATE.md` under "Bug State"
 - Sequential integers (0, 1, 2, ...)
 - Tracks highest used bug ID
 - Updated when creating bugs
 
 ## State File Format
 **Status**: LIVE
-Unified markdown format in `work/STATE.md`:
+Unified markdown format in `docs/STATE.md`:
 - Separate sections for tasks and bugs
 - Last updated timestamp for each section
 - Highest ID tracking for each type

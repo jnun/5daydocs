@@ -10,7 +10,7 @@ The 5daydocs project itself should use its own GitHub Issues workflow to demonst
 ## Success criteria
 - Enable GitHub Issues on the 5daydocs repository
 - Configure the sync-tasks-to-issues.yml workflow
-- Ensure all existing tasks in work/tasks/ sync to GitHub Issues
+- Ensure all existing tasks in docs/tasks/ sync to GitHub Issues
 - Use the project as a live demonstration of the 5DayDocs workflow
 
 ## Implementation Details

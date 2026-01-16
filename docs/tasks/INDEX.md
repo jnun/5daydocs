@@ -18,10 +18,10 @@
 
 ```bash
 # Move task forward
-git mv docs/work/tasks/backlog/ID-name.md docs/work/tasks/next/
-git mv docs/work/tasks/next/ID-name.md docs/work/tasks/working/
-git mv docs/work/tasks/working/ID-name.md docs/work/tasks/review/
-git mv docs/work/tasks/review/ID-name.md docs/work/tasks/live/
+git mv docs/tasks/backlog/ID-name.md docs/tasks/next/
+git mv docs/tasks/next/ID-name.md docs/tasks/working/
+git mv docs/tasks/working/ID-name.md docs/tasks/review/
+git mv docs/tasks/review/ID-name.md docs/tasks/live/
 ```
 
 **Critical:** Only ONE task in working/ at a time.

@@ -41,8 +41,8 @@ This guide helps you set up automatic synchronization between your 5DayDocs task
 4. **Test the Integration:**
    ```bash
    # Create a test task
-   echo "# Task 99: Test Jira Sync" > work/tasks/backlog/99-test-jira-sync.md
-   git add work/tasks/backlog/99-test-jira-sync.md
+   echo "# Task 99: Test Jira Sync" > docs/tasks/backlog/99-test-jira-sync.md
+   git add docs/tasks/backlog/99-test-jira-sync.md
    git commit -m "Test Jira integration"
    git push
    ```
@@ -75,7 +75,7 @@ This guide helps you set up automatic synchronization between your 5DayDocs task
 ## How It Works
 
 ### Automatic Sync
-- When you push changes to task files in `work/tasks/`, the workflow automatically:
+- When you push changes to task files in `docs/tasks/`, the workflow automatically:
   1. Creates new Jira issues for new tasks
   2. Updates existing issues when tasks move between folders
   3. Transitions issues to match folder status
@@ -167,7 +167,7 @@ Modify the `JIRA_LABELS` variable assignment in the case statement.
 ## Support
 
 For issues with:
-- **5DayDocs system:** Check work/bugs/ folder
+- **5DayDocs system:** Check docs/bugs/ folder
 - **GitHub Actions:** Check Actions tab for logs
 - **Bitbucket Pipelines:** Check Pipelines tab for logs
 - **Jira API:** Consult [Jira REST API docs](https://developer.atlassian.com/cloud/jira/platform/rest/v3/)

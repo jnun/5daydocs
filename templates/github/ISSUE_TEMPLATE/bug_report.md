@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug to be tracked in work/bugs/
+about: Report a bug to be tracked in docs/bugs/
 title: '[BUG] '
 labels: 'bug'
 assignees: ''
@@ -29,4 +29,4 @@ assignees: ''
 <!-- Add any other context, screenshots, or error messages -->
 
 ---
-*Note: This bug will be tracked in `work/bugs/` following the 5DayDocs workflow. Once triaged, it will be converted to a task in `work/tasks/backlog/`.*
+*Note: This bug will be tracked in `docs/bugs/` following the 5DayDocs workflow. Once triaged, it will be converted to a task in `docs/tasks/backlog/`.*

@@ -27,4 +27,4 @@ assignees: ''
 - [ ] **live** - Approved and deployed
 
 ---
-*Task ID will be assigned based on `work/STATE.md` counter*
+*Task ID will be assigned based on `docs/STATE.md` counter*

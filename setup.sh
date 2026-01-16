@@ -260,51 +260,21 @@ FILES_COPIED=0
 SCRIPTS_READY=0
 INDEX_FILES_COPIED=0
 
-# Copy README.md if it doesn't exist
+# Copy README.md only if project has none
 if [ ! -f README.md ]; then
     if [ -f "$FIVEDAY_SOURCE_DIR/src/README.md" ]; then
         cp "$FIVEDAY_SOURCE_DIR/src/README.md" README.md
-        echo "✓ Copied project README.md"
-    elif [ -f "$FIVEDAY_SOURCE_DIR/README.md" ]; then
-        # Fallback to creating a project-specific README
+        echo "✓ Created minimal README.md (customize as needed)"
+    else
         cat > README.md << README_EOF
 # Project Name
 
-This project uses [5DayDocs](https://github.com/5daydocs/5daydocs) for task and documentation management.
-
-## Quick Start
-
-See \`DOCUMENTATION.md\` for the complete workflow guide.
-
-### Common Commands
-
-\`\`\`bash
-# Create a new task
-./docs/scripts/create-task.sh "Task description"
-
-# Check feature-task alignment
-./docs/scripts/analyze-feature-alignment.sh
-
-# View current work
-ls docs/tasks/working/
-
-# View sprint queue
-ls docs/tasks/next/
-\`\`\`
-
-## Project Structure
-
-- \`docs/tasks/\` - Task pipeline (backlog → next → working → review → live)
-- \`docs/features/\` - Feature documentation with status tracking
-- \`docs/bugs/\` - Bug reports and tracking
-
----
-*Powered by 5DayDocs - Simple, folder-based project management*
+This project uses [5DayDocs](https://github.com/jnun/5daydocs) for task management. See \`DOCUMENTATION.md\` for workflow details.
 README_EOF
-        echo "✓ Created project README.md"
+        echo "✓ Created minimal README.md (customize as needed)"
     fi
 else
-    echo "⚠ README.md already exists, preserving your version"
+    echo "→ README.md exists, not modified"
 fi
 
 # Copy DOCUMENTATION.md if it doesn't exist or in update mode
@@ -317,20 +287,7 @@ if [ ! -f DOCUMENTATION.md ] || $UPDATE_MODE; then
         echo "⚠ DOCUMENTATION.md not found in source directory"
     fi
 else
-    echo "⚠ DOCUMENTATION.md already exists, skipping"
-fi
-
-# Copy CLAUDE.md if it doesn't exist or in update mode
-if [ ! -f CLAUDE.md ] || $UPDATE_MODE; then
-    if [ -f "$FIVEDAY_SOURCE_DIR/src/CLAUDE.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/src/CLAUDE.md" CLAUDE.md
-        echo "✓ Copied CLAUDE.md"
-        ((FILES_COPIED++))
-    else
-        echo "⚠ CLAUDE.md not found in source directory"
-    fi
-else
-    echo "⚠ CLAUDE.md already exists, skipping"
+    echo "→ DOCUMENTATION.md exists, not modified"
 fi
 
 # Copy template files
@@ -628,47 +585,7 @@ for index_file in "${INDEX_FILES[@]}"; do
         fi
     else
         # If source doesn't exist, create basic version for essential directories
-        if [ "$index_file" = "docs/work/INDEX.md" ] && ([ ! -f "$index_file" ] || $UPDATE_MODE); then
-            cat > docs/work/INDEX.md << 'INDEX_EOF'
-# docs/work/ Directory Index
-
-This is the main operational directory for 5DayDocs project management.
-
-## Directory Structure
-
-- **tasks/** - Task pipeline management
-  - `backlog/` - Planned tasks not yet started
-  - `next/` - Tasks queued for current/next sprint
-  - `working/` - Tasks actively being worked on (limit 1 per developer)
-  - `review/` - Tasks completed and awaiting review
-  - `live/` - Tasks deployed to production
-
-- **bugs/** - Bug tracking and management
-  - Active bug reports stored here
-  - `archived/` - Resolved or converted bugs
-
-- **scripts/** - Automation and utility scripts
-  - `create-task.sh` - Create new tasks
-  - `check-alignment.sh` - Check feature/task alignment
-  - `setup.sh` - Initialize 5DayDocs structure
-
-- **designs/** - UI mockups and design assets
-- **examples/** - Code snippets and implementation examples
-- **data/** - Test data and sample datasets
-
-## Key Files
-
-- **STATE.md** - Tracks highest task and bug ID numbers
-- **.platform-config** - Platform configuration (GitHub/Jira/Bitbucket)
-
-## Usage
-
-See `/DOCUMENTATION.md` for complete workflow guide.
-INDEX_EOF
-            echo "✓ Created fallback docs/work/INDEX.md"
-            ((FILES_COPIED++))
-            ((INDEX_FILES_COPIED++))
-        elif [ "$index_file" = "docs/INDEX.md" ] && ([ ! -f "$index_file" ] || $UPDATE_MODE); then
+        if [ "$index_file" = "docs/INDEX.md" ] && ([ ! -f "$index_file" ] || $UPDATE_MODE); then
             cat > docs/INDEX.md << 'INDEX_EOF'
 # docs/ Directory Index
 
@@ -966,8 +883,8 @@ if [ "$VALIDATION_PASSED" = true ]; then
     echo "🚀 5DayDocs is ready! Try creating a task now:"
     echo "   ./5day.sh newtask \"Build user authentication\""
     echo ""
-    echo "   Or use the traditional method:"
-    echo "   ./docs/scripts/create-task.sh \"Build user authentication\""
+    echo "💡 If you use AI tools, add this to your AGENTS.md or llms.txt:"
+    echo "   \"Read DOCUMENTATION.md for project management rules.\""
 fi
 
 echo ""

@@ -1,0 +1,2 @@
+Read README.md for development workflow.
+Read DOCUMENTATION.md for project management rules.

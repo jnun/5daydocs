@@ -26,7 +26,7 @@
 
 ---
 
-<!-- 
+<!--
 Severity Guide:
 - CRITICAL: System down, data loss, security breach (fix immediately)
 - HIGH: Major feature broken, blocking users (fix this sprint)

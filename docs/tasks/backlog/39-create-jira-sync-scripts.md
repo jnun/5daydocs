@@ -8,7 +8,7 @@
 Both GitHub+Jira and Bitbucket+Jira options need scripts to sync tasks between the file system and Jira issues, but these scripts don't exist yet.
 
 ## Success criteria
-- Script to sync work/tasks/ files to Jira issues
+- Script to sync docs/tasks/ files to Jira issues
 - Script to sync Jira issue updates back to task files
 - Support for both GitHub and Bitbucket environments
 - Handles task state transitions (backlog → next → working → review → live)

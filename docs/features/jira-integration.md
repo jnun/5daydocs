@@ -64,7 +64,7 @@ The workflow creates "Task" type issues by default. If you use a different issue
 
 ### Automatic Sync
 
-When you push changes to task files in `work/tasks/*/`:
+When you push changes to task files in `docs/tasks/*/`:
 
 1. **New Tasks**: Creates Jira tickets with task details
 2. **Moved Tasks**: Updates ticket status based on folder location
@@ -94,14 +94,14 @@ Each Jira ticket includes:
 
 ## Testing the Integration
 
-1. Create a test task in `work/tasks/backlog/`:
+1. Create a test task in `docs/tasks/backlog/`:
    ```bash
-   echo "# Task 999: Test Jira Integration" > work/tasks/backlog/999-test-jira.md
+   echo "# Task 999: Test Jira Integration" > docs/tasks/backlog/999-test-jira.md
    ```
 
 2. Commit and push:
    ```bash
-   git add work/tasks/backlog/999-test-jira.md
+   git add docs/tasks/backlog/999-test-jira.md
    git commit -m "Test Jira integration"
    git push
    ```
@@ -110,7 +110,7 @@ Each Jira ticket includes:
 
 4. Move the task through folders to test status updates:
    ```bash
-   git mv work/tasks/backlog/999-test-jira.md work/tasks/working/
+   git mv docs/tasks/backlog/999-test-jira.md docs/tasks/working/
    git commit -m "Start work on test task"
    git push
    ```

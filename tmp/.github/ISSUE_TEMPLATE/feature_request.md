@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest a new feature to be added to work/tasks/backlog/
+about: Suggest a new feature to be added to docs/tasks/backlog/
 title: '[FEATURE] '
 labels: 'enhancement'
 assignees: ''
@@ -27,4 +27,4 @@ assignees: ''
 <!-- Add any mockups, examples, or references -->
 
 ---
-*Note: This feature request will be added to `work/tasks/backlog/` with a sequential task ID following the 5DayDocs workflow.*
+*Note: This feature request will be added to `docs/tasks/backlog/` with a sequential task ID following the 5DayDocs workflow.*

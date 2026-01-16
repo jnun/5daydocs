@@ -16,10 +16,10 @@ Automation scripts for 5DayDocs workflows (bash preferred).
 
 ```bash
 # Make executable
-chmod +x docs/work/scripts/*.sh
+chmod +x docs/scripts/*.sh
 
 # Run script
-./docs/work/scripts/script-name.sh
+./docs/scripts/script-name.sh
 ```
 
 **Note:** Prefer bash for portability. Use `set -e` for error handling.

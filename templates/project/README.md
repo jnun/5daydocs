@@ -19,7 +19,7 @@ git submodule update --init --recursive
 ./5daydocs/setup.sh
 
 # Use 5daydocs commands
-./5daydocs/5day.sh status
+./5day.sh status
 ```
 
 ### Standalone Installation
@@ -36,16 +36,14 @@ cd 5daydocs
 
 ```bash
 # Task management
-./5daydocs/5day.sh new "Task description"    # Create new task
-./5daydocs/5day.sh status                    # View task status
-./5daydocs/5day.sh working                   # List active tasks
-./5daydocs/5day.sh next                      # List queued tasks
+./5day.sh newtask "Task description"    # Create new task
+./5day.sh status                        # View task status
 
 # Move tasks through workflow
-git mv work/tasks/backlog/ID-name.md work/tasks/next/    # Queue
-git mv work/tasks/next/ID-name.md work/tasks/working/    # Start
-git mv work/tasks/working/ID-name.md work/tasks/review/  # Review
-git mv work/tasks/review/ID-name.md work/tasks/live/     # Complete
+git mv docs/tasks/backlog/ID-name.md docs/tasks/next/    # Queue
+git mv docs/tasks/next/ID-name.md docs/tasks/working/    # Start
+git mv docs/tasks/working/ID-name.md docs/tasks/review/  # Review
+git mv docs/tasks/review/ID-name.md docs/tasks/live/     # Complete
 ```
 
 ## Project Structure
@@ -54,25 +52,21 @@ When installed, 5daydocs creates this structure in your project:
 
 ```
 your-project/
-├── 5daydocs/                    # The submodule (this repository)
-│   ├── 5day.sh                  # Command interface
-│   ├── setup.sh                 # Initialization script
-│   ├── templates/               # Workflow templates
-│   ├── CLAUDE.md               # AI pair programming guide
-│   └── README.md               # This file
-├── work/                        # Your project work (created by setup.sh)
-│   ├── STATE.md                # ID tracking
-│   ├── tasks/                  # Task pipeline
-│   │   ├── backlog/            # Planned tasks
-│   │   ├── next/               # Sprint queue
-│   │   ├── working/            # Active work
-│   │   ├── review/             # Awaiting review
-│   │   └── live/               # Completed
-│   ├── bugs/                   # Bug reports
-│   └── scripts/                # Automation
-└── docs/                        # Your documentation (created by setup.sh)
-    ├── features/               # Feature specs
-    └── guides/                 # Technical docs
+├── 5day.sh                     # Command interface
+├── DOCUMENTATION.md            # Workflow documentation
+├── docs/
+│   ├── STATE.md               # ID tracking
+│   ├── tasks/                 # Task pipeline
+│   │   ├── backlog/           # Planned tasks
+│   │   ├── next/              # Sprint queue
+│   │   ├── working/           # Active work
+│   │   ├── review/            # Awaiting review
+│   │   └── live/              # Completed
+│   ├── bugs/                  # Bug reports
+│   ├── features/              # Feature specs
+│   ├── guides/                # Technical docs
+│   └── scripts/               # Automation
+└── .github/workflows/         # GitHub Actions (optional)
 ```
 
 ## Philosophy
@@ -95,7 +89,7 @@ Tasks flow through folders representing their state:
 5. **live/** - Completed or in production
 
 ### State Management
-The `work/STATE.md` file tracks the highest ID numbers for tasks and bugs. Always check and update this file when creating new items.
+The `docs/STATE.md` file tracks the highest ID numbers for tasks and bugs. Always check and update this file when creating new items.
 
 ### Feature Documentation
 Features are documented in `docs/features/` with status tags:

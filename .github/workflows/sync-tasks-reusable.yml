@@ -242,7 +242,10 @@ jobs:
               "${CRITERIA:-No criteria}")
 
             if [ -z "$ISSUE_NUM" ]; then
-              # Create
+              # Create task-specific label if needed
+              gh label create "$TASK_LABEL" --color "C5DEF5" --description "Task $TASK_ID" 2>/dev/null || true
+
+              # Create issue
               ISSUE_URL=$(gh issue create \
                 --title "Task $TASK_ID: $TITLE" \
                 --body "$BODY" \

@@ -28,6 +28,4 @@ jobs:
       # Uncomment to enable GitHub Projects integration:
       # project_number: '1'
       # project_owner: 'jnun'
-    secrets:
-      token: ${{ secrets.GITHUB_TOKEN }}
-      # project_token: ${{ secrets.GH_PROJECT_TOKEN }}
+    secrets: inherit

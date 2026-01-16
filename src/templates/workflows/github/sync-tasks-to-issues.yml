@@ -32,6 +32,6 @@ jobs:
       # project_number: '1'
       # project_owner: 'your-username-or-org'
     secrets:
-      github_token: ${{ secrets.GITHUB_TOKEN }}
+      token: ${{ secrets.GITHUB_TOKEN }}
       # Uncomment if using GitHub Projects (requires PAT with project scope)
       # project_token: ${{ secrets.GH_PROJECT_TOKEN }}

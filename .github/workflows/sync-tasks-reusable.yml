@@ -30,7 +30,7 @@ on:
         type: boolean
         default: false
     secrets:
-      github_token:
+      token:
         description: 'GitHub token with issues:write permission'
         required: true
       project_token:
@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.github_token }}
+          token: ${{ secrets.token }}
 
       - name: Validate structure
         env:
@@ -77,7 +77,7 @@ jobs:
 
       - name: Setup labels
         env:
-          GH_TOKEN: ${{ secrets.github_token }}
+          GH_TOKEN: ${{ secrets.token }}
         run: |
           EXISTING=$(gh label list --json name --jq '.[].name' | sort)
 
@@ -145,7 +145,7 @@ jobs:
         id: cache
         if: steps.files.outputs.count != '0'
         env:
-          GH_TOKEN: ${{ secrets.github_token }}
+          GH_TOKEN: ${{ secrets.token }}
         run: |
           # Fetch all task issues in one call (label pattern: task-{id})
           gh issue list \
@@ -161,7 +161,7 @@ jobs:
         if: steps.files.outputs.count != '0'
         id: sync
         env:
-          GH_TOKEN: ${{ secrets.github_token }}
+          GH_TOKEN: ${{ secrets.token }}
           TASKS_PATH: ${{ inputs.tasks_path }}
         run: |
           echo "0" > /tmp/created
@@ -302,7 +302,7 @@ jobs:
       - name: GitHub Projects integration
         if: steps.files.outputs.count != '0' && inputs.project_number != ''
         env:
-          GH_TOKEN: ${{ secrets.project_token || secrets.github_token }}
+          GH_TOKEN: ${{ secrets.project_token || secrets.token }}
           PROJECT_NUM: ${{ inputs.project_number }}
           PROJECT_OWNER: ${{ inputs.project_owner || github.repository_owner }}
           TASKS_PATH: ${{ inputs.tasks_path }}
@@ -383,7 +383,7 @@ jobs:
       - name: Reset bulk sync flag
         if: steps.files.outputs.sync_all == 'true'
         env:
-          GH_TOKEN: ${{ secrets.github_token }}
+          GH_TOKEN: ${{ secrets.token }}
           STATE_FILE: ${{ inputs.state_file }}
         run: |
           if grep -q '^\*\*SYNC_ALL_TASKS\*\*: true' "$STATE_FILE"; then

@@ -147,15 +147,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.token || secrets.GITHUB_TOKEN }}
         run: |
-          # Fetch all task issues in one call (label pattern: task-{id})
+          # Fetch all task issues (title pattern: "Task {ID}:")
           gh issue list \
             --state all \
             --limit 1000 \
-            --json number,title,state,labels \
-            --jq '.[] | select(.labels[].name | test("^task-[0-9]+$")) | {number, state, taskLabel: (.labels[] | select(.name | test("^task-[0-9]+$")) | .name)}' \
+            --json number,title,state \
+            --jq '.[] | select(.title | test("^Task [0-9]+:")) | {number, title, state}' \
             > /tmp/cache.json || echo "" > /tmp/cache.json
 
-          echo "Cached $(wc -l < /tmp/cache.json | tr -d ' ') existing issues"
+          echo "Cached $(wc -l < /tmp/cache.json | tr -d ' ') existing task issues"
 
       - name: Sync tasks
         if: steps.files.outputs.count != '0'
@@ -183,10 +183,9 @@ jobs:
             fi
 
             TASK_ID=$(basename "$file" | grep -oE '^[0-9]+')
-            TASK_LABEL="task-$TASK_ID"
 
-            # Cache lookup
-            EXISTING=$(grep "\"taskLabel\":\"$TASK_LABEL\"" /tmp/cache.json 2>/dev/null | head -1 || true)
+            # Cache lookup by title pattern "Task {ID}:"
+            EXISTING=$(grep "\"title\":\"Task $TASK_ID:" /tmp/cache.json 2>/dev/null | head -1 || true)
             if [ -n "$EXISTING" ]; then
               ISSUE_NUM=$(echo "$EXISTING" | jq -r '.number')
               ISSUE_STATE=$(echo "$EXISTING" | jq -r '.state')
@@ -242,14 +241,10 @@ jobs:
               "${CRITERIA:-No criteria}")
 
             if [ -z "$ISSUE_NUM" ]; then
-              # Create task-specific label if needed
-              gh label create "$TASK_LABEL" --color "C5DEF5" --description "Task $TASK_ID" 2>/dev/null || true
-
-              # Create issue
+              # Create issue (task ID in title is the identifier)
               ISSUE_URL=$(gh issue create \
                 --title "Task $TASK_ID: $TITLE" \
                 --body "$BODY" \
-                --label "$TASK_LABEL" \
                 --label "$STATUS_LABEL")
               ISSUE_NUM=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
 
@@ -348,9 +343,9 @@ jobs:
             [ -z "$file" ] || [ ! -f "$file" ] && continue
 
             TASK_ID=$(basename "$file" | grep -oE '^[0-9]+')
-            TASK_LABEL="task-$TASK_ID"
 
-            NODE_ID=$(gh issue list --label "$TASK_LABEL" --state all --json id --jq '.[0].id' 2>/dev/null || echo "")
+            # Find issue by title pattern
+            NODE_ID=$(gh issue list --search "Task $TASK_ID: in:title" --state all --json id --jq '.[0].id' 2>/dev/null || echo "")
             [ -z "$NODE_ID" ] && continue
 
             ITEM_ID=$(gh api graphql -f query='
@@ -377,7 +372,7 @@ jobs:
                   }
                 ' -f pid="$PROJECT_ID" -f iid="$ITEM_ID" -f fid="$FIELD_ID" -f oid="$OPT_ID" 2>/dev/null || true
               fi
-              echo "Added task-$TASK_ID to project"
+              echo "Added Task $TASK_ID to project"
             fi
           done <<< "${{ steps.files.outputs.files }}"
 

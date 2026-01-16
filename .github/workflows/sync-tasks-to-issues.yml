@@ -1,7 +1,4 @@
 # 5DayDocs dogfood - we use our own tool to manage this project
-# This is a thin wrapper that calls the reusable workflow.
-# See: .github/workflows/sync-tasks-reusable.yml
-
 name: Sync Tasks to Issues
 
 on:
@@ -20,12 +17,10 @@ on:
 
 jobs:
   sync:
+    permissions:
+      issues: write
+      contents: write
     uses: ./.github/workflows/sync-tasks-reusable.yml
     with:
-      tasks_path: 'docs/tasks'
-      state_file: 'docs/STATE.md'
-      force_sync_all: ${{ inputs.force_sync_all || false }}
-      # Uncomment to enable GitHub Projects integration:
-      # project_number: '1'
-      # project_owner: 'jnun'
+      force_sync_all: ${{ github.event.inputs.force_sync_all == 'true' }}
     secrets: inherit

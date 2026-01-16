@@ -12,7 +12,9 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Get the absolute path to the project root
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Script is located in docs/scripts/
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
 # Function to display help
 show_help() {

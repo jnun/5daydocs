@@ -2,7 +2,7 @@
 # Powered by 5DayDocs: https://github.com/jnun/5daydocs
 #
 # This workflow calls the 5DayDocs reusable workflow.
-# All logic is maintained in the 5DayDocs repository - you just get updates automatically.
+# All logic is maintained in the 5DayDocs repository - updates are automatic.
 
 name: Sync Tasks to Issues
 
@@ -22,16 +22,16 @@ on:
 
 jobs:
   sync:
+    permissions:
+      issues: write
+      contents: write
     uses: jnun/5daydocs/.github/workflows/sync-tasks-reusable.yml@main
     with:
-      tasks_path: 'docs/tasks'
-      state_file: 'docs/STATE.md'
-      force_sync_all: ${{ inputs.force_sync_all || false }}
+      force_sync_all: ${{ github.event.inputs.force_sync_all == 'true' }}
+      # Optional: customize paths (defaults shown)
+      # tasks_path: 'docs/tasks'
+      # state_file: 'docs/STATE.md'
       # Optional: GitHub Projects integration
-      # Uncomment and configure to sync tasks to a GitHub Project board
       # project_number: '1'
       # project_owner: 'your-username-or-org'
-    secrets:
-      token: ${{ secrets.GITHUB_TOKEN }}
-      # Uncomment if using GitHub Projects (requires PAT with project scope)
-      # project_token: ${{ secrets.GH_PROJECT_TOKEN }}
+    secrets: inherit

@@ -243,18 +243,18 @@ jobs:
 
             if [ -z "$ISSUE_NUM" ]; then
               # Create
-              ISSUE_NUM=$(gh issue create \
+              ISSUE_URL=$(gh issue create \
                 --title "Task $TASK_ID: $TITLE" \
                 --body "$BODY" \
                 --label "$TASK_LABEL" \
-                --label "$STATUS_LABEL" \
-                --json number --jq '.number')
+                --label "$STATUS_LABEL")
+              ISSUE_NUM=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
 
               if [ -n "$ISSUE_NUM" ]; then
                 echo "Created #$ISSUE_NUM"
                 inc created
               else
-                echo "::error file=$file::Failed to create"
+                echo "::error file=$file::Failed to create issue"
                 inc errors
               fi
             else

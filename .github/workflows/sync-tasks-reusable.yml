@@ -84,7 +84,7 @@ jobs:
           declare -A LABELS=(
             ["backlog"]="E4E669:Task in backlog"
             ["next"]="FFA500:Task queued"
-            ["in-progress"]="0E8A16:Task in progress"
+            ["working"]="0E8A16:Task in progress"
             ["review"]="C2E0C6:Task in review"
             ["completed"]="98FB98:Task completed"
           )
@@ -222,7 +222,7 @@ jobs:
             case "$file" in
               */backlog/*) STATUS_LABEL="backlog"; STATUS="Backlog" ;;
               */next/*)    STATUS_LABEL="next"; STATUS="Next" ;;
-              */working/*) STATUS_LABEL="in-progress"; STATUS="In Progress" ;;
+              */working/*) STATUS_LABEL="working"; STATUS="Working" ;;
               */review/*)  STATUS_LABEL="review"; STATUS="In Review" ;;
               */live/*)    STATUS_LABEL="completed"; STATUS="Completed" ;;
             esac
@@ -276,7 +276,7 @@ jobs:
 
               # Update labels
               REMOVE=""
-              for l in backlog next in-progress review completed; do
+              for l in backlog next working review completed; do
                 [[ "$CUR_LABELS" == *"$l"* ]] && [ "$l" != "$STATUS_LABEL" ] && REMOVE="$REMOVE --remove-label $l"
               done
               ADD=""
@@ -363,7 +363,7 @@ jobs:
               case "$file" in
                 */backlog/*) SNAME="Backlog" ;;
                 */next/*)    SNAME="Todo" ;;
-                */working/*) SNAME="In Progress" ;;
+                */working/*) SNAME="Working" ;;
                 */review/*)  SNAME="In Review" ;;
                 */live/*)    SNAME="Done" ;;
                 *)           SNAME="" ;;

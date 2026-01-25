@@ -4,10 +4,18 @@ Project management in markdown files. Like Jira, but folders and plain text.
 
 ## Boundaries
 
-**5DayDocs owns:** `DOCUMENTATION.md`, `docs/`
-**Your project owns:** Everything else
+**Framework files (do not edit):**
+- `DOCUMENTATION.md`
+- `5day.sh` (root symlink)
+- `docs/5day/` (framework scripts, AI instructions, docs)
 
-Updates come from upstream. Use the system as-is.
+**Your content (create and edit freely):**
+- `docs/tasks/` — your tasks
+- `docs/bugs/` — your bug reports
+- `docs/features/` — your feature specs
+- `docs/guides/` — your documentation
+- `docs/tests/` — your test plans
+- `docs/STATE.md` — your project state (see format below)
 
 ## AI Agents
 
@@ -37,17 +45,20 @@ This file governs `docs/`. Read it before modifying any task, bug, or feature.
 
 ```
 docs/
-├── STATE.md            # Task/bug ID tracking (source of truth)
-├── tasks/              # Work items moving through pipeline
+├── 5day/               # FRAMEWORK (do not edit)
+│   ├── scripts/        # 5day.sh, create-task.sh, etc.
+│   └── ai/             # AI instructions
+├── STATE.md            # Project state (ID tracking)
+├── tasks/              # Your work items
 │   ├── backlog/        # Planned
 │   ├── next/           # Sprint queue
 │   ├── working/        # In progress
 │   ├── review/         # Awaiting approval
 │   └── live/           # Complete
-├── features/           # What to build (permanent specs)
-├── bugs/               # Bug reports
-├── guides/             # How things work
-└── tests/              # Test plans and results
+├── features/           # Your feature specs
+├── bugs/               # Your bug reports
+├── guides/             # Your documentation
+└── tests/              # Your test plans
 ```
 
 ## Commands

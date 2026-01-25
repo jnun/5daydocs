@@ -121,7 +121,8 @@ safe_mkdir "docs/bugs/archived"
 safe_mkdir "docs/designs"
 safe_mkdir "docs/examples"
 safe_mkdir "docs/data"
-safe_mkdir "docs/scripts"
+safe_mkdir "docs/5day/scripts"
+safe_mkdir "docs/5day/ai"
 safe_mkdir "docs/features"
 safe_mkdir "docs/guides"
 safe_mkdir "docs/tests"
@@ -308,44 +309,44 @@ if [ ! -f docs/features/TEMPLATE-feature.md ] || $UPDATE_MODE; then
     fi
 fi
 
-# Copy scripts (all go in docs/scripts/)
+# Copy scripts (all go in docs/5day/scripts/)
 echo "Setting up automation scripts..."
-if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/scripts/check-alignment.sh" ]; then
-    cp "$FIVEDAY_SOURCE_DIR/src/docs/scripts/check-alignment.sh" docs/scripts/
-    chmod +x docs/scripts/check-alignment.sh
-    echo "✓ Copied check-alignment.sh to docs/scripts/"
+if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts/check-alignment.sh" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts/check-alignment.sh" docs/5day/scripts/
+    chmod +x docs/5day/scripts/check-alignment.sh
+    echo "✓ Copied check-alignment.sh to docs/5day/scripts/"
     ((FILES_COPIED++))
     ((SCRIPTS_READY++))
 fi
 
-if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/scripts/create-task.sh" ]; then
-    cp "$FIVEDAY_SOURCE_DIR/src/docs/scripts/create-task.sh" docs/scripts/
-    chmod +x docs/scripts/create-task.sh
-    echo "✓ Copied create-task.sh to docs/scripts/"
+if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts/create-task.sh" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts/create-task.sh" docs/5day/scripts/
+    chmod +x docs/5day/scripts/create-task.sh
+    echo "✓ Copied create-task.sh to docs/5day/scripts/"
     ((FILES_COPIED++))
     ((SCRIPTS_READY++))
 fi
 
-if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/scripts/create-feature.sh" ]; then
-    cp "$FIVEDAY_SOURCE_DIR/src/docs/scripts/create-feature.sh" docs/scripts/
-    chmod +x docs/scripts/create-feature.sh
-    echo "✓ Copied create-feature.sh to docs/scripts/"
+if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts/create-feature.sh" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts/create-feature.sh" docs/5day/scripts/
+    chmod +x docs/5day/scripts/create-feature.sh
+    echo "✓ Copied create-feature.sh to docs/5day/scripts/"
     ((FILES_COPIED++))
     ((SCRIPTS_READY++))
 fi
 
-if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/scripts/ai-context.sh" ]; then
-    cp "$FIVEDAY_SOURCE_DIR/src/docs/scripts/ai-context.sh" docs/scripts/
-    chmod +x docs/scripts/ai-context.sh
-    echo "✓ Copied ai-context.sh to docs/scripts/"
+if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts/ai-context.sh" ]; then
+    cp "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts/ai-context.sh" docs/5day/scripts/
+    chmod +x docs/5day/scripts/ai-context.sh
+    echo "✓ Copied ai-context.sh to docs/5day/scripts/"
     ((FILES_COPIED++))
     ((SCRIPTS_READY++))
 fi
 
 # Copy the main 5day.sh command script to project root
-if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/scripts/5day.sh" ]; then
+if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts/5day.sh" ]; then
     if [ ! -f ./5day.sh ] || $UPDATE_MODE; then
-        cp "$FIVEDAY_SOURCE_DIR/src/docs/scripts/5day.sh" ./5day.sh
+        cp "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts/5day.sh" ./5day.sh
         chmod +x ./5day.sh
         echo "✓ Copied 5day.sh command script to project root"
         ((FILES_COPIED++))
@@ -549,7 +550,7 @@ echo "Setting up INDEX.md documentation files..."
 INDEX_FILES=(
     "docs/tasks/INDEX.md"
     "docs/bugs/INDEX.md"
-    "docs/scripts/INDEX.md"
+    "docs/5day/scripts/INDEX.md"
     "docs/designs/INDEX.md"
     "docs/examples/INDEX.md"
     "docs/data/INDEX.md"
@@ -648,10 +649,10 @@ fi
 
 # Ensure all scripts are executable (double-check)
 echo "Ensuring all scripts have execute permissions..."
-if [ -d docs/scripts ]; then
+if [ -d docs/5day/scripts ]; then
     # Find all .sh files and make them executable
     SCRIPT_COUNT=0
-    for script in docs/scripts/*.sh; do
+    for script in docs/5day/scripts/*.sh; do
         if [ -f "$script" ]; then
             chmod +x "$script"
             basename_script=$(basename "$script")
@@ -661,7 +662,7 @@ if [ -d docs/scripts ]; then
     done
 
     if [ $SCRIPT_COUNT -gt 0 ]; then
-        echo "✓ All $SCRIPT_COUNT scripts in docs/scripts/ are now executable"
+        echo "✓ All $SCRIPT_COUNT scripts in docs/5day/scripts/ are now executable"
         SCRIPTS_READY=$SCRIPT_COUNT
     fi
 fi
@@ -684,7 +685,7 @@ VALIDATION_PASSED=true
 VALIDATION_ERRORS=""
 
 # Check required directories
-for dir in docs/tasks/backlog docs/tasks/next docs/tasks/working docs/tasks/review docs/tasks/live docs/bugs docs/scripts docs/features docs/guides; do
+for dir in docs/tasks/backlog docs/tasks/next docs/tasks/working docs/tasks/review docs/tasks/live docs/bugs docs/5day/scripts docs/features docs/guides; do
     if [ ! -d "$dir" ]; then
         VALIDATION_PASSED=false
         VALIDATION_ERRORS="$VALIDATION_ERRORS\n  ❌ Missing directory: $dir"
@@ -700,7 +701,7 @@ for file in docs/STATE.md DOCUMENTATION.md; do
 done
 
 # Check script executability
-for script in docs/scripts/*.sh; do
+for script in docs/5day/scripts/*.sh; do
     if [ -f "$script" ] && [ ! -x "$script" ]; then
         VALIDATION_PASSED=false
         VALIDATION_ERRORS="$VALIDATION_ERRORS\n  ❌ Script not executable: $script"
@@ -725,7 +726,7 @@ echo ""
 echo "✓ 5DayDocs installed to: $TARGET_PATH"
 echo "✓ Platform configured: $PLATFORM"
 echo "✓ Directory structure created in docs/"
-echo "✓ Scripts are executable at docs/scripts/"
+echo "✓ Scripts are executable at docs/5day/scripts/"
 echo "✓ Documentation available at DOCUMENTATION.md"
 echo "✓ $INDEX_FILES_COPIED INDEX.md files installed for self-documentation"
 echo "✓ Task templates ready in docs/tasks/"
@@ -751,8 +752,8 @@ else
     echo ""
     echo "🛠 Available Scripts:"
     echo "   - ./5day.sh - Main command interface for 5DayDocs"
-    echo "   - ./docs/scripts/create-task.sh - Create new tasks"
-    echo "   - ./docs/scripts/check-alignment.sh - Check feature/task alignment"
+    echo "   - ./docs/5day/scripts/create-task.sh - Create new tasks"
+    echo "   - ./docs/5day/scripts/check-alignment.sh - Check feature/task alignment"
     echo ""
 
     # Platform-specific setup info
@@ -794,8 +795,8 @@ else
     echo "   $ ./5day.sh status                  # Show task status"
     echo ""
     echo "   Or use scripts directly:"
-    echo "   $ ./docs/scripts/create-task.sh \"Your first task description\""
-    echo "   $ ./docs/scripts/check-alignment.sh"
+    echo "   $ ./docs/5day/scripts/create-task.sh \"Your first task description\""
+    echo "   $ ./docs/5day/scripts/check-alignment.sh"
     echo ""
     echo "To update 5DayDocs in the future, run this setup script again."
 fi

@@ -1,10 +1,10 @@
 #!/bin/bash
 # ai-context.sh - Generate a context summary for AI agents
-# Usage: ./docs/scripts/ai-context.sh
+# Usage: ./docs/5day/scripts/ai-context.sh
 
 # Determine project root
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+PROJECT_ROOT="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
 DOCS_DIR="$PROJECT_ROOT/docs"
 
 echo "# Project Context Summary"

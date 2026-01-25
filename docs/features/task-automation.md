@@ -6,7 +6,7 @@ Automation scripts streamline common task management operations.
 
 ## Task Creation Script
 **Status**: LIVE
-`docs/scripts/create-task.sh` automates task creation:
+`docs/5day/scripts/create-task.sh` automates task creation:
 - Automatic ID assignment from STATE.md
 - Creates properly formatted task file
 - Updates STATE.md automatically

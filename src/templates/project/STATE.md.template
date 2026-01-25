@@ -1,5 +1,16 @@
 # docs/STATE.md
 
+<!--
+STATE.md is user data tracking project progress.
+Use ./5day scripts to modify, or update manually.
+
+Fields managed by 5DayDocs updates:
+- Last Updated, 5DAY_VERSION
+
+Fields managed by user/AI/scripts:
+- 5DAY_TASK_ID, 5DAY_BUG_ID, SYNC_ALL_TASKS
+-->
+
 **Last Updated**: {{DATE}}
 **5DAY_VERSION**: {{VERSION}}
 **5DAY_TASK_ID**: 0

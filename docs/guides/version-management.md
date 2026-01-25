@@ -116,13 +116,31 @@ VERSION file    →    VERSION file      →   docs/STATE.md
 
 ## Version History
 
+### 2.1.0 (2025-01-25) - Framework Namespace
+**BREAKING CHANGE**: Framework files moved to `docs/5day/` namespace
+
+**What Changed:**
+- `docs/scripts/` → `docs/5day/scripts/` (framework scripts)
+- Added `docs/5day/ai/` for future AI instructions
+- `docs/scripts/` now reserved for user's own scripts (optional)
+
+**Migration:**
+- Automatic migration in update.sh for all users on version < 2.1.0
+- Framework scripts (.sh files) moved to `docs/5day/scripts/`
+- User's custom files in `docs/scripts/` are preserved
+
+**Why This Change:**
+- Clear separation between framework and user files
+- AI agents can easily identify what to edit vs not edit
+- `docs/5day/` = framework (read-only), everything else = user content
+
 ### 2.0.0 (2025-10-19) - Structure Simplification
 **BREAKING CHANGE**: Flattened directory structure
 
 **What Changed:**
 - `docs/work/tasks/` → `docs/tasks/`
 - `docs/work/bugs/` → `docs/bugs/`
-- `docs/work/scripts/` → `docs/scripts/`
+- `docs/work/scripts/` → `docs/5day/scripts/`
 - `docs/work/designs/` → `docs/designs/`
 - `docs/work/examples/` → `docs/examples/`
 - `docs/work/data/` → `docs/data/`

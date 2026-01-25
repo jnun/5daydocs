@@ -205,7 +205,7 @@ if [[ "$INSTALLED_VERSION" < "1.0.0" ]]; then
   echo "✓ Ensured bug tracking folders exist"
 
   # Ensure other folders exist
-  mkdir -p docs/scripts
+  mkdir -p docs/5day/scripts
   mkdir -p docs/designs
   mkdir -p docs/examples
   mkdir -p docs/data
@@ -290,7 +290,7 @@ if [[ "$INSTALLED_VERSION" < "2.0.0" ]]; then
   echo "This update flattens the directory structure:"
   echo "  docs/work/tasks/ → docs/tasks/"
   echo "  docs/work/bugs/ → docs/bugs/"
-  echo "  docs/work/scripts/ → docs/scripts/"
+  echo "  docs/work/scripts/ → docs/5day/scripts/"
   echo "  docs/work/designs/ → docs/designs/"
   echo "  docs/work/examples/ → docs/examples/"
   echo "  docs/work/data/ → docs/data/"
@@ -338,7 +338,7 @@ if [[ "$INSTALLED_VERSION" < "2.0.0" ]]; then
   # Migrate each subdirectory
   safe_migrate_dir "docs/work/tasks" "docs/tasks"
   safe_migrate_dir "docs/work/bugs" "docs/bugs"
-  safe_migrate_dir "docs/work/scripts" "docs/scripts"
+  safe_migrate_dir "docs/work/scripts" "docs/5day/scripts"
   safe_migrate_dir "docs/work/designs" "docs/designs"
   safe_migrate_dir "docs/work/examples" "docs/examples"
   safe_migrate_dir "docs/work/data" "docs/data"
@@ -394,7 +394,7 @@ if [[ "$INSTALLED_VERSION" < "2.0.0" ]]; then
   # Verify migration success
   echo "Verifying migration..."
   MIGRATION_OK=true
-  for dir in docs/tasks/backlog docs/tasks/next docs/tasks/working docs/tasks/review docs/tasks/live docs/bugs docs/scripts; do
+  for dir in docs/tasks/backlog docs/tasks/next docs/tasks/working docs/tasks/review docs/tasks/live docs/bugs docs/5day/scripts; do
     if [ ! -d "$dir" ]; then
       echo "  ⚠ Warning: Expected directory not found: $dir"
       MIGRATION_OK=false
@@ -408,6 +408,52 @@ if [[ "$INSTALLED_VERSION" < "2.0.0" ]]; then
   fi
 
   INSTALLED_VERSION="2.0.0"
+fi
+
+# Migration from 2.0.0 to 2.1.0 - Move scripts to docs/5day/ namespace
+if [[ "$INSTALLED_VERSION" < "2.1.0" ]]; then
+  echo ""
+  echo "================================================"
+  echo "  Migrating to 2.1.0 - Framework Namespace"
+  echo "================================================"
+  echo ""
+  echo "This update moves framework scripts to docs/5day/:"
+  echo "  docs/scripts/ → docs/5day/scripts/"
+  echo ""
+  echo "This separates framework files from your content."
+  echo ""
+
+  # Create the 5day directory structure
+  mkdir -p "$TARGET_PATH/docs/5day/scripts"
+  mkdir -p "$TARGET_PATH/docs/5day/ai"
+
+  # Migrate scripts from docs/scripts/ to docs/5day/scripts/
+  if [ -d "$TARGET_PATH/docs/scripts" ]; then
+    echo "Migrating framework scripts..."
+
+    # Move all .sh files (framework scripts)
+    for script in "$TARGET_PATH/docs/scripts"/*.sh; do
+      if [ -f "$script" ]; then
+        script_name=$(basename "$script")
+        mv "$script" "$TARGET_PATH/docs/5day/scripts/$script_name"
+        echo "  ✓ Moved $script_name → docs/5day/scripts/"
+      fi
+    done
+
+    # Check if docs/scripts/ is now empty (only .gitkeep or INDEX.md)
+    remaining=$(find "$TARGET_PATH/docs/scripts" -type f ! -name ".gitkeep" ! -name "INDEX.md" 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$remaining" -eq 0 ]; then
+      echo "  ✓ docs/scripts/ is now empty (available for your own scripts)"
+    else
+      echo "  → Some files remain in docs/scripts/ (your custom files preserved)"
+    fi
+  fi
+
+  echo ""
+  echo "✓ Migration to 2.1.0 structure complete!"
+  echo ""
+
+  INSTALLED_VERSION="2.1.0"
 fi
 
 # Update distributable files from source
@@ -436,14 +482,14 @@ if [ -d "$TARGET_PATH/.github/workflows" ]; then
 fi
 
 # Update scripts from src/ (the distributable source)
-if [ -d "$FIVEDAY_SOURCE_DIR/src/docs/scripts" ]; then
-  mkdir -p "$TARGET_PATH/docs/scripts"
+if [ -d "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts" ]; then
+  mkdir -p "$TARGET_PATH/docs/5day/scripts"
 
-  for script in "$FIVEDAY_SOURCE_DIR/src/docs/scripts"/*.sh; do
+  for script in "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts"/*.sh; do
     if [ -f "$script" ]; then
       script_name=$(basename "$script")
-      cp -f "$script" "$TARGET_PATH/docs/scripts/$script_name"
-      chmod +x "$TARGET_PATH/docs/scripts/$script_name"
+      cp -f "$script" "$TARGET_PATH/docs/5day/scripts/$script_name"
+      chmod +x "$TARGET_PATH/docs/5day/scripts/$script_name"
       echo "✓ Updated script: $script_name"
     fi
   done

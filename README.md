@@ -38,14 +38,20 @@ After setup, your project will have:
 
 **👉 See `DOCUMENTATION.md` in your project root for the complete workflow guide.**
 
-## Development Workflow
+## Development Workflow (Contributing to 5DayDocs)
 
 This repo dogfoods itself. We use 5DayDocs to manage 5DayDocs.
+
+So,
 
 ```
 src/   → The product. What users receive.
 docs/  → Our task tracking. Like Jira, but markdown.
 ```
+
+The actual files that will land in your project folder come from src/
+
+The bash scripts place things where they need to be, including this project
 
 ### How to Make Changes
 

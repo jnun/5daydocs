@@ -1,6 +1,6 @@
 #!/bin/bash
 # check-alignment.sh - Check alignment between features and their tasks
-# Usage: ./scripts/check-alignment.sh
+# Usage: ./docs/5day/scripts/check-alignment.sh
 
 set -e
 

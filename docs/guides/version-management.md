@@ -17,12 +17,12 @@ Update the version number whenever you make:
 ### Files to Update When Changing Version
 
 When you increment the version, you only need to update:
-1. `/VERSION` - The master version file (update.sh now reads from this file automatically)
+1. `/VERSION` - The master version file (setup.sh reads from this file automatically)
 
 ## Version Change Checklist
 
 - [ ] Update `/VERSION` file with new version number
-- [ ] Add migration logic in `update.sh` if needed for structural changes
+- [ ] Add migration logic in `setup.sh` if needed for structural changes
 - [ ] Test the update process on a sample project
 - [ ] Commit with message: `chore: bump version to X.X.X`
 
@@ -31,7 +31,7 @@ When you increment the version, you only need to update:
 ### Requires Version Bump:
 - Adding new folder structures
 - Changing script behavior significantly
-- Modifying setup.sh or update.sh logic
+- Modifying setup.sh logic
 - Adding new features or scripts
 - Fixing bugs in existing scripts
 
@@ -43,16 +43,16 @@ When you increment the version, you only need to update:
 ## Testing Version Updates
 
 Before committing a version change:
-1. Run setup.sh on a test directory
+1. Run setup.sh on a test directory (fresh install)
 2. Make some changes to simulate an older installation
-3. Run update.sh to verify migrations work correctly
+3. Run setup.sh again to verify migrations work correctly (update mode)
 
 ## VERSION File Distribution Strategy
 
 ### Decision: VERSION File MUST Be Distributed
 
 **Rationale:**
-1. **update.sh requires it** - Will error without VERSION file in source directory
+1. **setup.sh requires it** - Will warn without VERSION file in source directory
 2. **setup.sh needs it** - Falls back to "1.0.0" without it (causing incorrect STATE.md)
 3. **Distribution IS the source** - For users, the distributed repo is their 5daydocs source
 4. **Version tracking** - No other way to know which distribution version is installed
@@ -66,9 +66,9 @@ Before committing a version change:
 
 #### Distribution Repository (For Users)
 - **Path**: `/VERSION`
-- **Purpose**: Enables setup.sh and update.sh to read framework version
+- **Purpose**: Enables setup.sh to read framework version
 - **Created by**: `build-distribution.sh` copies from source VERSION
-- **Status**: **REQUIRED** - update.sh will error without it
+- **Status**: **REQUIRED** - setup.sh will warn without it
 
 #### Target Project (User's Project)
 - **Path**: `docs/STATE.md` field: `5DAY_VERSION`
@@ -87,45 +87,28 @@ VERSION file    →    VERSION file      →   docs/STATE.md
 
 ### How Scripts Handle VERSION File
 
-#### setup.sh (lines 16-19)
-- **Reads**: `$FIVEDAY_SOURCE_DIR/VERSION` (distribution/submodule)
-- **Behavior**: Falls back to "1.0.0" if VERSION missing
-- **Issue**: Silent fallback causes incorrect version in STATE.md
-- **Fix**: After Task 95, VERSION will always exist in distributions
+#### setup.sh
+- **Reads**: `$FIVEDAY_SOURCE_DIR/VERSION` (at repo root)
+- **Behavior**: Falls back to "1.0.0" with warning if VERSION missing
+- **Note**: VERSION file must exist in the 5daydocs repo root
 
-#### update.sh (lines 19-23)
-- **Reads**: `$FIVEDAY_SOURCE_DIR/VERSION` (distribution/submodule)
-- **Behavior**: Exits with error if VERSION missing
-- **Correct**: Fails fast instead of using wrong version
-
-#### build-distribution.sh (lines 8-13, Task 95)
+#### build-distribution.sh
 - **Reads**: `VERSION` in source repo
-- **Before Task 95**: Does NOT copy VERSION to distribution (BUG)
-- **After Task 95**: Copies VERSION to distribution (FIXED)
-
-### Current Issue (Fixed in Task 95)
-
-**Problem**: build-distribution.sh did not copy VERSION file to distributions
-
-**Impact**:
-- New installations show `5DAY_VERSION: 1.0.0` instead of `5DAY_VERSION: 2.0.0`
-- update.sh fails when trying to update distributed installations
-- Users cannot determine which version they have
-
-**Solution**: Task 95 adds VERSION file copying to build-distribution.sh
+- **Copies**: VERSION to distribution for users
 
 ## Version History
 
-### 2.1.0 (2025-01-25) - Framework Namespace
+### 2.1.0 (2025-01-25) - Framework Namespace + Unified Setup
 **BREAKING CHANGE**: Framework files moved to `docs/5day/` namespace
 
 **What Changed:**
 - `docs/scripts/` → `docs/5day/scripts/` (framework scripts)
-- Added `docs/5day/ai/` for future AI instructions
-- `docs/scripts/` now reserved for user's own scripts (optional)
+- Added `docs/5day/ai/` for AI instructions
+- `scripts/update.sh` merged into `setup.sh` (single installer/updater)
+- `setup.sh` now handles both fresh installs and updates
 
 **Migration:**
-- Automatic migration in update.sh for all users on version < 2.1.0
+- Automatic migration in setup.sh for all users on version < 2.1.0
 - Framework scripts (.sh files) moved to `docs/5day/scripts/`
 - User's custom files in `docs/scripts/` are preserved
 
@@ -133,6 +116,7 @@ VERSION file    →    VERSION file      →   docs/STATE.md
 - Clear separation between framework and user files
 - AI agents can easily identify what to edit vs not edit
 - `docs/5day/` = framework (read-only), everything else = user content
+- Single script for installation and updates (simpler maintenance)
 
 ### 2.0.0 (2025-10-19) - Structure Simplification
 **BREAKING CHANGE**: Flattened directory structure
@@ -147,7 +131,7 @@ VERSION file    →    VERSION file      →   docs/STATE.md
 - Removed `docs/work/` directory entirely
 
 **Migration:**
-- Automatic migration in update.sh for all users on version < 2.0.0
+- Automatic migration in setup.sh for all users on version < 2.0.0
 - Creates timestamped backup before migration
 - Safely merges content if conflicts exist
 - All user data (tasks, bugs, STATE.md IDs) preserved

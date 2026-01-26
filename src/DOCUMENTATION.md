@@ -118,6 +118,19 @@ Use templates in each folder:
 - `docs/features/TEMPLATE-feature.md`
 - `docs/bugs/TEMPLATE-bug.md`
 
+## Updating 5DayDocs
+
+To update to a newer version, re-run setup from the 5daydocs repo:
+
+```bash
+cd /path/to/5daydocs
+git pull
+./setup.sh
+# Enter your project path when prompted
+```
+
+Your STATE.md values (task IDs, bug IDs) are preserved during updates.
+
 ---
 
 *Plain folders and markdown. That's it.*

@@ -12,9 +12,16 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Get the absolute path to the project root
-# Script is located in docs/scripts/
+# Script can be in project root OR docs/5day/scripts/
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+
+# Detect location: if docs/5day/scripts exists relative to SCRIPT_DIR, we're in root
+if [ -d "$SCRIPT_DIR/docs/5day/scripts" ]; then
+    PROJECT_ROOT="$SCRIPT_DIR"
+else
+    # We're in docs/5day/scripts/, go three levels up
+    PROJECT_ROOT="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
+fi
 
 # Function to display help
 show_help() {
@@ -51,11 +58,11 @@ create_task() {
     fi
 
     # Call the existing create-task.sh script
-    if [ -x "$PROJECT_ROOT/docs/scripts/create-task.sh" ]; then
-        "$PROJECT_ROOT/docs/scripts/create-task.sh" "$description"
+    if [ -x "$PROJECT_ROOT/docs/5day/scripts/create-task.sh" ]; then
+        "$PROJECT_ROOT/docs/5day/scripts/create-task.sh" "$description"
     else
         echo -e "${RED}ERROR: create-task.sh not found or not executable${NC}"
-        echo "Run: chmod +x docs/scripts/create-task.sh"
+        echo "Run: chmod +x docs/5day/scripts/create-task.sh"
         exit 1
     fi
 }
@@ -71,13 +78,13 @@ create_feature() {
     fi
 
     # Call the create-feature.sh script
-    if [ -x "$PROJECT_ROOT/docs/scripts/create-feature.sh" ]; then
-        "$PROJECT_ROOT/docs/scripts/create-feature.sh" "$feature_name"
+    if [ -x "$PROJECT_ROOT/docs/5day/scripts/create-feature.sh" ]; then
+        "$PROJECT_ROOT/docs/5day/scripts/create-feature.sh" "$feature_name"
     else
         echo -e "${RED}ERROR: create-feature.sh not found or not executable${NC}"
         echo "Creating it now..."
         # Create the feature script if it doesn't exist
-        cat > "$PROJECT_ROOT/docs/scripts/create-feature.sh" << 'EOF'
+        cat > "$PROJECT_ROOT/docs/5day/scripts/create-feature.sh" << 'EOF'
 #!/bin/bash
 
 # Create a new feature document in docs/features
@@ -173,18 +180,18 @@ echo "1. Edit the feature document with detailed requirements"
 echo "2. Create tasks for implementation: 5day newtask \"Implement $FEATURE_NAME\""
 echo "3. Move feature to WORKING when development begins"
 EOF
-        chmod +x "$PROJECT_ROOT/docs/scripts/create-feature.sh"
-        "$PROJECT_ROOT/docs/scripts/create-feature.sh" "$feature_name"
+        chmod +x "$PROJECT_ROOT/docs/5day/scripts/create-feature.sh"
+        "$PROJECT_ROOT/docs/5day/scripts/create-feature.sh" "$feature_name"
     fi
 }
 
 # Function to check features
 check_features() {
-    if [ -x "$PROJECT_ROOT/docs/scripts/check-alignment.sh" ]; then
-        "$PROJECT_ROOT/docs/scripts/check-alignment.sh"
+    if [ -x "$PROJECT_ROOT/docs/5day/scripts/check-alignment.sh" ]; then
+        "$PROJECT_ROOT/docs/5day/scripts/check-alignment.sh"
     else
         echo -e "${RED}ERROR: check-alignment.sh not found or not executable${NC}"
-        echo "Run: chmod +x docs/scripts/check-alignment.sh"
+        echo "Run: chmod +x docs/5day/scripts/check-alignment.sh"
         exit 1
     fi
 }
@@ -248,11 +255,11 @@ show_status() {
 
 # Function to get AI context
 get_ai_context() {
-    if [ -x "$PROJECT_ROOT/docs/scripts/ai-context.sh" ]; then
-        "$PROJECT_ROOT/docs/scripts/ai-context.sh"
+    if [ -x "$PROJECT_ROOT/docs/5day/scripts/ai-context.sh" ]; then
+        "$PROJECT_ROOT/docs/5day/scripts/ai-context.sh"
     else
         echo -e "${RED}ERROR: ai-context.sh not found or not executable${NC}"
-        echo "Run: chmod +x docs/scripts/ai-context.sh"
+        echo "Run: chmod +x docs/5day/scripts/ai-context.sh"
         exit 1
     fi
 }

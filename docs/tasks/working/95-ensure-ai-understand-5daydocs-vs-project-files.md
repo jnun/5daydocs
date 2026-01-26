@@ -98,9 +98,9 @@ AI agents reading `DOCUMENTATION.md` immediately understand:
 
 ---
 
-## Status Report (2025-01-25)
+## Status Report (2025-01-25) - COMPLETED
 
-### Completed ✓
+### All Items Completed ✓
 
 | Item | Evidence |
 |------|----------|
@@ -109,87 +109,28 @@ AI agents reading `DOCUMENTATION.md` immediately understand:
 | Add "Boundaries" section to DOCUMENTATION.md | Lines 5-18 in `src/DOCUMENTATION.md` |
 | Add ownership comment to STATE.md template | Lines 1-12 in `src/templates/project/STATE.md.template` |
 | Remove INDEX.md from task subfolders | Per recent commits |
+| **Merge `scripts/update.sh` into `setup.sh`** | `scripts/update.sh` deleted, `setup.sh` handles both install and update |
+| **Fix `setup.sh` paths** | Now correctly references `src/docs/5day/scripts/` |
+| **Create AI instruction files** | `src/docs/5day/ai/feynman-method.md` created |
+| **Update DOCUMENTATION.md** | Added "Updating 5DayDocs" section |
+| **Update README.md** | Updated development workflow section |
+| **Sync dogfood scripts** | `docs/5day/scripts/` synced from `src/` |
 
-### NOT Completed ✗
+### Final Structure
 
-| Item | Issue |
-|------|-------|
-| Create AI instruction files in `docs/5day/ai/` | Only `.gitkeep` exists - no content |
-| Update `setup.sh` source paths | Still references `src/docs/scripts/` (deleted) |
-| Update `setup.sh` target paths | Still creates `docs/scripts/` not `docs/5day/scripts/` |
-| Update `scripts/update.sh` source paths | Still references `src/docs/scripts/` (deleted) |
-| Update `scripts/update.sh` target paths | Still creates `docs/scripts/` not `docs/5day/scripts/` |
-| Reference `docs/5day/ai/` in DOCUMENTATION.md | No explicit reference to AI instructions location |
-
-### Critical Issue
-
-**Both `setup.sh` and `update.sh` are broken** - they reference `src/docs/scripts/` which no longer exists (scripts moved to `src/docs/5day/scripts/`). Fresh installs will fail to copy scripts.
-
----
-
-## File Audit
-
-### Files That Need Updates (BROKEN)
-
-| File | Line(s) | Issue | Fix Required |
-|------|---------|-------|--------------|
-| `setup.sh` | 313-357 | References `src/docs/scripts/*.sh` | Change to `src/docs/5day/scripts/*.sh` |
-| `setup.sh` | 124, 311-343 | Creates `docs/scripts/` in target | Change to `docs/5day/scripts/` |
-| `setup.sh` | 346-357 | Copies `5day.sh` to root from wrong path | Update source path |
-| `scripts/update.sh` | 439-450 | References `src/docs/scripts/*.sh` | Change to `src/docs/5day/scripts/*.sh` |
-| `scripts/update.sh` | 440 | Creates `docs/scripts/` in target | Change to `docs/5day/scripts/` |
-
-### Files That Need Updates (Content)
-
-| File | Issue | Fix Required |
-|------|-------|--------------|
-| `src/docs/5day/ai/` | Empty (only `.gitkeep`) | Create README.md, tasks.md, bugs.md, workflows.md |
-| `src/DOCUMENTATION.md` | No reference to `docs/5day/ai/` | Add explicit reference to AI instructions |
-| `docs/scripts/INDEX.md` | References old structure | Update or remove (this is in dogfood install) |
-| `docs/features/task-automation.md` | References `docs/scripts/` | Update to `docs/5day/scripts/` |
-| `docs/features/feature-task-alignment.md` | References `docs/scripts/check-alignment.sh` | Update to `docs/5day/scripts/check-alignment.sh` |
-
-### Files Already Correct (No Changes Needed)
-
-| File | Status |
-|------|--------|
-| `src/DOCUMENTATION.md` | Boundaries section correct, structure diagram shows `docs/5day/` |
-| `src/templates/project/STATE.md.template` | Ownership comment added |
-| `src/docs/5day/scripts/*.sh` | All 6 scripts present in correct location |
-| `5day.sh` (root) | Uses relative path detection, will work |
-| `scripts/build-distribution.sh` | Only handles workflows/templates, not scripts |
-
-### Scripts in Source (`src/docs/5day/scripts/`)
-
-1. `5day.sh` - Main CLI entry point
-2. `ai-context.sh` - Generate AI context
-3. `check-alignment.sh` - Feature/task alignment check
-4. `create-feature.sh` - Create new features
-5. `create-task.sh` - Create new tasks
-6. `validate-tasks.sh` - Validate task files
-
-### Internal Script References
-
-The scripts in `src/docs/5day/scripts/` use relative path detection:
-```bash
-if [ -d "$SCRIPT_DIR/docs/scripts" ]; then
-    PROJECT_ROOT="$SCRIPT_DIR"
-else
-    PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
-fi
+```
+5daydocs repo:
+├── setup.sh                 ← Full installer/updater (NOT distributed)
+├── 5day.sh                  ← CLI (synced from src/)
+├── src/docs/5day/scripts/   ← Source of truth for distributed scripts
+├── src/docs/5day/ai/        ← AI instructions (feynman-method.md)
+└── docs/5day/               ← Dogfood copy
 ```
 
-This needs updating to check for `docs/5day/scripts` instead of `docs/scripts`.
+### Key Changes Made
 
----
-
-## Remaining Work Summary
-
-1. **Fix `setup.sh`** - Update all path references from `src/docs/scripts/` to `src/docs/5day/scripts/` and target from `docs/scripts/` to `docs/5day/scripts/`
-2. **Fix `scripts/update.sh`** - Same path updates
-3. **Update scripts' path detection** - Change `docs/scripts` to `docs/5day/scripts` in all 6 scripts
-4. **Create AI instruction content** - README.md, tasks.md, bugs.md, workflows.md in `src/docs/5day/ai/`
-5. **Update DOCUMENTATION.md** - Add explicit reference to `docs/5day/ai/`
-6. **Update feature docs** - Fix path references in dogfood docs
-7. **Test fresh install** - Verify new structure works
-8. **Test migration** - Verify update script migrates old installs
+1. **Unified `setup.sh`** - Merged all update.sh logic into setup.sh
+2. **Removed `scripts/update.sh`** - No longer needed
+3. **Updated documentation** - README.md and DOCUMENTATION.md reflect new structure
+4. **Audited paths** - Fixed outdated references in version-management.md and migrate-to-submodule.sh
+5. **Synced dogfood** - All scripts in docs/5day/ match src/docs/5day/

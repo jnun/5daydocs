@@ -10,7 +10,7 @@ set -euo pipefail
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 TASK_DIRS=(
     "$PROJECT_ROOT/docs/tasks/backlog"
     "$PROJECT_ROOT/docs/tasks/next"

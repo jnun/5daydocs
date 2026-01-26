@@ -19,8 +19,8 @@ fi
 
 # Check for existing work content
 echo "Checking existing 5daydocs content..."
-TASK_COUNT=$(find docs/work/tasks -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
-BUG_COUNT=$(find docs/work/bugs -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+TASK_COUNT=$(find docs/tasks -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+BUG_COUNT=$(find docs/bugs -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
 DOC_COUNT=$(find docs -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
 
 echo "Found:"
@@ -34,10 +34,10 @@ echo "Creating backup of existing work..."
 BACKUP_DIR="5daydocs-backup-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$BACKUP_DIR"
 
-# Backup work directory
-if [ -d "work" ]; then
-    cp -r work "$BACKUP_DIR/"
-    echo "  ✓ Backed up docs/work/ to $BACKUP_DIR/"
+# Backup docs directory structure
+if [ -d "docs/tasks" ]; then
+    cp -r docs/tasks "$BACKUP_DIR/"
+    echo "  ✓ Backed up docs/tasks/ to $BACKUP_DIR/"
 fi
 
 # Backup docs directory
@@ -62,7 +62,7 @@ echo ""
 echo "Removing old standalone installation files..."
 REMOVED_FILES=0
 
-# Remove old scripts (but not docs/work/scripts)
+# Remove old scripts (but not docs/5day/scripts)
 if [ -f "5day.sh" ]; then
     rm -f 5day.sh
     ((REMOVED_FILES++))
@@ -114,32 +114,27 @@ echo "Restoring your project content..."
 # Ensure directories exist (setup.sh will handle this safely too)
 ./5daydocs/setup.sh
 
-# Restore work content
-if [ -d "$BACKUP_DIR/work" ]; then
+# Restore task content
+if [ -d "$BACKUP_DIR/tasks" ]; then
     # Copy task files
     for folder in backlog next working review live; do
-        if [ -d "$BACKUP_DIR/docs/tasks/$folder" ]; then
-            cp -n "$BACKUP_DIR/docs/tasks/$folder"/*.md "docs/tasks/$folder/" 2>/dev/null || true
+        if [ -d "$BACKUP_DIR/tasks/$folder" ]; then
+            cp -n "$BACKUP_DIR/tasks/$folder"/*.md "docs/tasks/$folder/" 2>/dev/null || true
         fi
     done
+    echo "  ✓ Restored task content"
+fi
 
-    # Copy bug files
-    if [ -d "$BACKUP_DIR/docs/work/bugs" ]; then
-        find "$BACKUP_DIR/docs/work/bugs" -name "*.md" -exec cp -n {} docs/bugs/ \; 2>/dev/null || true
-    fi
+# Copy bug files
+if [ -d "$BACKUP_DIR/docs/bugs" ]; then
+    find "$BACKUP_DIR/docs/bugs" -name "*.md" -exec cp -n {} docs/bugs/ \; 2>/dev/null || true
+    echo "  ✓ Restored bug content"
+fi
 
-    # Copy custom scripts
-    if [ -d "$BACKUP_DIR/docs/work/scripts" ]; then
-        cp -n "$BACKUP_DIR/docs/work/scripts"/* "docs/scripts/" 2>/dev/null || true
-    fi
-
-    # Restore STATE.md (preserving IDs)
-    if [ -f "$BACKUP_DIR/docs/STATE.md" ]; then
-        cp "$BACKUP_DIR/docs/STATE.md" "docs/STATE.md"
-        echo "  ✓ Restored STATE.md with existing IDs"
-    fi
-
-    echo "  ✓ Restored work content"
+# Restore STATE.md (preserving IDs)
+if [ -f "$BACKUP_DIR/docs/STATE.md" ]; then
+    cp "$BACKUP_DIR/docs/STATE.md" "docs/STATE.md"
+    echo "  ✓ Restored STATE.md with existing IDs"
 fi
 
 # Restore docs content

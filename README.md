@@ -56,11 +56,20 @@ The bash scripts place things where they need to be, including this project
 ### How to Make Changes
 
 1. **Edit in `src/`** — All product files live here
-2. **Run `./scripts/update.sh`** — Applies your changes to this repo
+2. **Run `./setup.sh` targeting `.`** — Syncs your changes to `docs/` (dogfood mode)
 3. **Test it** — Use the updated 5DayDocs on this project
 4. **If it works, commit. If it breaks, don't.**
 
 This lets you experiment safely before pushing changes.
+
+### Project Structure
+
+```
+./setup.sh                 ← Installer/updater (NOT distributed)
+./5day.sh                  ← CLI (synced from src/)
+src/docs/5day/scripts/     ← Source of truth for distributed scripts
+docs/                      ← Dogfood: we use 5DayDocs to manage 5DayDocs
+```
 
 ### Tracking Work
 

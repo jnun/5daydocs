@@ -1,6 +1,6 @@
 # Scripts Directory
 
-→ **Full documentation: [DOCUMENTATION.md](/DOCUMENTATION.md#scripts-directory)**
+> **Full documentation: [DOCUMENTATION.md](/DOCUMENTATION.md#scripts-directory)**
 
 ## What's Here
 

@@ -1,29 +1,81 @@
 # Feature: [FEATURE-NAME]
 
-## [CAPABILITY-1]
-**Status**: BACKLOG
-[Description of what this capability will do]
+**Status:** BACKLOG
+**Created:** YYYY-MM-DD
+**Updated:** YYYY-MM-DD
 
-## [CAPABILITY-2]
-**Status**: BACKLOG
-[Description of what this capability will do]
+## Overview
 
-## [CAPABILITY-3]
-**Status**: BACKLOG
-[Description of what this capability will do]
+Brief description of the feature and its purpose.
+
+## User Stories
+
+- As a [user type], I want to [action], so that [benefit]
+
+## Requirements
+
+### Functional Requirements
+
+- [ ] Requirement 1
+- [ ] Requirement 2
+
+### Non-Functional Requirements
+
+- [ ] Performance criteria
+- [ ] Security requirements
+
+## Technical Design
+
+### Architecture
+
+Describe the technical approach and architecture
+
+### Dependencies
+
+- List any dependencies or prerequisites
+
+### API/Interface
+
+Define any APIs or interfaces
+
+## Implementation Tasks
+
+Reference task IDs that implement this feature:
+- [ ] Task #ID - Description
+
+## Testing Strategy
+
+### Test Cases
+
+- [ ] Test case 1
+- [ ] Test case 2
+
+### Acceptance Criteria
+
+- [ ] Criteria 1
+- [ ] Criteria 2
+
+## Documentation
+
+- [ ] User documentation
+- [ ] API documentation
+- [ ] Admin guide
+
+## Notes
+
+Additional notes or considerations
 
 ---
 
 <!--
 Status Guide:
 - BACKLOG: Planned but not started
-- NEXT: Queued for this sprint
-- WORKING: Being worked on now
-- REVIEW: Built, awaiting approval
-- LIVE: In production or approved for deployment
+- WORKING: Being developed
+- LIVE: In production
 
 Tips:
-- Each capability should be a specific, testable function
-- Keep descriptions brief but clear
-- Update status as capabilities progress
+- Keep Overview concise but informative
+- User Stories should capture real user needs
+- Requirements should be specific and testable
+- Link tasks using Task #ID format
 -->

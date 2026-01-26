@@ -1,4 +1,4 @@
-# Task 92: Copy Template Ideas to Project on Install/Update
+# Task 109: Copy Template Ideas to Project on Install/Update
 
 **Feature**: none
 **Created**: 2025-10-20

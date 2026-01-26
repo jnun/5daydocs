@@ -1,4 +1,4 @@
-# Task 95: Copy VERSION file to distribution
+# Task 111: Copy VERSION file to distribution
 
 **Feature**: none
 **Created**: 2025-10-19

@@ -6,13 +6,14 @@ Project management in markdown files. Like Jira, but folders and plain text.
 
 **Framework files (do not edit):**
 - `DOCUMENTATION.md`
-- `5day.sh` (root symlink)
-- `docs/5day/` (framework scripts, AI instructions, docs)
+- `5day.sh`
+- `docs/5day/` (framework scripts, AI instructions)
 
 **Your content (create and edit freely):**
+- `docs/ideas/` — rough ideas being refined
+- `docs/features/` — fully defined feature specs
 - `docs/tasks/` — your tasks
 - `docs/bugs/` — your bug reports
-- `docs/features/` — your feature specs
 - `docs/guides/` — your documentation
 - `docs/tests/` — your test plans
 - `docs/STATE.md` — your project state (see format below)
@@ -49,13 +50,14 @@ docs/
 │   ├── scripts/        # 5day.sh, create-task.sh, etc.
 │   └── ai/             # AI instructions
 ├── STATE.md            # Project state (ID tracking)
+├── ideas/              # Rough ideas being refined
+├── features/           # Fully defined feature specs
 ├── tasks/              # Your work items
 │   ├── backlog/        # Planned
 │   ├── next/           # Sprint queue
 │   ├── working/        # In progress
 │   ├── review/         # Awaiting approval
 │   └── live/           # Complete
-├── features/           # Your feature specs
 ├── bugs/               # Your bug reports
 ├── guides/             # Your documentation
 └── tests/              # Your test plans
@@ -64,9 +66,11 @@ docs/
 ## Commands
 
 ```bash
-./5day.sh newtask "Description"    # Create task
-./5day.sh status                   # View work
-./5day.sh help                     # All commands
+./5day.sh newidea "My rough idea"   # Create idea to refine
+./5day.sh newfeature "Name"         # Create feature
+./5day.sh newtask "Description"     # Create task
+./5day.sh status                    # View work
+./5day.sh help                      # All commands
 ```
 
 ## Moving Tasks
@@ -93,27 +97,39 @@ IDs are sequential integers from `STATE.md`. Always check STATE.md for the next 
 
 ## Key Concepts
 
-**Features** = Permanent specs. What capabilities exist.
-**Tasks** = Temporary work. Files that move through folders.
-**STATE.md** = Source of truth for IDs. Check before creating tasks/bugs.
+**Ideas** = Rough concepts being refined. Start here when unclear.
+**Features** = Fully defined specs. What capabilities exist.
+**Tasks** = Work items. Move through folders as status changes.
+**STATE.md** = Source of truth for IDs.
+
+## Ideas Workflow
+
+When you have a rough idea but haven't thought it through:
+
+```bash
+./5day.sh newidea "User notifications"
+```
+
+This creates `docs/ideas/user-notifications.md` with a guided refinement process:
+1. **Phase 1:** Define the problem (who has it, why it matters)
+2. **Phase 2:** Write in plain English (no jargon)
+3. **Phase 3:** List what it does (concrete capabilities)
+4. **Phase 4:** Surface open questions
+
+Work through it manually, or ask an AI agent to guide you.
 
 ## Creating Work
 
-**Task:**
 ```bash
 ./5day.sh newtask "Fix login timeout"
 ```
-Creates `docs/tasks/backlog/[next-ID]-fix-login-timeout.md` and updates STATE.md.
 
-**Bug:**
-```bash
-./5day.sh newbug "Button unresponsive on mobile"
-```
-Creates `docs/bugs/[next-ID]-button-unresponsive-on-mobile.md` and updates STATE.md.
+Creates `docs/tasks/backlog/[next-ID]-fix-login-timeout.md` and updates STATE.md.
 
 ## Templates
 
 Use templates in each folder:
+- `docs/ideas/TEMPLATE-idea.md`
 - `docs/tasks/TEMPLATE-task.md`
 - `docs/features/TEMPLATE-feature.md`
 - `docs/bugs/TEMPLATE-bug.md`

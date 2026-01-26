@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 # ai-context.sh - Generate a context summary for AI agents
 # Usage: ./docs/5day/scripts/ai-context.sh
 
@@ -30,6 +31,14 @@ if [ -d "$DOCS_DIR/tasks/next" ]; then
     ls -1 "$DOCS_DIR/tasks/next" | grep ".md" || echo "No tasks in queue."
 else
     echo "Next directory not found."
+fi
+echo ""
+
+echo "## Ideas (In Refinement)"
+if [ -d "$DOCS_DIR/ideas" ]; then
+    ls -1 "$DOCS_DIR/ideas" | grep ".md" | head -n 5 || echo "No ideas."
+else
+    echo "Ideas directory not found."
 fi
 echo ""
 

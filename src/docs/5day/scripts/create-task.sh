@@ -57,27 +57,34 @@ if [ -f "docs/tasks/backlog/$FILENAME" ]; then
     exit 1
 fi
 
-# Create the task file with simple format matching actual usage
+# Create the task file matching src/templates/project/TEMPLATE-task.md
 if [ -n "$FEATURE" ]; then
     FEATURE_LINE="**Feature**: /docs/features/${FEATURE}.md"
 else
-    FEATURE_LINE=""
+    FEATURE_LINE="**Feature**: none"
 fi
+
+CREATED_DATE=$(date +%Y-%m-%d)
 
 cat << EOF > docs/tasks/backlog/$FILENAME
 # Task $NEW_ID: $DESCRIPTION
 
+$FEATURE_LINE
+**Created**: $CREATED_DATE
+
 ## Problem
+
 [Describe what needs to be done or fixed]
 
-$( [ -n "$FEATURE_LINE" ] && echo -e "$FEATURE_LINE\n" || echo "" )
-## Desired Outcome
-[Describe what success looks like]
+## Success criteria
 
-## Testing Criteria
 - [ ] [First success criterion]
 - [ ] [Second success criterion]
 - [ ] [Additional criteria as needed]
+
+## Notes
+
+[Optional: Any additional context, blockers, or dependencies]
 EOF
 
 # Atomic update of STATE.md using temporary file
@@ -127,21 +134,9 @@ if [ ! -f "docs/tasks/backlog/$FILENAME" ]; then
     exit 1
 fi
 
-# Stage the changes and print summary
+# Stage the changes
 git add docs/STATE.md "docs/tasks/backlog/$FILENAME"
 
+echo -e "${GREEN}Created task: docs/tasks/backlog/$FILENAME${NC}"
 echo ""
-echo -e "${GREEN}✓ Task created successfully!${NC}"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo -e "Task ID:     ${GREEN}#$NEW_ID${NC}"
-echo -e "Title:       $DESCRIPTION"
-if [ -n "$FEATURE" ]; then
-    echo -e "Feature:     $FEATURE"
-fi
-echo -e "Location:    docs/tasks/backlog/$FILENAME"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-echo -e "${YELLOW}Next steps:${NC}"
-echo "1. Edit the task file to add problem details and criteria"
-echo "2. Commit: git commit -m 'Add task $NEW_ID: $DESCRIPTION'"
-echo "3. Move to sprint: git mv docs/tasks/backlog/$FILENAME docs/tasks/next/"
+echo "Next: Edit the file to define the problem and success criteria."

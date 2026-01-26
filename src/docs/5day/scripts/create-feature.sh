@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Create a new feature document in docs/features
 
@@ -86,9 +87,6 @@ Reference task IDs that implement this feature:
 Additional notes or considerations
 EOL
 
-echo -e "${GREEN}✓ Created feature: $FEATURE_FILE${NC}"
+echo -e "${GREEN}Created feature: $FEATURE_FILE${NC}"
 echo ""
-echo "Next steps:"
-echo "1. Edit the feature document with detailed requirements"
-echo "2. Create tasks for implementation: 5d newtask \"Implement $FEATURE_NAME\""
-echo "3. Move feature to WORKING when development begins"
+echo "Next: Edit the file to define requirements and acceptance criteria."

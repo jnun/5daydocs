@@ -61,7 +61,59 @@ work/designs/*.fig
 work/designs/*.xd
 
 # AI Assistant Configuration
-# (Users should create their own CLAUDE.md for their project)
+# Prevent AI tools from inserting their own instructions that may conflict with 5DayDocs
+# Users should rely on DOCUMENTATION.md and core files, not AI-generated rule files
+
+# Anthropic Claude
+CLAUDE.md
+.claude/
+
+# Cursor
+.cursorrules
+.cursor/
+
+# GitHub Copilot
+.copilot/
+copilot-instructions.md
+.github/copilot-instructions.md
+
+# Google Gemini
+GEMINI.md
+.gemini/
+
+# OpenAI / ChatGPT
+CHATGPT.md
+.openai/
+
+# Aider
+.aider*
+aider.conf.yml
+
+# Codeium / Windsurf
+.codeium/
+.windsurfrules
+
+# Continue.dev
+.continue/
+
+# Amazon CodeWhisperer
+.codewhisperer/
+
+# Sourcegraph Cody
+.cody/
+
+# Tabnine
+.tabnine/
+
+# Generic AI instruction patterns
+AI.md
+AI-INSTRUCTIONS.md
+.ai/
+ai-config.*
+.ai-*
+*-ai-rules.md
+.llm/
+LLM.md
 
 # Documentation builds (if using doc generators)
 docs/_build/

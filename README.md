@@ -49,9 +49,9 @@ src/   → The product. What users receive.
 docs/  → Our task tracking. Like Jira, but markdown.
 ```
 
-The actual files that will land in your project folder come from src/
+The actual files that will land in your project folder originate from templates in src/
 
-The bash scripts place things where they need to be, including this project
+When you run setup.sh, scripts place things where they need to be, including this project.
 
 ### How to Make Changes
 

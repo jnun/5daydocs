@@ -2,6 +2,8 @@
 
 **Feature**: /docs/features/[FEATURE-NAME].md (or "multiple" or "none")
 **Created**: YYYY-MM-DD
+**Depends on**: (optional) Task IDs that must complete before this one
+**Blocks**: (optional) Task IDs that cannot start until this completes
 
 ## Problem
 [Clear description of what needs to be fixed or built]
@@ -55,26 +57,37 @@ rules exactly to avoid sync errors.
   - Keep description brief but descriptive (3-8 words ideal)
   - This becomes the GitHub Issue title
 
-🏷️ METADATA FIELDS (REQUIRED)
+🏷️ METADATA FIELDS
 ─────────────────────────────
-  **Feature**: [value]
-  **Created**: YYYY-MM-DD
+  Required:
+    **Feature**: [value]
+    **Created**: YYYY-MM-DD
+
+  Optional (include when relevant):
+    **Depends on**: [Task IDs]
+    **Blocks**: [Task IDs]
 
   ✓ CORRECT:  **Feature**: /docs/features/github-integration.md
   ✓ CORRECT:  **Feature**: none
   ✓ CORRECT:  **Feature**: multiple
   ✓ CORRECT:  **Created**: 2025-10-19
+  ✓ CORRECT:  **Depends on**: Task 42
+  ✓ CORRECT:  **Depends on**: Tasks 10, 12
+  ✓ CORRECT:  **Blocks**: Task 101
   ✗ WRONG:    Feature: none                   (missing bold asterisks)
   ✗ WRONG:    **Feature:**none                (missing space after colon)
   ✗ WRONG:    **Created**: Oct 19, 2025       (wrong date format)
 
   AI/Human Guidance:
-  - Use exactly "**Feature**:" with bold formatting and colon
+  - Use exactly "**Field**:" with bold formatting and colon
   - For Feature value, use:
     * Full path to feature file: /docs/features/name.md
     * "none" if not tied to a specific feature
     * "multiple" if spans multiple features
   - Created date must be YYYY-MM-DD format (ISO 8601)
+  - Depends on / Blocks: Reference task IDs, optionally with brief context
+    * "Task 42" or "Tasks 10, 12" or "Task 42 (auth must exist first)"
+    * Omit these fields entirely if no dependencies exist
 
 📂 REQUIRED SECTIONS (MUST EXIST)
 ─────────────────────────────
@@ -163,10 +176,11 @@ rules exactly to avoid sync errors.
 
   For AI Assistants:
   ✗ Don't invent your own section names (stick to Problem/Success criteria/Notes)
-  ✗ Don't skip the metadata fields (Feature and Created)
+  ✗ Don't skip required metadata fields (Feature and Created are required)
   ✗ Don't use wrong heading levels (# for title, ## for sections)
   ✗ Don't forget to check the filename matches the ID in the title
   ✗ Don't create tasks with duplicate IDs (check docs/STATE.md)
+  ✓ DO use Depends on/Blocks when tasks have dependencies
 
   For Humans:
   ✗ Don't manually type IDs (use docs/STATE.md 5DAY_TASK_ID + 1 for new tasks)
@@ -181,6 +195,7 @@ rules exactly to avoid sync errors.
   [ ] Filename is numeric-description.md format
   [ ] Title is "# Task [ID]: [Description]" with matching ID
   [ ] **Feature**: and **Created**: fields exist with proper formatting
+  [ ] **Depends on**: / **Blocks**: added if task has dependencies
   [ ] All three sections exist: ## Problem, ## Success criteria, ## Notes
   [ ] Success criteria use - [ ] checkbox format
   [ ] File is in correct folder for current status

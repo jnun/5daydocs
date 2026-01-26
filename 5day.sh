@@ -1,294 +1,132 @@
 #!/bin/bash
+set -e
 
-# 5day - Five Day Docs Command Line Tool
-# Main entry point for managing tasks, features, and project analysis
+# 5day - Five Day Docs CLI
 
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Get the absolute path to the project root
-# Script can be in project root OR docs/5day/scripts/
+# Resolve project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Detect location: if docs/5day/scripts exists relative to SCRIPT_DIR, we're in root
 if [ -d "$SCRIPT_DIR/docs/5day/scripts" ]; then
     PROJECT_ROOT="$SCRIPT_DIR"
 else
-    # We're in docs/5day/scripts/, go three levels up
     PROJECT_ROOT="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
 fi
 
-# Function to display help
+# Utility: count files matching pattern
+count_files() {
+    local pattern="$1"
+    local count=0
+    for f in $pattern; do
+        [ -f "$f" ] && ((count++)) || true
+    done
+    echo "$count"
+}
+
+# Utility: run helper script
+run_script() {
+    local script="$PROJECT_ROOT/docs/5day/scripts/$1"
+    shift
+    if [ -x "$script" ]; then
+        "$script" "$@"
+    else
+        echo -e "${RED}ERROR: $script not found or not executable${NC}"
+        exit 1
+    fi
+}
+
 show_help() {
-    echo -e "${CYAN}5day - Five Day Docs Management Tool${NC}"
+    echo -e "${CYAN}5day - Five Day Docs CLI${NC}"
     echo ""
-    echo "Usage: 5day <command> [options]"
+    echo "Usage: ./5day.sh <command> [options]"
     echo ""
     echo -e "${BLUE}Commands:${NC}"
-    echo "  newtask <description>     Create a new task in backlog"
-    echo "  newfeature <name>         Create a new feature document"
-    echo "  checkfeatures             Analyze feature alignment across docs"
-    echo "  status                    Show current task status"
-    echo "  ai-context                Generate context summary for AI agents"
-    echo "  help                      Show this help message"
-    echo ""
-    echo -e "${BLUE}Examples:${NC}"
-    echo "  5day newtask \"Fix login authentication bug\""
-    echo "  5day newfeature user-profile"
-    echo "  5day checkfeatures"
-    echo "  5day checkfeatures"
-    echo "  5day status"
-    echo "  5day ai-context"
+    echo "  newidea <name>            Create a new idea to refine"
+    echo "  newfeature <name>         Create a new feature"
+    echo "  newtask <description>     Create a new task"
+    echo "  status                    Show project status"
+    echo "  checkfeatures             Analyze feature alignment"
+    echo "  ai-context                Generate AI context summary"
+    echo "  help                      Show this message"
     echo ""
 }
 
-# Function to create a new task
-create_task() {
-    local description="$1"
-
-    if [ -z "$description" ]; then
-        echo -e "${RED}ERROR: Task description required${NC}"
-        echo "Usage: 5day newtask \"Brief description of the task\""
-        exit 1
-    fi
-
-    # Call the existing create-task.sh script
-    if [ -x "$PROJECT_ROOT/docs/5day/scripts/create-task.sh" ]; then
-        "$PROJECT_ROOT/docs/5day/scripts/create-task.sh" "$description"
-    else
-        echo -e "${RED}ERROR: create-task.sh not found or not executable${NC}"
-        echo "Run: chmod +x docs/5day/scripts/create-task.sh"
-        exit 1
-    fi
+cmd_newidea() {
+    [ -z "$1" ] && { echo -e "${RED}ERROR: Idea name required${NC}"; exit 1; }
+    run_script "create-idea.sh" "$1"
 }
 
-# Function to create a new feature
-create_feature() {
-    local feature_name="$1"
-
-    if [ -z "$feature_name" ]; then
-        echo -e "${RED}ERROR: Feature name required${NC}"
-        echo "Usage: 5day newfeature <feature-name>"
-        exit 1
-    fi
-
-    # Call the create-feature.sh script
-    if [ -x "$PROJECT_ROOT/docs/5day/scripts/create-feature.sh" ]; then
-        "$PROJECT_ROOT/docs/5day/scripts/create-feature.sh" "$feature_name"
-    else
-        echo -e "${RED}ERROR: create-feature.sh not found or not executable${NC}"
-        echo "Creating it now..."
-        # Create the feature script if it doesn't exist
-        cat > "$PROJECT_ROOT/docs/5day/scripts/create-feature.sh" << 'EOF'
-#!/bin/bash
-
-# Create a new feature document in docs/features
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-# Get feature name
-FEATURE_NAME="$1"
-if [ -z "$FEATURE_NAME" ]; then
-    echo -e "${RED}ERROR: Feature name required${NC}"
-    echo "Usage: $0 <feature-name>"
-    exit 1
-fi
-
-# Convert to kebab-case
-KEBAB_CASE=$(echo "$FEATURE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9-]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
-
-# Feature file path
-FEATURE_FILE="docs/features/${KEBAB_CASE}.md"
-
-# Check if feature already exists
-if [ -f "$FEATURE_FILE" ]; then
-    echo -e "${YELLOW}WARNING: Feature '$KEBAB_CASE' already exists at $FEATURE_FILE${NC}"
-    exit 1
-fi
-
-# Create feature directory if it doesn't exist
-mkdir -p docs/features
-
-# Create feature document
-cat > "$FEATURE_FILE" << EOL
-# Feature: ${FEATURE_NAME}
-
-**Status:** BACKLOG
-**Created:** $(date +%Y-%m-%d)
-**Updated:** $(date +%Y-%m-%d)
-
-## Overview
-Brief description of the feature and its purpose.
-
-## User Stories
-- As a [user type], I want to [action], so that [benefit]
-
-## Requirements
-### Functional Requirements
-- [ ] Requirement 1
-- [ ] Requirement 2
-
-### Non-Functional Requirements
-- [ ] Performance criteria
-- [ ] Security requirements
-
-## Technical Design
-### Architecture
-Describe the technical approach and architecture
-
-### Dependencies
-- List any dependencies or prerequisites
-
-### API/Interface
-Define any APIs or interfaces
-
-## Implementation Tasks
-Reference task IDs that implement this feature:
-- [ ] Task #ID - Description
-
-## Testing Strategy
-### Test Cases
-- [ ] Test case 1
-- [ ] Test case 2
-
-### Acceptance Criteria
-- [ ] Criteria 1
-- [ ] Criteria 2
-
-## Documentation
-- [ ] User documentation
-- [ ] API documentation
-- [ ] Admin guide
-
-## Notes
-Additional notes or considerations
-EOL
-
-echo -e "${GREEN}✓ Created feature: $FEATURE_FILE${NC}"
-echo ""
-echo "Next steps:"
-echo "1. Edit the feature document with detailed requirements"
-echo "2. Create tasks for implementation: 5day newtask \"Implement $FEATURE_NAME\""
-echo "3. Move feature to WORKING when development begins"
-EOF
-        chmod +x "$PROJECT_ROOT/docs/5day/scripts/create-feature.sh"
-        "$PROJECT_ROOT/docs/5day/scripts/create-feature.sh" "$feature_name"
-    fi
+cmd_newtask() {
+    [ -z "$1" ] && { echo -e "${RED}ERROR: Task description required${NC}"; exit 1; }
+    run_script "create-task.sh" "$1"
 }
 
-# Function to check features
-check_features() {
-    if [ -x "$PROJECT_ROOT/docs/5day/scripts/check-alignment.sh" ]; then
-        "$PROJECT_ROOT/docs/5day/scripts/check-alignment.sh"
-    else
-        echo -e "${RED}ERROR: check-alignment.sh not found or not executable${NC}"
-        echo "Run: chmod +x docs/5day/scripts/check-alignment.sh"
-        exit 1
-    fi
+cmd_newfeature() {
+    [ -z "$1" ] && { echo -e "${RED}ERROR: Feature name required${NC}"; exit 1; }
+    run_script "create-feature.sh" "$1"
 }
 
-# Function to show task status
-show_status() {
-    echo -e "${CYAN}=== 5-Day Docs Task Status ===${NC}"
+cmd_status() {
+    echo -e "${CYAN}=== Project Status ===${NC}"
     echo ""
 
-    # Count tasks in each stage
-    local backlog_count=$(ls -1 docs/tasks/backlog/*.md 2>/dev/null | wc -l | tr -d ' ')
-    local next_count=$(ls -1 docs/tasks/next/*.md 2>/dev/null | wc -l | tr -d ' ')
-    local working_count=$(ls -1 docs/tasks/working/*.md 2>/dev/null | wc -l | tr -d ' ')
-    local review_count=$(ls -1 docs/tasks/review/*.md 2>/dev/null | wc -l | tr -d ' ')
-    local live_count=$(ls -1 docs/tasks/live/*.md 2>/dev/null | wc -l | tr -d ' ')
+    cd "$PROJECT_ROOT"
 
-    echo -e "${BLUE}Task Pipeline:${NC}"
-    echo "  Backlog:  $backlog_count tasks"
-    echo "  Next:     $next_count tasks"
-    echo "  Working:  $working_count tasks"
-    echo "  Review:   $review_count tasks"
-    echo "  Live:     $live_count tasks"
-    echo ""
+    echo -e "${BLUE}Tasks:${NC}"
+    echo "  Backlog:  $(count_files "docs/tasks/backlog/*.md")"
+    echo "  Next:     $(count_files "docs/tasks/next/*.md")"
+    echo "  Working:  $(count_files "docs/tasks/working/*.md")"
+    echo "  Review:   $(count_files "docs/tasks/review/*.md")"
+    echo "  Live:     $(count_files "docs/tasks/live/*.md")"
 
-    # Show current highest task ID
-    if [ -f "docs/STATE.md" ]; then
-        local highest_id=$(awk '/Highest Task ID/{print $NF}' docs/STATE.md)
-        echo -e "${BLUE}Current highest task ID:${NC} $highest_id"
-    fi
-
-    # Show tasks in working
+    local working_count=$(count_files "docs/tasks/working/*.md")
     if [ "$working_count" -gt 0 ]; then
         echo ""
-        echo -e "${YELLOW}Currently working on:${NC}"
+        echo -e "${YELLOW}In progress:${NC}"
         for task in docs/tasks/working/*.md; do
-            if [ -f "$task" ]; then
-                basename "$task" .md
-            fi
+            [ -f "$task" ] && echo "  $(basename "$task" .md)"
         done
     fi
 
-    # Count features
-    if [ -d "docs/features" ]; then
+    if [ -d "docs/ideas" ] && ls docs/ideas/*.md >/dev/null 2>&1; then
+        echo ""
+        echo -e "${BLUE}Ideas:${NC}  $(count_files "docs/ideas/*.md")"
+    fi
+
+    if [ -d "docs/features" ] && ls docs/features/*.md >/dev/null 2>&1; then
         echo ""
         echo -e "${BLUE}Features:${NC}"
-        local feature_count=$(ls -1 docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')
-        echo "  Total features: $feature_count"
-
-        # Count by status
-        local backlog_features=$(grep -l "Status:.*BACKLOG" docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')
-        local working_features=$(grep -l "Status:.*WORKING" docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')
-        local testing_features=$(grep -l "Status:.*TESTING" docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')
-        local live_features=$(grep -l "Status:.*LIVE" docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')
-
-        echo "    BACKLOG: $backlog_features"
-        echo "    WORKING: $working_features"
-        echo "    TESTING: $testing_features"
-        echo "    LIVE:    $live_features"
+        echo "  Backlog:  $(grep -l "Status:.*BACKLOG" docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')"
+        echo "  Working:  $(grep -l "Status:.*WORKING" docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')"
+        echo "  Live:     $(grep -l "Status:.*LIVE" docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')"
     fi
 }
 
-# Function to get AI context
-get_ai_context() {
-    if [ -x "$PROJECT_ROOT/docs/5day/scripts/ai-context.sh" ]; then
-        "$PROJECT_ROOT/docs/5day/scripts/ai-context.sh"
-    else
-        echo -e "${RED}ERROR: ai-context.sh not found or not executable${NC}"
-        echo "Run: chmod +x docs/5day/scripts/ai-context.sh"
-        exit 1
-    fi
+cmd_checkfeatures() {
+    run_script "check-alignment.sh"
 }
 
-# Main command router
-case "$1" in
-    newtask)
-        shift
-        create_task "$@"
-        ;;
-    newfeature)
-        shift
-        create_feature "$@"
-        ;;
-    checkfeatures)
-        check_features
-        ;;
-    status)
-        show_status
-        ;;
-    ai-context)
-        get_ai_context
-        ;;
-    help|--help|-h|"")
-        show_help
-        ;;
+cmd_ai_context() {
+    run_script "ai-context.sh"
+}
+
+# Main
+case "${1:-}" in
+    newidea)       shift; cmd_newidea "$@" ;;
+    newtask)       shift; cmd_newtask "$@" ;;
+    newfeature)    shift; cmd_newfeature "$@" ;;
+    status)        cmd_status ;;
+    checkfeatures) cmd_checkfeatures ;;
+    ai-context)    cmd_ai_context ;;
+    help|--help|-h|"") show_help ;;
     *)
-        echo -e "${RED}ERROR: Unknown command '$1'${NC}"
-        echo ""
+        echo -e "${RED}Unknown command: $1${NC}"
         show_help
         exit 1
         ;;

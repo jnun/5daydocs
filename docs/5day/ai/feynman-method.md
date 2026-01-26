@@ -1,43 +1,103 @@
-# FEYNMAN_PROTOCOL: Recursive Project Intelligence
+# Feynman Protocol: Recursive Feature Decomposition
 
-## 1. MISSION
-To transform complex technical features into fundamentally sound, jargon-free, actionable tasks by applying the Feynman Technique recursively. This document serves as the logic-gate for all Feature, Task, and Sprint generation.
+## Mission
 
-## 2. THE FOUR-PHASE LOOP (CLI INSTRUCTIONS)
+Transform complex features into clear, actionable tasks using the Feynman Technique. No jargon. No ambiguity. Just plain English that anyone on the team can understand.
 
-### PHASE 1: The Big Idea (Concept Definition)
-- **AI Action:** Prompt the user for the "High-Level Problem."
-- **Constraint:** Block all implementation details (e.g., "Use React," "Postgres").
-- **Goal:** Identify the **Human Outcome**. 
-- **Validation:** "If this feature were a person, what specific job would it be doing?"
+This protocol governs how features become tasks in 5DayDocs.
 
-### PHASE 2: The ELI5 (Clarity Filter)
-- **AI Action:** Rewrite Phase 1 as an explanation for a 12-year-old.
-- **Constraint:** Detect jargon. If words like "API," "Backend," "Interface," or "Database" appear, flag them and force a rewrite using analogies (e.g., "A postman," "A filing cabinet").
-- **Success Condition:** The explanation must be readable by a non-technical stakeholder.
+## The Four Phases
 
-### PHASE 3: Deconstruction & Gap Audit (The Stress Test)
-- **AI Action:** Break the analogy into "Atomic Operations."
-- **Logic Gate:** For every piece, the AI must ask the user: *"Do we have the source material/knowledge to build this right now?"*
-- **Output Tags:**
-    - `[RESOLVED]`: Path is clear.
-    - `[STUDY]`: Knowledge gap identified. Requires research task before proceeding.
-    - `[GAP]`: Logical inconsistency (e.g., "The mailbox can't sort mail if it doesn't have an address").
+### Phase 1: The Problem (What & Why)
 
-### PHASE 4: Recursive Action (The Build Instruction)
-- **AI Action:** Convert `[RESOLVED]` items into "Plain English" instructions.
-- **Constraint:** No instruction may exceed 10 words.
-- **Refinement:** If a task still feels "heavy," trigger a sub-loop back to Phase 3 for that specific task.
+**Goal:** Capture the human outcome, not the technical solution.
 
-## 3. INTEGRATION HOOKS (FOR BASH/PYTHON CLI)
+**Questions to ask:**
+- What problem does this solve?
+- Who benefits and how?
+- What does success look like?
 
-- **Input:** `feynman init --feature "Feature Name"`
-- **LLM Integration:** 
-    - Use the [OpenAI API](https://platform.openai.com) or [Anthropic SDK](https://docs.anthropic.com) to process the prompts.
-    - Pass this `FEYNMAN.md` as "System Context" to ensure the AI adheres to the jargon-filtering rules.
-- **State Management:** Save the output as `features/[feature-name]/BLUEPRINT.md`.
+**Constraint:** Block implementation details. Words like "React," "Postgres," "microservice" are premature. Focus on the *job to be done*.
 
-## 4. ERROR HANDLING
-- **Jargon Detected:** Return error code 1. "Explanation too complex. Revert to analogies."
-- **Logic Loop:** If Step 3 reveals a gap, prevent the "Sprint" from being marked as `READY`.
+**Validation:** "If this feature were a person, what job would they be hired to do?"
+
+---
+
+### Phase 2: Plain English (Clarity Filter)
+
+**Goal:** Rewrite Phase 1 so any team member—regardless of role—can understand it.
+
+**Jargon detection:** Flag technical terms (API, backend, database, interface, endpoint, etc.). When detected:
+- Replace with analogies ("a messenger," "a filing cabinet," "a gatekeeper")
+- Or define in one plain sentence
+
+**Success test:** Could a new hire with no project context understand this?
+
+---
+
+### Phase 3: Decomposition (Gap Audit)
+
+**Goal:** Break the feature into atomic pieces and validate each one.
+
+**For each piece, ask:** *"Do we have everything needed to build this right now?"*
+
+**Tag each piece:**
+- `[READY]` — Clear path forward. Can become a task.
+- `[RESEARCH]` — Knowledge gap. Needs investigation first.
+- `[BLOCKED]` — Dependency or logical gap (e.g., "Can't send emails without a sender address").
+
+**Output:** A list of atomic operations with their tags.
+
+---
+
+### Phase 4: Task Generation (Build Instructions)
+
+**Goal:** Convert `[READY]` items into task descriptions.
+
+**Constraints:**
+- Each task title: 10 words max
+- Each task should be completable independently
+- If a task feels "heavy," recurse: run it through Phase 3 again
+
+**Output:** Task files in `docs/tasks/backlog/`
+
+---
+
+## Workflow
+
+```
+docs/ideas/     → Raw ideas being refined (this protocol)
+docs/features/  → Fully defined features
+docs/tasks/*/*  → Actionable work items
+```
+
+### CLI Usage
+
+```bash
+./5day.sh newidea "User notifications"
+```
+
+Creates `docs/ideas/user-notifications.md` with embedded instructions.
+
+---
+
+## For AI Agents
+
+When running this protocol:
+
+1. **Phase 1-2:** Interactive. Ask questions, wait for answers. Don't assume.
+2. **Phase 3:** Present decomposition, ask user to validate tags.
+3. **Phase 4:** Generate tasks only after user confirms the breakdown.
+
+Work within the idea file. Never skip phases.
+
+---
+
+## Error States
+
+| Condition | Action |
+|-----------|--------|
+| Jargon detected in Phase 2 | Flag it. Rewrite with analogy. |
+| `[BLOCKED]` item in Phase 3 | Cannot proceed to Phase 4 until resolved. |
+| Task too broad in Phase 4 | Recurse to Phase 3 for that item. |
 

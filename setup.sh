@@ -6,15 +6,117 @@
 # This script handles both fresh installations and updates with version migrations.
 # Templates: Workflow templates are stored in templates/workflows/
 
-set -e  # Exit on error
+# Note: We don't use set -e to allow graceful error handling
 
 # Get the 5daydocs source directory (where this script lives)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FIVEDAY_SOURCE_DIR="$SCRIPT_DIR"
 
+# ============================================================================
+# MESSAGE SYSTEM - Consistent, color-coded output
+# ============================================================================
+
+# Colors (disabled if not a terminal)
+if [ -t 1 ]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    CYAN='\033[0;36m'
+    BOLD='\033[1m'
+    NC='\033[0m' # No Color
+else
+    RED='' GREEN='' YELLOW='' BLUE='' CYAN='' BOLD='' NC=''
+fi
+
+# Track errors for final summary
+ERRORS=()
+WARNINGS=()
+
+# Message functions
+msg_info() {
+    echo -e "${BLUE}ℹ${NC} $1"
+}
+
+msg_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+msg_warning() {
+    echo -e "${YELLOW}⚠${NC} $1"
+    WARNINGS+=("$1")
+}
+
+msg_error() {
+    echo -e "${RED}✗${NC} $1"
+    ERRORS+=("$1")
+}
+
+msg_step() {
+    echo -e "  ${CYAN}→${NC} $1"
+}
+
+msg_header() {
+    echo ""
+    echo -e "${BOLD}$1${NC}"
+}
+
+# Safe file copy with error handling
+# Usage: safe_copy "source" "dest" "description"
+safe_copy() {
+    local src="$1"
+    local dest="$2"
+    local desc="${3:-$(basename "$src")}"
+
+    if [ ! -f "$src" ]; then
+        msg_warning "Source not found: $desc"
+        return 1
+    fi
+
+    # Check if destination exists and is writable
+    if [ -f "$dest" ] && [ ! -w "$dest" ]; then
+        msg_error "Cannot write to $dest (permission denied)"
+        msg_step "Fix with: chmod u+w \"$dest\""
+        return 1
+    fi
+
+    # Check if destination directory is writable
+    local dest_dir
+    dest_dir="$(dirname "$dest")"
+    if [ ! -w "$dest_dir" ]; then
+        msg_error "Cannot write to directory $dest_dir (permission denied)"
+        return 1
+    fi
+
+    if cp -f "$src" "$dest" 2>/dev/null; then
+        msg_step "Copied $desc"
+        return 0
+    else
+        msg_error "Failed to copy $desc"
+        return 1
+    fi
+}
+
+# Safe directory creation
+# Usage: safe_mkdir "path"
+safe_mkdir() {
+    local dir="$1"
+    if [ -d "$dir" ]; then
+        return 0
+    fi
+
+    if mkdir -p "$dir" 2>/dev/null; then
+        msg_step "Created: $dir"
+        return 0
+    else
+        msg_error "Failed to create directory: $dir"
+        return 1
+    fi
+}
+
 # Read current version from source
-if [ -f "$FIVEDAY_SOURCE_DIR/VERSION" ]; then
-    CURRENT_VERSION=$(cat "$FIVEDAY_SOURCE_DIR/VERSION")
+if [ -f "$FIVEDAY_SOURCE_DIR/src/VERSION" ]; then
+    CURRENT_VERSION=$(cat "$FIVEDAY_SOURCE_DIR/src/VERSION")
 else
     echo "Warning: VERSION file not found, defaulting to 1.0.0"
     CURRENT_VERSION="1.0.0"
@@ -33,8 +135,20 @@ read -r TARGET_PATH
 
 # Expand tilde and resolve relative paths
 TARGET_PATH="${TARGET_PATH/#\~/$HOME}"
+if [ -z "$TARGET_PATH" ]; then
+    msg_error "No path provided"
+    exit 1
+fi
+
+if [ ! -d "$TARGET_PATH" ]; then
+    msg_error "Path does not exist: $TARGET_PATH"
+    msg_step "Create the directory first, then run setup again"
+    exit 1
+fi
+
 TARGET_PATH="$(cd "$TARGET_PATH" 2>/dev/null && pwd)" || {
-    echo "Error: Path '$TARGET_PATH' does not exist or is not accessible."
+    msg_error "Cannot access path: $TARGET_PATH"
+    msg_step "Check that you have read permissions for this directory"
     exit 1
 }
 
@@ -98,15 +212,6 @@ fi
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
-
-# Safely create directories
-safe_mkdir() {
-    local dir="$1"
-    if [ ! -d "$dir" ]; then
-        mkdir -p "$dir"
-        echo "  Created: $dir"
-    fi
-}
 
 # Ensure task pipeline folders exist
 ensure_task_folders() {
@@ -303,12 +408,13 @@ fi
 # CREATE DIRECTORY STRUCTURE
 # ============================================================================
 
-echo "Creating directory structure..."
+msg_header "Creating directory structure..."
 
 # Task pipeline
 ensure_task_folders
 
 # Other directories
+safe_mkdir "docs/ideas"
 safe_mkdir "docs/bugs/archived"
 safe_mkdir "docs/designs"
 safe_mkdir "docs/examples"
@@ -327,18 +433,17 @@ fi
 
 # Add .gitkeep files to preserve empty directories
 find docs -type d -empty -exec touch {}/.gitkeep \; 2>/dev/null || true
-echo "  Added .gitkeep files to empty directories"
+msg_step "Added .gitkeep files to empty directories"
 
 # ============================================================================
 # STATE.MD MANAGEMENT
 # ============================================================================
 
-echo ""
-echo "Managing state tracking..."
+msg_header "Managing state tracking..."
 
 if [ ! -f "docs/STATE.md" ]; then
     # Create new STATE.md
-    cat > docs/STATE.md << STATE_EOF
+    if cat > docs/STATE.md << STATE_EOF
 # docs/STATE.md
 
 **Last Updated**: $(date +%Y-%m-%d)
@@ -347,7 +452,11 @@ if [ ! -f "docs/STATE.md" ]; then
 **5DAY_BUG_ID**: 0
 **SYNC_ALL_TASKS**: false
 STATE_EOF
-    echo "  Created docs/STATE.md"
+    then
+        msg_step "Created docs/STATE.md"
+    else
+        msg_error "Failed to create docs/STATE.md"
+    fi
 else
     # Reconcile STATE.md - preserve user data, update version
     EXISTING_DATE=$(grep '^\*\*Last Updated\*\*:' docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | head -1)
@@ -360,7 +469,7 @@ else
     [[ "$EXISTING_BUG_ID" =~ ^[0-9]+$ ]] || EXISTING_BUG_ID=0
     [[ "$EXISTING_SYNC_FLAG" == "true" || "$EXISTING_SYNC_FLAG" == "false" ]] || EXISTING_SYNC_FLAG="false"
 
-    cat > docs/STATE.md << STATE_EOF
+    if cat > docs/STATE.md << STATE_EOF
 # docs/STATE.md
 
 **Last Updated**: $(date +%Y-%m-%d)
@@ -369,7 +478,11 @@ else
 **5DAY_BUG_ID**: $EXISTING_BUG_ID
 **SYNC_ALL_TASKS**: $EXISTING_SYNC_FLAG
 STATE_EOF
-    echo "  Updated docs/STATE.md (preserved IDs: task=$EXISTING_TASK_ID, bug=$EXISTING_BUG_ID)"
+    then
+        msg_step "Updated docs/STATE.md (preserved IDs: task=$EXISTING_TASK_ID, bug=$EXISTING_BUG_ID)"
+    else
+        msg_error "Failed to update docs/STATE.md"
+    fi
 fi
 
 # Store platform configuration
@@ -383,46 +496,39 @@ CONFIG_EOF
 # COPY DOCUMENTATION FILES
 # ============================================================================
 
-echo ""
-echo "Setting up documentation files..."
+msg_header "Setting up documentation files..."
 
 # Track counters
 FILES_COPIED=0
 
 # Copy README.md only if project has none
 if [ ! -f "README.md" ]; then
-    if [ -f "$FIVEDAY_SOURCE_DIR/src/README.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/src/README.md" README.md
-        echo "  Created README.md"
+    if safe_copy "$FIVEDAY_SOURCE_DIR/src/README.md" "README.md" "README.md"; then
         ((FILES_COPIED++))
     fi
 fi
 
 # Copy DOCUMENTATION.md
 if [ ! -f "DOCUMENTATION.md" ] || $UPDATE_MODE; then
-    if [ -f "$FIVEDAY_SOURCE_DIR/src/DOCUMENTATION.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/src/DOCUMENTATION.md" DOCUMENTATION.md
-        echo "  Copied DOCUMENTATION.md"
+    if safe_copy "$FIVEDAY_SOURCE_DIR/src/DOCUMENTATION.md" "DOCUMENTATION.md" "DOCUMENTATION.md"; then
         ((FILES_COPIED++))
     fi
 fi
 
 # Copy template files
-if [ -f "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-task.md" ]; then
-    cp "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-task.md" docs/tasks/
-    echo "  Copied task template"
+if safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-task.md" "docs/tasks/TEMPLATE-task.md" "task template"; then
     ((FILES_COPIED++))
 fi
 
-if [ -f "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-bug.md" ]; then
-    cp "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-bug.md" docs/bugs/
-    echo "  Copied bug template"
+if safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-bug.md" "docs/bugs/TEMPLATE-bug.md" "bug template"; then
     ((FILES_COPIED++))
 fi
 
-if [ -f "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-feature.md" ]; then
-    cp "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-feature.md" docs/features/
-    echo "  Copied feature template"
+if safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-feature.md" "docs/features/TEMPLATE-feature.md" "feature template"; then
+    ((FILES_COPIED++))
+fi
+
+if safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-idea.md" "docs/ideas/TEMPLATE-idea.md" "idea template"; then
     ((FILES_COPIED++))
 fi
 
@@ -430,18 +536,17 @@ fi
 # COPY SCRIPTS
 # ============================================================================
 
-echo ""
-echo "Setting up automation scripts..."
+msg_header "Setting up automation scripts..."
 
 # Copy all scripts from src/docs/5day/scripts/
 if [ -d "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts" ]; then
     for script in "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts"/*.sh; do
         if [ -f "$script" ]; then
             script_name=$(basename "$script")
-            cp -f "$script" "docs/5day/scripts/$script_name"
-            chmod +x "docs/5day/scripts/$script_name"
-            echo "  Copied $script_name"
-            ((FILES_COPIED++))
+            if safe_copy "$script" "docs/5day/scripts/$script_name" "$script_name"; then
+                chmod +x "docs/5day/scripts/$script_name" 2>/dev/null || msg_warning "Could not make $script_name executable"
+                ((FILES_COPIED++))
+            fi
         fi
     done
 fi
@@ -451,18 +556,16 @@ if [ -d "$FIVEDAY_SOURCE_DIR/src/docs/5day/ai" ]; then
     for ai_file in "$FIVEDAY_SOURCE_DIR/src/docs/5day/ai"/*.md; do
         if [ -f "$ai_file" ]; then
             ai_name=$(basename "$ai_file")
-            cp -f "$ai_file" "docs/5day/ai/$ai_name"
-            echo "  Copied $ai_name"
-            ((FILES_COPIED++))
+            if safe_copy "$ai_file" "docs/5day/ai/$ai_name" "$ai_name"; then
+                ((FILES_COPIED++))
+            fi
         fi
     done
 fi
 
 # Copy 5day.sh to project root (main CLI interface)
-if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts/5day.sh" ]; then
-    cp -f "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts/5day.sh" ./5day.sh
-    chmod +x ./5day.sh
-    echo "  Copied 5day.sh to project root"
+if safe_copy "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts/5day.sh" "./5day.sh" "5day.sh to project root"; then
+    chmod +x ./5day.sh 2>/dev/null || msg_warning "Could not make 5day.sh executable"
     ((FILES_COPIED++))
 fi
 
@@ -470,8 +573,7 @@ fi
 # COPY INDEX.MD FILES
 # ============================================================================
 
-echo ""
-echo "Setting up INDEX.md documentation files..."
+msg_header "Setting up INDEX.md documentation files..."
 
 INDEX_FILES=(
     "docs/tasks/INDEX.md"
@@ -492,10 +594,10 @@ for index_file in "${INDEX_FILES[@]}"; do
             continue
         fi
 
-        mkdir -p "$(dirname "$index_file")"
-        cp -f "$FIVEDAY_SOURCE_DIR/$index_file" "$index_file"
-        echo "  Copied $index_file"
-        ((FILES_COPIED++))
+        safe_mkdir "$(dirname "$index_file")"
+        if safe_copy "$FIVEDAY_SOURCE_DIR/$index_file" "$index_file" "$index_file"; then
+            ((FILES_COPIED++))
+        fi
     fi
 done
 
@@ -504,43 +606,18 @@ done
 # ============================================================================
 
 if [ "$PLATFORM" != "bitbucket-jira" ]; then
-    echo ""
-    echo "Setting up GitHub Actions..."
+    msg_header "Setting up GitHub Actions..."
 
-    if [ -f "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-issues.yml" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-issues.yml" .github/workflows/
-        echo "  Copied sync-tasks-to-issues.yml"
-    fi
-
-    # Copy issue and PR templates
-    if [ -f "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/bug_report.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/bug_report.md" .github/ISSUE_TEMPLATE/
-        echo "  Copied bug report template"
-    fi
-
-    if [ -f "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/feature_request.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/feature_request.md" .github/ISSUE_TEMPLATE/
-        echo "  Copied feature request template"
-    fi
-
-    if [ -f "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/task.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/task.md" .github/ISSUE_TEMPLATE/
-        echo "  Copied task template"
-    fi
-
-    if [ -f "$FIVEDAY_SOURCE_DIR/templates/github/pull_request_template.md" ]; then
-        cp "$FIVEDAY_SOURCE_DIR/templates/github/pull_request_template.md" .github/
-        echo "  Copied pull request template"
-    fi
+    safe_copy "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-issues.yml" ".github/workflows/sync-tasks-to-issues.yml" "sync-tasks-to-issues.yml"
+    safe_copy "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/bug_report.md" ".github/ISSUE_TEMPLATE/bug_report.md" "bug report template"
+    safe_copy "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/feature_request.md" ".github/ISSUE_TEMPLATE/feature_request.md" "feature request template"
+    safe_copy "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/task.md" ".github/ISSUE_TEMPLATE/task.md" "task issue template"
+    safe_copy "$FIVEDAY_SOURCE_DIR/templates/github/pull_request_template.md" ".github/pull_request_template.md" "pull request template"
 else
-    echo ""
-    echo "Setting up Bitbucket Pipelines..."
+    msg_header "Setting up Bitbucket Pipelines..."
 
-    if [ -f "$FIVEDAY_SOURCE_DIR/templates/bitbucket-pipelines.yml" ]; then
-        if [ ! -f "bitbucket-pipelines.yml" ] || $UPDATE_MODE; then
-            cp "$FIVEDAY_SOURCE_DIR/templates/bitbucket-pipelines.yml" bitbucket-pipelines.yml
-            echo "  Copied bitbucket-pipelines.yml"
-        fi
+    if [ ! -f "bitbucket-pipelines.yml" ] || $UPDATE_MODE; then
+        safe_copy "$FIVEDAY_SOURCE_DIR/templates/bitbucket-pipelines.yml" "bitbucket-pipelines.yml" "bitbucket-pipelines.yml"
     fi
 fi
 
@@ -590,13 +667,17 @@ docs/designs/*.sketch
 docs/designs/*.fig"
 
         if [ ! -f ".gitignore" ]; then
-            echo "$GITIGNORE_CONTENT" > .gitignore
-            echo "  Created .gitignore"
+            if echo "$GITIGNORE_CONTENT" > .gitignore 2>/dev/null; then
+                msg_step "Created .gitignore"
+            else
+                msg_error "Failed to create .gitignore"
+            fi
         else
-            echo "" >> .gitignore
-            echo "# === 5DayDocs Recommended Entries ===" >> .gitignore
-            echo "$GITIGNORE_CONTENT" >> .gitignore
-            echo "  Appended to .gitignore"
+            if { echo ""; echo "# === 5DayDocs Recommended Entries ==="; echo "$GITIGNORE_CONTENT"; } >> .gitignore 2>/dev/null; then
+                msg_step "Appended to .gitignore"
+            else
+                msg_error "Failed to append to .gitignore"
+            fi
         fi
     fi
 fi
@@ -614,11 +695,11 @@ for folder in backlog next working review live; do
 done
 
 if [ -n "$LEGACY_INDEX_FILES" ]; then
-    echo ""
-    echo "Legacy INDEX.md files detected in task subfolders."
-    echo "These are no longer used. Consider deleting:"
+    msg_header "Legacy files detected"
+    msg_warning "Legacy INDEX.md files found in task subfolders (no longer used)"
+    echo "  Consider deleting:"
     for f in $LEGACY_INDEX_FILES; do
-        echo "  rm $f"
+        echo "    rm $f"
     done
 fi
 
@@ -626,15 +707,14 @@ fi
 # VALIDATION
 # ============================================================================
 
-echo ""
-echo "Running validation checks..."
+msg_header "Running validation checks..."
 VALIDATION_PASSED=true
 
 # Check required directories
 for dir in docs/tasks/backlog docs/tasks/next docs/tasks/working docs/tasks/review docs/tasks/live docs/bugs docs/5day/scripts docs/features docs/guides; do
     if [ ! -d "$dir" ]; then
         VALIDATION_PASSED=false
-        echo "  Missing directory: $dir"
+        msg_error "Missing directory: $dir"
     fi
 done
 
@@ -642,19 +722,19 @@ done
 for file in docs/STATE.md DOCUMENTATION.md; do
     if [ ! -f "$file" ]; then
         VALIDATION_PASSED=false
-        echo "  Missing file: $file"
+        msg_error "Missing file: $file"
     fi
 done
 
 # Check script executability
 for script in docs/5day/scripts/*.sh; do
     if [ -f "$script" ] && [ ! -x "$script" ]; then
-        chmod +x "$script"
+        chmod +x "$script" 2>/dev/null || msg_warning "Could not make $script executable"
     fi
 done
 
 if [ -f "./5day.sh" ] && [ ! -x "./5day.sh" ]; then
-    chmod +x ./5day.sh
+    chmod +x ./5day.sh 2>/dev/null || msg_warning "Could not make ./5day.sh executable"
 fi
 
 # ============================================================================
@@ -663,23 +743,44 @@ fi
 
 echo ""
 echo "================================================"
-if [ "$VALIDATION_PASSED" = true ]; then
-    echo "  Setup Complete - All Checks Passed!"
+if [ "$VALIDATION_PASSED" = true ] && [ ${#ERRORS[@]} -eq 0 ]; then
+    echo -e "  ${GREEN}Setup Complete - All Checks Passed!${NC}"
+elif [ ${#ERRORS[@]} -gt 0 ]; then
+    echo -e "  ${RED}Setup Complete - With Errors${NC}"
 else
-    echo "  Setup Complete - With Issues"
+    echo -e "  ${YELLOW}Setup Complete - With Warnings${NC}"
 fi
 echo "================================================"
+
+# Show error summary if any
+if [ ${#ERRORS[@]} -gt 0 ]; then
+    echo ""
+    echo -e "${RED}Errors (${#ERRORS[@]}):${NC}"
+    for err in "${ERRORS[@]}"; do
+        echo "  • $err"
+    done
+fi
+
+# Show warning summary if any
+if [ ${#WARNINGS[@]} -gt 0 ]; then
+    echo ""
+    echo -e "${YELLOW}Warnings (${#WARNINGS[@]}):${NC}"
+    for warn in "${WARNINGS[@]}"; do
+        echo "  • $warn"
+    done
+fi
+
 echo ""
 
 if $UPDATE_MODE; then
-    echo "5DayDocs updated to version $CURRENT_VERSION"
+    msg_success "5DayDocs updated to version $CURRENT_VERSION"
     echo ""
     echo "Changes:"
     echo "  - Scripts synced from source"
     echo "  - STATE.md reconciled"
     echo "  - Templates updated"
 else
-    echo "5DayDocs installed to: $TARGET_PATH"
+    msg_success "5DayDocs installed to: $TARGET_PATH"
     echo "Platform: $PLATFORM"
     echo ""
     echo "Directory structure created in docs/"
@@ -692,10 +793,15 @@ else
     echo "  ./5day.sh status          # Show task status"
 fi
 
-if [ "$VALIDATION_PASSED" = true ]; then
+if [ "$VALIDATION_PASSED" = true ] && [ ${#ERRORS[@]} -eq 0 ]; then
     echo ""
-    echo "5DayDocs is ready! Try:"
+    msg_info "5DayDocs is ready! Try:"
     echo "  ./5day.sh newtask \"Build user authentication\""
 fi
 
 echo ""
+
+# Exit with error code if there were errors
+if [ ${#ERRORS[@]} -gt 0 ]; then
+    exit 1
+fi

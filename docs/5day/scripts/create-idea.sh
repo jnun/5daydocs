@@ -33,11 +33,11 @@ fi
 mkdir -p docs/ideas
 
 # Create idea document
-cat > "$IDEA_FILE" << EOL
-# Idea: ${IDEA_NAME}
+cat > "$IDEA_FILE" << 'EOL'
+# Idea: IDEA_NAME_PLACEHOLDER
 
 **Status:** DRAFT
-**Created:** $(date +%Y-%m-%d)
+**Created:** CREATED_DATE_PLACEHOLDER
 
 ---
 
@@ -47,49 +47,57 @@ This document helps refine a rough idea into a clear definition.
 
 **For humans:** Work through each section below. Answer the questions honestly. If something is unclear, leave it and come back.
 
-**For AI agents:** Read \`docs/5day/ai/feynman-method.md\` for the full protocol. Guide the user through each phase with questions. Do not fill sections without user input.
+**For AI agents:** Read `docs/5day/ai/feynman-method.md` for the full protocol. Guide the user through each phase with questions. Collaborate with the user to fill sections together.
 
 ---
 
 ## Phase 1: The Problem
 
-*What problem does this solve? Who has this problem? What happens if we don't solve it?*
+<!-- What problem does this solve? Who has this problem?
+     What happens if we don't solve it? Be specific about the pain point. -->
 
-[Write here]
+
 
 ---
 
 ## Phase 2: Plain English
 
-*Describe this idea so anyone on the team can understand it. No jargon. No technical terms.*
+<!-- Describe this idea so anyone on the team can understand it.
+     Use everyday language. If you catch yourself using jargon, rephrase it. -->
 
-[Write here]
 
-**Jargon check:** If you used technical terms above, rewrite them here as analogies or plain definitions.
 
 ---
 
 ## Phase 3: What It Does
 
-*List the specific things this idea enables. Each should be concrete and testable.*
+<!-- List concrete capabilities this idea enables.
+     Each should be something you can demonstrate or test. -->
 
-- [ ] [Capability 1]
-- [ ] [Capability 2]
-- [ ] [Capability 3]
+- [ ]
+- [ ]
+- [ ]
 
 ---
 
 ## Phase 4: Open Questions
 
-*What's still unclear? What needs research? What are we assuming?*
+<!-- What's still unclear? What needs research? What assumptions are we making?
+     It's good to capture uncertainty here. -->
 
-- [Question or assumption]
+-
 
 ---
 
 ## Notes
 
+<!-- Any additional context, links, or references. -->
+
 EOL
+
+# Replace placeholders
+sed -i '' "s/IDEA_NAME_PLACEHOLDER/${IDEA_NAME}/g" "$IDEA_FILE"
+sed -i '' "s/CREATED_DATE_PLACEHOLDER/$(date +%Y-%m-%d)/g" "$IDEA_FILE"
 
 echo -e "${GREEN}Created idea: $IDEA_FILE${NC}"
 echo ""

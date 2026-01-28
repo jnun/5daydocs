@@ -625,13 +625,15 @@ fi
 # HANDLE .GITIGNORE
 # ============================================================================
 
-if ! $UPDATE_MODE; then
-    echo ""
-    echo "Would you like to add 5DayDocs recommended .gitignore entries? (y/n)"
-    read -r GITIGNORE_CHOICE
+msg_header "Checking .gitignore..."
 
-    if [[ "$GITIGNORE_CHOICE" =~ ^[Yy]$ ]]; then
-        GITIGNORE_CONTENT="# OS Files
+# Load gitignore content from template or use inline fallback
+GITIGNORE_TEMPLATE="$FIVEDAY_SOURCE_DIR/src/templates/project/gitignore.template"
+if [ -f "$GITIGNORE_TEMPLATE" ]; then
+    GITIGNORE_CONTENT=$(cat "$GITIGNORE_TEMPLATE")
+else
+    # Fallback if template not found
+    GITIGNORE_CONTENT="# OS Files
 .DS_Store
 Thumbs.db
 desktop.ini
@@ -665,20 +667,59 @@ docs/data/*.db
 docs/designs/*.psd
 docs/designs/*.sketch
 docs/designs/*.fig"
+fi
 
-        if [ ! -f ".gitignore" ]; then
-            if echo "$GITIGNORE_CONTENT" > .gitignore 2>/dev/null; then
-                msg_step "Created .gitignore"
-            else
-                msg_error "Failed to create .gitignore"
-            fi
+if [ ! -f ".gitignore" ]; then
+    # No .gitignore exists
+    echo ""
+    echo "No .gitignore found. Would you like to create one with 5DayDocs recommended entries? (y/n)"
+    read -r GITIGNORE_CHOICE
+
+    if [[ "$GITIGNORE_CHOICE" =~ ^[Yy]$ ]]; then
+        if echo "$GITIGNORE_CONTENT" > .gitignore 2>/dev/null; then
+            msg_success "Created .gitignore"
         else
-            if { echo ""; echo "# === 5DayDocs Recommended Entries ==="; echo "$GITIGNORE_CONTENT"; } >> .gitignore 2>/dev/null; then
-                msg_step "Appended to .gitignore"
-            else
-                msg_error "Failed to append to .gitignore"
-            fi
+            msg_error "Failed to create .gitignore"
         fi
+    else
+        msg_step "Skipped .gitignore creation"
+    fi
+else
+    # .gitignore exists - check if it already has 5DayDocs entries
+    if grep -q "5DayDocs" .gitignore 2>/dev/null; then
+        msg_step ".gitignore already contains 5DayDocs entries"
+    else
+        echo ""
+        echo "Existing .gitignore found. Would you like to add 5DayDocs recommended entries?"
+        echo "1) Prepend (add at the beginning)"
+        echo "2) Append (add at the end)"
+        echo "3) Skip"
+        echo ""
+        echo "Enter your choice (1-3):"
+        read -r GITIGNORE_CHOICE
+
+        case "$GITIGNORE_CHOICE" in
+            1)
+                # Prepend
+                EXISTING_CONTENT=$(cat .gitignore)
+                if { echo "# === 5DayDocs Recommended Entries ==="; echo "$GITIGNORE_CONTENT"; echo ""; echo "# === Project-Specific Entries ==="; echo "$EXISTING_CONTENT"; } > .gitignore 2>/dev/null; then
+                    msg_success "Prepended 5DayDocs entries to .gitignore"
+                else
+                    msg_error "Failed to prepend to .gitignore"
+                fi
+                ;;
+            2)
+                # Append
+                if { echo ""; echo "# === 5DayDocs Recommended Entries ==="; echo "$GITIGNORE_CONTENT"; } >> .gitignore 2>/dev/null; then
+                    msg_success "Appended 5DayDocs entries to .gitignore"
+                else
+                    msg_error "Failed to append to .gitignore"
+                fi
+                ;;
+            *)
+                msg_step "Skipped .gitignore modification"
+                ;;
+        esac
     fi
 fi
 

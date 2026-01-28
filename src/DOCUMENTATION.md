@@ -2,6 +2,10 @@
 
 Project management in markdown files. Like Jira, but folders and plain text.
 
+## Task documents describe outcomes in plain language docs/tasks/*/*
+- Explain WHAT should happen so anyone can understand the goal
+- Keep implementation details in docs/guides/ and link to them when needed
+
 ## Boundaries
 
 **Framework files (do not edit):**
@@ -63,12 +67,24 @@ docs/
 └── tests/              # Your test plans
 ```
 
+## Creating Work
+
+| What | When | Command |
+|------|------|---------|
+| **Idea** | Rough concept, needs refinement | `./5day.sh newidea "User notifications"` |
+| **Feature** | Defined capability to build | `./5day.sh newfeature "User auth"` |
+| **Task** | Specific work item | `./5day.sh newtask "Add login button"` |
+| **Bug** | Something broken | `./5day.sh newbug "Login fails on mobile"` |
+
+Each command creates a file with inline guidance. Fill in the sections, then commit.
+
 ## Commands
 
 ```bash
 ./5day.sh newidea "My rough idea"   # Create idea to refine
 ./5day.sh newfeature "Name"         # Create feature
 ./5day.sh newtask "Description"     # Create task
+./5day.sh newbug "Description"      # Report a bug
 ./5day.sh status                    # View work
 ./5day.sh help                      # All commands
 ```
@@ -90,10 +106,11 @@ If `git mv` fails, use `mv` and commit the change.
 
 | Type | Format | Example |
 |------|--------|---------|
-| Task/Bug | `ID-description.md` | `12-fix-auth-error.md` |
-| Feature | `name.md` | `user-authentication.md` |
+| Task | `ID-description.md` | `12-fix-auth-error.md` |
+| Bug | `BUG-ID-description.md` | `BUG-3-login-fails.md` |
+| Feature/Idea | `name.md` | `user-authentication.md` |
 
-IDs are sequential integers from `STATE.md`. Always check STATE.md for the next ID.
+IDs come from `STATE.md` (5DAY_TASK_ID for tasks, 5DAY_BUG_ID for bugs).
 
 ## Key Concepts
 
@@ -117,14 +134,6 @@ This creates `docs/ideas/user-notifications.md` with a guided refinement process
 4. **Phase 4:** Surface open questions
 
 Work through it manually, or ask an AI agent to guide you.
-
-## Creating Work
-
-```bash
-./5day.sh newtask "Fix login timeout"
-```
-
-Creates `docs/tasks/backlog/[next-ID]-fix-login-timeout.md` and updates STATE.md.
 
 ## Templates
 

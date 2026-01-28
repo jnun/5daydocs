@@ -1,39 +1,60 @@
+<!--
+SYNC NOTE: This template is for human reference.
+Keep in sync with src/templates/project/TEMPLATE-bug.md when making format changes.
+-->
+
 # Bug: [Brief Description]
 
-**Reported By**: [Name]
-**Date**: YYYY-MM-DD
-**Severity**: [CRITICAL | HIGH | MEDIUM | LOW]
+**Reported By:** [Name]
+**Date:** YYYY-MM-DD
+**Severity:** [CRITICAL | HIGH | MEDIUM | LOW]
 
 ## Description
-[What is happening that shouldn't be happening]
+
+<!-- What is happening? Be specific about the unexpected behavior. -->
+
+
 
 ## Expected Behavior
-[What should happen instead]
+
+<!-- What should happen instead? Describe the correct behavior. -->
+
+
 
 ## Steps to Reproduce
-1. [First step]
-2. [Second step]
-3. [Third step]
+
+<!-- Numbered steps someone can follow to see the bug. -->
+
+1.
+2.
+3.
 
 ## Environment
-- Browser: [Chrome 120, Firefox 115, Safari 17, etc.]
-- OS: [Windows 11, macOS 14, Ubuntu 22.04, etc.]
-- Device: [Desktop, Mobile, Tablet]
-- Version: [App version if applicable]
+
+<!-- Where did this happen? Fill in what's relevant. -->
+
+- Browser:
+- OS:
+- Device:
+- Version:
 
 ## Additional Context
-[Screenshots, error messages, logs, etc.]
 
----
+<!-- Screenshots, error messages, console logs, or any other helpful details. -->
+
+
 
 <!--
-Severity Guide:
-- CRITICAL: System down, data loss, security breach (fix immediately)
-- HIGH: Major feature broken, blocking users (fix this sprint)
-- MEDIUM: Feature partially broken, has workaround (fix next sprint)
-- LOW: Minor issue, cosmetic (fix when convenient)
+AI BUG GUIDE
 
-After creating a task for this bug:
-1. Reference this bug in the task file
-2. Move this file to docs/bugs/archived/
+Severity levels:
+  CRITICAL: System down, data loss, security issue
+  HIGH: Major feature broken, blocks users
+  MEDIUM: Feature impaired, workaround exists
+  LOW: Minor issue, cosmetic
+
+After documenting the bug:
+1. Create a task to fix it (./5day.sh newtask "Fix: [bug description]")
+2. Reference this bug file in the task
+3. Move this file to docs/bugs/archived/ when fixed
 -->

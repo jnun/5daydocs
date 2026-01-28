@@ -2,6 +2,10 @@
 
 Project management in markdown files. Like Jira, but folders and plain text.
 
+## Task documents describe outcomes in plain language docs/tasks/*/*
+- Explain WHAT should happen so anyone can understand the goal
+- Keep implementation details in docs/guides/ and link to them when needed
+
 ## Boundaries
 
 **Framework files (do not edit):**

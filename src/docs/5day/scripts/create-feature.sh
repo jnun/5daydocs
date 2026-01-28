@@ -33,59 +33,113 @@ fi
 mkdir -p docs/features
 
 # Create feature document
-cat > "$FEATURE_FILE" << EOL
-# Feature: ${FEATURE_NAME}
+cat > "$FEATURE_FILE" << 'EOL'
+# Feature: FEATURE_NAME_PLACEHOLDER
 
 **Status:** BACKLOG
-**Created:** $(date +%Y-%m-%d)
-**Updated:** $(date +%Y-%m-%d)
+**Created:** CREATED_DATE_PLACEHOLDER
+**Updated:** CREATED_DATE_PLACEHOLDER
 
 ## Overview
-Brief description of the feature and its purpose.
+
+<!-- 2-3 sentences: What is this feature and why does it matter?
+     Write for someone unfamiliar with the project. -->
+
+
 
 ## User Stories
-- As a [user type], I want to [action], so that [benefit]
+
+<!-- Capture real user needs. Pattern: "As a [who], I want [what], so that [why]" -->
+
+- As a _, I want to _, so that _
 
 ## Requirements
+
 ### Functional Requirements
-- [ ] Requirement 1
-- [ ] Requirement 2
+
+<!-- What the feature does. Each should be testable. -->
+
+- [ ]
+- [ ]
 
 ### Non-Functional Requirements
-- [ ] Performance criteria
-- [ ] Security requirements
+
+<!-- Performance, security, accessibility, etc. -->
+
+- [ ]
 
 ## Technical Design
+
 ### Architecture
-Describe the technical approach and architecture
+
+<!-- High-level approach. Keep it brief until implementation begins. -->
+
+
 
 ### Dependencies
-- List any dependencies or prerequisites
+
+<!-- Other features, services, or libraries this requires. -->
+
+-
 
 ### API/Interface
-Define any APIs or interfaces
+
+<!-- Public interfaces this feature exposes, if any. -->
+
+
 
 ## Implementation Tasks
-Reference task IDs that implement this feature:
-- [ ] Task #ID - Description
+
+<!-- Link tasks as they're created. Pattern: Task #ID - Brief description -->
+
+- [ ]
 
 ## Testing Strategy
+
 ### Test Cases
-- [ ] Test case 1
-- [ ] Test case 2
+
+<!-- Key scenarios to verify. -->
+
+- [ ]
 
 ### Acceptance Criteria
-- [ ] Criteria 1
-- [ ] Criteria 2
+
+<!-- Observable behaviors that confirm the feature works.
+     Pattern: "User can [do what]" or "System shows [result]" -->
+
+- [ ]
+- [ ]
 
 ## Documentation
-- [ ] User documentation
-- [ ] API documentation
-- [ ] Admin guide
+
+<!-- Track documentation needs. -->
+
+- [ ] User-facing docs
+- [ ] Technical docs
 
 ## Notes
-Additional notes or considerations
+
+<!-- Additional context, constraints, or considerations. -->
+
+
+<!--
+AI FEATURE GUIDE
+
+Status values: BACKLOG → WORKING → LIVE
+
+Write in plain English throughout. Focus on what users experience.
+Technical details can wait until implementation begins.
+
+Acceptance criteria work best as observable behaviors:
+  - User can export data as CSV
+  - Dashboard loads within 2 seconds
+  - Error message appears when form is invalid
+-->
 EOL
+
+# Replace placeholders
+sed -i '' "s/FEATURE_NAME_PLACEHOLDER/${FEATURE_NAME}/g" "$FEATURE_FILE"
+sed -i '' "s/CREATED_DATE_PLACEHOLDER/$(date +%Y-%m-%d)/g" "$FEATURE_FILE"
 
 echo -e "${GREEN}Created feature: $FEATURE_FILE${NC}"
 echo ""

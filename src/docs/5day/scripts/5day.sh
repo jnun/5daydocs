@@ -50,6 +50,7 @@ show_help() {
     echo "  newidea <name>            Create a new idea to refine"
     echo "  newfeature <name>         Create a new feature"
     echo "  newtask <description>     Create a new task"
+    echo "  newbug <description>      Report a new bug"
     echo "  status                    Show project status"
     echo "  checkfeatures             Analyze feature alignment"
     echo "  ai-context                Generate AI context summary"
@@ -70,6 +71,11 @@ cmd_newtask() {
 cmd_newfeature() {
     [ -z "$1" ] && { echo -e "${RED}ERROR: Feature name required${NC}"; exit 1; }
     run_script "create-feature.sh" "$1"
+}
+
+cmd_newbug() {
+    [ -z "$1" ] && { echo -e "${RED}ERROR: Bug description required${NC}"; exit 1; }
+    run_script "create-bug.sh" "$1"
 }
 
 cmd_status() {
@@ -99,6 +105,14 @@ cmd_status() {
         echo -e "${BLUE}Ideas:${NC}  $(count_files "docs/ideas/*.md")"
     fi
 
+    if [ -d "docs/bugs" ]; then
+        local bug_count=$(find docs/bugs -maxdepth 1 -name "BUG-*.md" 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$bug_count" -gt 0 ]; then
+            echo ""
+            echo -e "${BLUE}Bugs:${NC}   $bug_count open"
+        fi
+    fi
+
     if [ -d "docs/features" ] && ls docs/features/*.md >/dev/null 2>&1; then
         echo ""
         echo -e "${BLUE}Features:${NC}"
@@ -121,6 +135,7 @@ case "${1:-}" in
     newidea)       shift; cmd_newidea "$@" ;;
     newtask)       shift; cmd_newtask "$@" ;;
     newfeature)    shift; cmd_newfeature "$@" ;;
+    newbug)        shift; cmd_newbug "$@" ;;
     status)        cmd_status ;;
     checkfeatures) cmd_checkfeatures ;;
     ai-context)    cmd_ai_context ;;

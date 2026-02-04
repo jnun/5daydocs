@@ -106,7 +106,7 @@ cmd_status() {
     fi
 
     if [ -d "docs/bugs" ]; then
-        local bug_count=$(find docs/bugs -maxdepth 1 -name "BUG-*.md" 2>/dev/null | wc -l | tr -d ' ')
+        local bug_count=$(find docs/bugs -maxdepth 1 -name "[0-9]*.md" 2>/dev/null | wc -l | tr -d ' ')
         if [ "$bug_count" -gt 0 ]; then
             echo ""
             echo -e "${BLUE}Bugs:${NC}   $bug_count open"

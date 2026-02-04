@@ -1,27 +1,21 @@
 <!--
-SYNC NOTE: This template is for human reference.
-Keep in sync with src/templates/project/TEMPLATE-bug.md when making format changes.
+SYNC NOTE: This template is copied to new projects during setup.sh.
+Keep in sync with docs/bugs/TEMPLATE-bug.md when making format changes.
 -->
 
-# Bug: [Brief Description]
+# Bug [ID]: [Brief Description]
 
-**Reported By:** [Name]
-**Date:** YYYY-MM-DD
 **Severity:** [CRITICAL | HIGH | MEDIUM | LOW]
+**Created**: YYYY-MM-DD
 
-## Description
+## Problem
 
-<!-- What is happening? Be specific about the unexpected behavior. -->
-
-
-
-## Expected Behavior
-
-<!-- What should happen instead? Describe the correct behavior. -->
+<!-- What is happening, and what should happen instead?
+     Be specific about the unexpected behavior. -->
 
 
 
-## Steps to Reproduce
+## Steps to reproduce
 
 <!-- Numbered steps someone can follow to see the bug. -->
 
@@ -29,18 +23,17 @@ Keep in sync with src/templates/project/TEMPLATE-bug.md when making format chang
 2.
 3.
 
-## Environment
+## Success criteria
 
-<!-- Where did this happen? Fill in what's relevant. -->
+<!-- How do you know this is fixed?
+     Write observable behaviors: "User can [do what]" or "System shows [result]" -->
 
-- Browser:
-- OS:
-- Device:
-- Version:
+- [ ]
 
-## Additional Context
+## Notes
 
-<!-- Screenshots, error messages, console logs, or any other helpful details. -->
+<!-- Environment details, screenshots, error messages, related files, or any other context.
+     Leave empty if none, but keep this section. -->
 
 
 
@@ -52,6 +45,8 @@ Severity levels:
   HIGH: Major feature broken, blocks users
   MEDIUM: Feature impaired, workaround exists
   LOW: Minor issue, cosmetic
+
+Bug file naming: ID-description.md (e.g., 3-login-timeout.md)
 
 After documenting the bug:
 1. Create a task to fix it (./5day.sh newtask "Fix: [bug description]")

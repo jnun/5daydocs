@@ -12,12 +12,14 @@
 ## Quick Workflow
 
 ```bash
-# Report bug (check STATE.md for ID)
-echo "# Bug Title" > docs/bugs/ID-description.md
+# Report a new bug
+./5day.sh newbug "Brief description of the bug"
 
 # Convert to task
-echo "# Fix Bug #ID" > docs/tasks/backlog/TASK-ID-fix-bug.md
-git mv docs/bugs/ID-bug.md docs/bugs/archived/
+./5day.sh newtask "Fix: brief description"
+
+# Archive resolved bug
+git mv docs/bugs/ID-description.md docs/bugs/archived/
 ```
 
 **Note:** Bug IDs tracked in /docs/STATE.md as 5DAY_BUG_ID

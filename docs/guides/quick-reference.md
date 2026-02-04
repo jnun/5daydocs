@@ -26,13 +26,13 @@ mv docs/tasks/review/1-task.md docs/tasks/live/
 ### Bug Management
 ```bash
 # Check current highest bug ID
-cat docs/bugs/BUG_STATE.md
+cat docs/STATE.md
 
 # Create bug report
-echo "# Bug: Description" > docs/bugs/001-bug-name.md
+./5day.sh newbug "Brief description of the bug"
 
 # Archive processed bug
-mv docs/bugs/001-bug.md docs/bugs/archived/
+mv docs/bugs/ID-description.md docs/bugs/archived/
 ```
 
 ### Status Checks
@@ -60,8 +60,8 @@ ls docs/tasks/live/
 
 ### Bugs
 - Format: `ID-description.md`
-- Example: `001-login-not-working.md`
-- ID is 3-digit padded (001, 002, ... 099, 100)
+- Example: `1-login-not-working.md`
+- ID is numeric, increments from docs/STATE.md
 - Description is kebab-case
 
 ### Features

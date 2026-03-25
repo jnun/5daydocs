@@ -551,7 +551,12 @@ if [ -d "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts" ]; then
     done
 fi
 
-# Copy AI context files
+# Copy AGENT.md (consolidated agent reference)
+if safe_copy "$FIVEDAY_SOURCE_DIR/src/docs/5day/AGENT.md" "docs/5day/AGENT.md" "AGENT.md (agent reference)"; then
+    ((FILES_COPIED++))
+fi
+
+# Copy AI protocol files (supplementary reading)
 if [ -d "$FIVEDAY_SOURCE_DIR/src/docs/5day/ai" ]; then
     for ai_file in "$FIVEDAY_SOURCE_DIR/src/docs/5day/ai"/*.md; do
         if [ -f "$ai_file" ]; then
@@ -720,6 +725,44 @@ else
                 msg_step "Skipped .gitignore modification"
                 ;;
         esac
+    fi
+fi
+
+# ============================================================================
+# AI AGENT INTEGRATION (CLAUDE.md)
+# ============================================================================
+
+CLAUDE_SNIPPET="Read docs/5day/AGENT.md for 5DayDocs conventions (task management, file structure, commands)."
+
+if [ -f "CLAUDE.md" ]; then
+    if grep -q "5day" CLAUDE.md 2>/dev/null || grep -q "5DayDocs" CLAUDE.md 2>/dev/null || grep -q "AGENT.md" CLAUDE.md 2>/dev/null; then
+        msg_step "CLAUDE.md already references 5DayDocs"
+    else
+        echo ""
+        echo "CLAUDE.md found. Add a one-liner so AI agents auto-discover 5DayDocs conventions? (y/n)"
+        read -r CLAUDE_CHOICE
+        if [[ "$CLAUDE_CHOICE" =~ ^[Yy]$ ]]; then
+            if { echo ""; echo "$CLAUDE_SNIPPET"; } >> CLAUDE.md 2>/dev/null; then
+                msg_success "Added 5DayDocs reference to CLAUDE.md"
+            else
+                msg_error "Failed to update CLAUDE.md"
+            fi
+        else
+            msg_step "Skipped CLAUDE.md update"
+        fi
+    fi
+else
+    echo ""
+    echo "No CLAUDE.md found. Create one so AI agents (Claude Code, etc.) auto-discover 5DayDocs? (y/n)"
+    read -r CLAUDE_CHOICE
+    if [[ "$CLAUDE_CHOICE" =~ ^[Yy]$ ]]; then
+        if echo "$CLAUDE_SNIPPET" > CLAUDE.md 2>/dev/null; then
+            msg_success "Created CLAUDE.md"
+        else
+            msg_error "Failed to create CLAUDE.md"
+        fi
+    else
+        msg_step "Skipped CLAUDE.md creation"
     fi
 fi
 

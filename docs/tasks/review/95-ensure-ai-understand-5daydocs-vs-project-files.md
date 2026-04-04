@@ -123,7 +123,8 @@ AI agents reading `DOCUMENTATION.md` immediately understand:
 ├── setup.sh                 ← Full installer/updater (NOT distributed)
 ├── 5day.sh                  ← CLI (synced from src/)
 ├── src/docs/5day/scripts/   ← Source of truth for distributed scripts
-├── src/docs/5day/ai/        ← AI instructions (feynman-method.md)
+├── src/docs/5day/ai/        ← AI execution guides
+├── src/docs/5day/theory/    ← Methodology (feynman-method.md)
 └── docs/5day/               ← Dogfood copy
 ```
 

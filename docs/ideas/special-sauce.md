@@ -72,7 +72,7 @@ That question forces a choice—pick one thing, then build the smallest test of 
 
 **All resolved:**
 - Command: `./5day.sh sauce` (new functionality)
-- Human + AI powered: AI instructions go in `docs/5day/ai/` alongside `feynman-method.md`
+- Human + AI powered: AI instructions go in `docs/5day/ai/`, theory in `docs/5day/theory/`
 - Fallback scaffolding: If user can't articulate sauce directly, walk them through:
   1. "What's your why?" (motivation)
   2. "What's the problem we're solving?" (problem)

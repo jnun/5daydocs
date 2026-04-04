@@ -1,103 +1,41 @@
-# Feynman Protocol: Recursive Feature Decomposition
+# Feynman Protocol: AI Execution Guide
 
-## Mission
+> **Theory:** [docs/5day/theory/feynman-method.md](../theory/feynman-method.md)
 
-Transform complex features into clear, actionable tasks using the Feynman Technique. No jargon. No ambiguity. Just plain English that anyone on the team can understand.
+## When to Use
 
-This protocol governs how features become tasks in 5DayDocs.
+Run this protocol when refining an idea in `docs/ideas/`. Typically triggered by `./5day.sh newidea <name>`.
 
-## The Four Phases
+## How to Execute
 
-### Phase 1: The Problem (What & Why)
+Work inside the idea file. Follow the four phases in order. Never skip a phase.
 
-**Goal:** Capture the human outcome, not the technical solution.
+### Phase 1-2: Interactive Discovery
 
-**Questions to ask:**
-- What problem does this solve?
-- Who benefits and how?
-- What does success look like?
+1. Read the idea file.
+2. Ask the user the Phase 1 questions (What problem? Who benefits? What does success look like?).
+3. Wait for answers. Do not assume or fill in.
+4. Rewrite answers in plain English (Phase 2). Flag any jargon and replace with analogies or plain definitions.
+5. Confirm with the user: "Does this capture it?"
 
-**Constraint:** Block implementation details. Words like "React," "Postgres," "microservice" are premature. Focus on the *job to be done*.
+### Phase 3: Decomposition
 
-**Validation:** "If this feature were a person, what job would they be hired to do?"
+1. Break the feature into atomic pieces.
+2. Present each piece to the user with a tag: `[READY]`, `[RESEARCH]`, or `[BLOCKED]`.
+3. Ask the user to validate the tags.
+4. Resolve any `[BLOCKED]` items before proceeding.
 
----
+### Phase 4: Task Generation
 
-### Phase 2: Plain English (Clarity Filter)
+1. Only proceed after the user confirms the Phase 3 breakdown.
+2. Convert `[READY]` items into task files in `docs/tasks/backlog/`.
+3. Each task title: 10 words max.
+4. Each task must be completable independently.
+5. If a task feels too broad, recurse it through Phase 3.
 
-**Goal:** Rewrite Phase 1 so any team member—regardless of role—can understand it.
+## Rules
 
-**Jargon detection:** Flag technical terms (API, backend, database, interface, endpoint, etc.). When detected:
-- Replace with analogies ("a messenger," "a filing cabinet," "a gatekeeper")
-- Or define in one plain sentence
-
-**Success test:** Could a new hire with no project context understand this?
-
----
-
-### Phase 3: Decomposition (Gap Audit)
-
-**Goal:** Break the feature into atomic pieces and validate each one.
-
-**For each piece, ask:** *"Do we have everything needed to build this right now?"*
-
-**Tag each piece:**
-- `[READY]` — Clear path forward. Can become a task.
-- `[RESEARCH]` — Knowledge gap. Needs investigation first.
-- `[BLOCKED]` — Dependency or logical gap (e.g., "Can't send emails without a sender address").
-
-**Output:** A list of atomic operations with their tags.
-
----
-
-### Phase 4: Task Generation (Build Instructions)
-
-**Goal:** Convert `[READY]` items into task descriptions.
-
-**Constraints:**
-- Each task title: 10 words max
-- Each task should be completable independently
-- If a task feels "heavy," recurse: run it through Phase 3 again
-
-**Output:** Task files in `docs/tasks/backlog/`
-
----
-
-## Workflow
-
-```
-docs/ideas/     → Raw ideas being refined (this protocol)
-docs/features/  → Fully defined features
-docs/tasks/*/*  → Actionable work items
-```
-
-### CLI Usage
-
-```bash
-./5day.sh newidea "User notifications"
-```
-
-Creates `docs/ideas/user-notifications.md` with embedded instructions.
-
----
-
-## For AI Agents
-
-When running this protocol:
-
-1. **Phase 1-2:** Interactive. Ask questions, wait for answers. Don't assume.
-2. **Phase 3:** Present decomposition, ask user to validate tags.
-3. **Phase 4:** Generate tasks only after user confirms the breakdown.
-
-Work within the idea file. Never skip phases.
-
----
-
-## Error States
-
-| Condition | Action |
-|-----------|--------|
-| Jargon detected in Phase 2 | Flag it. Rewrite with analogy. |
-| `[BLOCKED]` item in Phase 3 | Cannot proceed to Phase 4 until resolved. |
-| Task too broad in Phase 4 | Recurse to Phase 3 for that item. |
-
+- Work within the idea file. Update it as you go.
+- Ask questions, wait for answers. Don't fill sections without user input.
+- One phase at a time. Confirm before advancing.
+- `[BLOCKED]` items halt progress to Phase 4 until resolved.

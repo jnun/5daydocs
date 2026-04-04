@@ -30,6 +30,8 @@ src/
 │       ├── ai/
 │       │   ├── .gitkeep
 │       │   └── feynman-method.md
+│       ├── theory/
+│       │   └── feynman-method.md
 │       └── scripts/
 │           ├── 5day.sh
 │           ├── ai-context.sh

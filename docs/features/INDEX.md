@@ -4,7 +4,7 @@
 
 ## What's Here
 
-Feature specifications tracking status (LIVE/TESTING/WORKING/BACKLOG).
+Feature specifications tracking status (BACKLOG/WORKING/LIVE).
 
 ## File Naming
 
@@ -15,4 +15,4 @@ Examples:
 - `data-export.md`
 - `real-time-notifications.md`
 
-**Status Flow:** BACKLOG → WORKING → TESTING → LIVE
+**Status Flow:** BACKLOG → WORKING → LIVE

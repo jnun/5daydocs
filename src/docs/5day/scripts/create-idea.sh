@@ -9,6 +9,20 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Escape special characters for sed replacement strings (/, &, \)
+sed_escape() {
+    printf '%s' "$1" | sed 's;[&/\\];\\&;g'
+}
+
+# Portable in-place sed that works on both macOS (BSD) and Linux (GNU)
+sed_inplace() {
+    if sed --version 2>/dev/null | grep -q GNU; then
+        sed -i "$@"
+    else
+        sed -i '' "$@"
+    fi
+}
+
 # Get idea name
 IDEA_NAME="$1"
 if [ -z "$IDEA_NAME" ]; then
@@ -95,9 +109,12 @@ This document helps refine a rough idea into a clear definition.
 
 EOL
 
-# Replace placeholders
-sed -i '' "s/IDEA_NAME_PLACEHOLDER/${IDEA_NAME}/g" "$IDEA_FILE"
-sed -i '' "s/CREATED_DATE_PLACEHOLDER/$(date +%Y-%m-%d)/g" "$IDEA_FILE"
+# Replace placeholders (escape user input for sed safety)
+sed_inplace "s/IDEA_NAME_PLACEHOLDER/$(sed_escape "$IDEA_NAME")/g" "$IDEA_FILE"
+sed_inplace "s/CREATED_DATE_PLACEHOLDER/$(date +%Y-%m-%d)/g" "$IDEA_FILE"
+
+# Stage the changes
+git add "$IDEA_FILE"
 
 echo -e "${GREEN}Created idea: $IDEA_FILE${NC}"
 echo ""

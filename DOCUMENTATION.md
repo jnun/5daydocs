@@ -39,6 +39,7 @@ This file governs `docs/`. Read it before modifying any task, bug, or feature.
 | `backlog/` | Planned, not started |
 | `next/` | Queued for current sprint |
 | `working/` | Actively being worked on |
+| `blocked/` | Needs a product owner or engineer decision before work can continue |
 | `review/` | Done, awaiting approval |
 | `live/` | Shipped/complete |
 
@@ -60,6 +61,7 @@ docs/
 │   ├── backlog/        # Planned
 │   ├── next/           # Sprint queue
 │   ├── working/        # In progress
+│   ├── blocked/        # Waiting on decisions
 │   ├── review/         # Awaiting approval
 │   └── live/           # Complete
 ├── bugs/               # Your bug reports
@@ -67,12 +69,24 @@ docs/
 └── tests/              # Your test plans
 ```
 
+## Creating Work
+
+| What | When | Command |
+|------|------|---------|
+| **Idea** | Rough concept, needs refinement | `./5day.sh newidea "User notifications"` |
+| **Feature** | Defined capability to build | `./5day.sh newfeature "User auth"` |
+| **Task** | Specific work item | `./5day.sh newtask "Add login button"` |
+| **Bug** | Something broken | `./5day.sh newbug "Login fails on mobile"` |
+
+Each command creates a file with inline guidance. Fill in the sections, then commit.
+
 ## Commands
 
 ```bash
 ./5day.sh newidea "My rough idea"   # Create idea to refine
 ./5day.sh newfeature "Name"         # Create feature
 ./5day.sh newtask "Description"     # Create task
+./5day.sh newbug "Description"      # Report a bug
 ./5day.sh status                    # View work
 ./5day.sh help                      # All commands
 ```
@@ -84,6 +98,8 @@ Tasks move through folders. Use `git mv` or `mv` (then commit):
 ```bash
 git mv docs/tasks/backlog/ID-name.md docs/tasks/next/      # Queue
 git mv docs/tasks/next/ID-name.md docs/tasks/working/      # Start
+git mv docs/tasks/working/ID-name.md docs/tasks/blocked/   # Blocked on decision
+git mv docs/tasks/blocked/ID-name.md docs/tasks/next/      # Unblocked, re-queue
 git mv docs/tasks/working/ID-name.md docs/tasks/review/    # Submit
 git mv docs/tasks/review/ID-name.md docs/tasks/live/       # Complete
 ```
@@ -94,10 +110,11 @@ If `git mv` fails, use `mv` and commit the change.
 
 | Type | Format | Example |
 |------|--------|---------|
-| Task/Bug | `ID-description.md` | `12-fix-auth-error.md` |
-| Feature | `name.md` | `user-authentication.md` |
+| Task | `ID-description.md` | `12-fix-auth-error.md` |
+| Bug | `BUG-ID-description.md` | `BUG-3-login-fails.md` |
+| Feature/Idea | `name.md` | `user-authentication.md` |
 
-IDs are sequential integers from `STATE.md`. Always check STATE.md for the next ID.
+IDs come from `STATE.md` (5DAY_TASK_ID for tasks, 5DAY_BUG_ID for bugs).
 
 ## Key Concepts
 
@@ -121,14 +138,6 @@ This creates `docs/ideas/user-notifications.md` with a guided refinement process
 4. **Phase 4:** Surface open questions
 
 Work through it manually, or ask an AI agent to guide you.
-
-## Creating Work
-
-```bash
-./5day.sh newtask "Fix login timeout"
-```
-
-Creates `docs/tasks/backlog/[next-ID]-fix-login-timeout.md` and updates STATE.md.
 
 ## Templates
 

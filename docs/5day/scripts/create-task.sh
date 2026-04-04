@@ -9,6 +9,20 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Escape special characters for sed replacement strings (/, &, \)
+sed_escape() {
+    printf '%s' "$1" | sed 's;[&/\\];\\&;g'
+}
+
+# Portable in-place sed that works on both macOS (BSD) and Linux (GNU)
+sed_inplace() {
+    if sed --version 2>/dev/null | grep -q GNU; then
+        sed -i "$@"
+    else
+        sed -i '' "$@"
+    fi
+}
+
 # Verify STATE.md exists and is valid
 if [ ! -f "docs/STATE.md" ]; then
     echo -e "${RED}ERROR: docs/STATE.md not found!${NC}"
@@ -66,7 +80,7 @@ fi
 
 CREATED_DATE=$(date +%Y-%m-%d)
 
-cat << 'TASKEOF' > docs/tasks/backlog/$FILENAME
+cat << 'TASKEOF' > "docs/tasks/backlog/$FILENAME"
 # Task NEW_ID_PLACEHOLDER: DESCRIPTION_PLACEHOLDER
 
 FEATURE_LINE_PLACEHOLDER
@@ -121,44 +135,18 @@ Full protocol: docs/5day/ai/task-creation.md
 -->
 TASKEOF
 
-# Replace placeholders with actual values
-sed -i '' "s/NEW_ID_PLACEHOLDER/$NEW_ID/g" "docs/tasks/backlog/$FILENAME"
-sed -i '' "s/DESCRIPTION_PLACEHOLDER/$DESCRIPTION/g" "docs/tasks/backlog/$FILENAME"
-sed -i '' "s|FEATURE_LINE_PLACEHOLDER|$FEATURE_LINE|g" "docs/tasks/backlog/$FILENAME"
-sed -i '' "s/CREATED_DATE_PLACEHOLDER/$CREATED_DATE/g" "docs/tasks/backlog/$FILENAME"
+# Replace placeholders with actual values (escape user input for sed safety)
+sed_inplace "s/NEW_ID_PLACEHOLDER/$NEW_ID/g" "docs/tasks/backlog/$FILENAME"
+sed_inplace "s/DESCRIPTION_PLACEHOLDER/$(sed_escape "$DESCRIPTION")/g" "docs/tasks/backlog/$FILENAME"
+sed_inplace "s/FEATURE_LINE_PLACEHOLDER/$(sed_escape "$FEATURE_LINE")/g" "docs/tasks/backlog/$FILENAME"
+sed_inplace "s/CREATED_DATE_PLACEHOLDER/$CREATED_DATE/g" "docs/tasks/backlog/$FILENAME"
 
-# Atomic update of STATE.md using temporary file
+# Update STATE.md in place — only touch the fields that changed
 LAST_UPDATED=$(date +%F)
 TEMP_STATE="docs/STATE.md.tmp.$$"
-
-# Get current values to preserve them
-CURRENT_VERSION=$(awk '/5DAY_VERSION/{print $NF}' docs/STATE.md)
-if [ -z "$CURRENT_VERSION" ]; then
-    CURRENT_VERSION="1.0.0"  # Default if not found
-fi
-
-HIGHEST_BUG_ID=$(awk '/5DAY_BUG_ID/{print $NF}' docs/STATE.md)
-if [ -z "$HIGHEST_BUG_ID" ]; then
-    HIGHEST_BUG_ID="0"  # Default if not found
-fi
-
-SYNC_ALL_TASKS=$(awk '/SYNC_ALL_TASKS/{print $NF}' docs/STATE.md)
-if [ -z "$SYNC_ALL_TASKS" ]; then
-    SYNC_ALL_TASKS="false"  # Default if not found
-fi
-
-# Create temporary file with new state
-cat << EOF > "$TEMP_STATE"
-# docs/STATE.md
-
-**Last Updated**: $LAST_UPDATED
-**5DAY_VERSION**: $CURRENT_VERSION
-**5DAY_TASK_ID**: $NEW_ID
-**5DAY_BUG_ID**: $HIGHEST_BUG_ID
-**SYNC_ALL_TASKS**: $SYNC_ALL_TASKS
-EOF
-
-# Atomically replace STATE.md
+cp docs/STATE.md "$TEMP_STATE"
+sed_inplace "s/^\*\*5DAY_TASK_ID\*\*:.*/**5DAY_TASK_ID**: $NEW_ID/" "$TEMP_STATE"
+sed_inplace "s/^\*\*Last Updated\*\*:.*/**Last Updated**: $LAST_UPDATED/" "$TEMP_STATE"
 if mv -f "$TEMP_STATE" docs/STATE.md; then
     echo -e "${GREEN}✓ STATE.md updated successfully${NC}"
 else

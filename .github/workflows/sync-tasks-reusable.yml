@@ -37,6 +37,10 @@ on:
         description: 'GitHub token with project scope (optional, for Projects integration)'
         required: false
 
+concurrency:
+  group: 5daydocs-sync-${{ github.repository }}
+  cancel-in-progress: false
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -57,6 +61,7 @@ jobs:
           TASKS_PATH: ${{ inputs.tasks_path }}
           STATE_FILE: ${{ inputs.state_file }}
         run: |
+          set -euo pipefail
           errors=0
 
           if [ ! -f "$STATE_FILE" ]; then
@@ -79,6 +84,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.token || secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           EXISTING=$(gh label list --json name --jq '.[].name' | sort)
 
           declare -A LABELS=(
@@ -104,6 +110,7 @@ jobs:
           STATE_FILE: ${{ inputs.state_file }}
           FORCE_SYNC: ${{ inputs.force_sync_all }}
         run: |
+          set -euo pipefail
           SYNC_ALL="false"
 
           if [ "$FORCE_SYNC" = "true" ]; then
@@ -129,6 +136,7 @@ jobs:
           fi
 
           if [ -n "$FILES" ]; then
+            echo "$FILES" > /tmp/task_files.txt
             echo "files<<EOF" >> "$GITHUB_OUTPUT"
             echo "$FILES" >> "$GITHUB_OUTPUT"
             echo "EOF" >> "$GITHUB_OUTPUT"
@@ -136,6 +144,7 @@ jobs:
             echo "count=$FILE_COUNT" >> "$GITHUB_OUTPUT"
             echo "::notice::Found $FILE_COUNT file(s) to process"
           else
+            echo "" > /tmp/task_files.txt
             echo "files=" >> "$GITHUB_OUTPUT"
             echo "count=0" >> "$GITHUB_OUTPUT"
             echo "::notice::No files to process"
@@ -147,12 +156,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.token || secrets.GITHUB_TOKEN }}
         run: |
-          # Fetch all task issues (title pattern: "Task {ID}:")
+          set -euo pipefail
+          # Fetch all task issues (title pattern: "Task {ID}:") with body for metadata lookup
           gh issue list \
             --state all \
             --limit 1000 \
-            --json number,title,state \
-            --jq '.[] | select(.title | test("^Task [0-9]+:")) | {number, title, state}' \
+            --json number,title,state,body \
+            --jq '.[] | select(.title | test("^Task [0-9]+:")) | {number, title, state, body}' \
             > /tmp/cache.json || echo "" > /tmp/cache.json
 
           echo "Cached $(wc -l < /tmp/cache.json | tr -d ' ') existing task issues"
@@ -164,6 +174,7 @@ jobs:
           GH_TOKEN: ${{ secrets.token || secrets.GITHUB_TOKEN }}
           TASKS_PATH: ${{ inputs.tasks_path }}
         run: |
+          set -euo pipefail
           echo "0" > /tmp/created
           echo "0" > /tmp/updated
           echo "0" > /tmp/closed
@@ -184,8 +195,20 @@ jobs:
 
             TASK_ID=$(basename "$file" | grep -oE '^[0-9]+')
 
-            # Cache lookup by title pattern "Task {ID}:"
-            EXISTING=$(grep "\"title\":\"Task $TASK_ID:" /tmp/cache.json 2>/dev/null | head -1 || true)
+            # Validate task ID is numeric
+            if ! [[ "$TASK_ID" =~ ^[0-9]+$ ]]; then
+              echo "::warning::Non-numeric task ID in $file"
+              echo "::endgroup::"
+              continue
+            fi
+
+            # Idempotent lookup: first try HTML comment metadata, then fall back to title
+            METADATA_TAG="<!-- 5daydocs-task-id: $TASK_ID -->"
+            EXISTING=$(jq -r "select(.body | contains(\"$METADATA_TAG\"))" /tmp/cache.json 2>/dev/null | head -1 || true)
+            if [ -z "$EXISTING" ]; then
+              # Fallback: title-based lookup for issues created before metadata was added
+              EXISTING=$(jq -r "select(.title | startswith(\"Task $TASK_ID:\"))" /tmp/cache.json 2>/dev/null | head -1 || true)
+            fi
             if [ -n "$EXISTING" ]; then
               ISSUE_NUM=$(echo "$EXISTING" | jq -r '.number')
               ISSUE_STATE=$(echo "$EXISTING" | jq -r '.state')
@@ -194,12 +217,17 @@ jobs:
               ISSUE_STATE=""
             fi
 
-            # Deleted file
+            # Deleted file — check if task was moved (exists in another folder)
             if [ ! -f "$file" ]; then
               if [ -n "$ISSUE_NUM" ]; then
-                gh issue close "$ISSUE_NUM" --comment "Task file deleted" --reason "not_planned" || true
-                echo "Closed #$ISSUE_NUM"
-                inc closed
+                MOVED_TO=$(find "$TASKS_PATH" -name "${TASK_ID}-*.md" -type f 2>/dev/null | head -1)
+                if [ -n "$MOVED_TO" ]; then
+                  echo "Skipping deleted path (task moved to $MOVED_TO)"
+                else
+                  gh issue close "$ISSUE_NUM" --comment "Task file deleted" --reason "not_planned" || true
+                  echo "Closed #$ISSUE_NUM"
+                  inc closed
+                fi
               fi
               echo "::endgroup::"
               continue
@@ -226,8 +254,9 @@ jobs:
               */live/*)    STATUS_LABEL="completed"; STATUS="Completed" ;;
             esac
 
-            # Build body
+            # Build body with HTML comment metadata for idempotent lookup
             BODY=$(printf '%s\n' \
+              "<!-- 5daydocs-task-id: $TASK_ID -->" \
               "| Field | Value |" \
               "|-------|-------|" \
               "| Status | $STATUS |" \
@@ -251,6 +280,12 @@ jobs:
               if [ -n "$ISSUE_NUM" ]; then
                 echo "Created #$ISSUE_NUM"
                 inc created
+                # Close immediately if task is already completed
+                if [ "$STATUS_LABEL" = "completed" ]; then
+                  gh issue close "$ISSUE_NUM" --reason "completed" || true
+                  echo "Closed #$ISSUE_NUM (completed)"
+                  inc closed
+                fi
               else
                 echo "::error file=$file::Failed to create issue"
                 inc errors
@@ -270,13 +305,12 @@ jobs:
               CUR_STATE=$(echo "$DATA" | jq -r '.state')
 
               # Update labels
-              REMOVE=""
+              LABEL_ARGS=()
               for l in backlog next working review completed; do
-                [[ "$CUR_LABELS" == *"$l"* ]] && [ "$l" != "$STATUS_LABEL" ] && REMOVE="$REMOVE --remove-label $l"
+                [[ "$CUR_LABELS" == *"$l"* ]] && [ "$l" != "$STATUS_LABEL" ] && LABEL_ARGS+=(--remove-label "$l")
               done
-              ADD=""
-              [[ "$CUR_LABELS" != *"$STATUS_LABEL"* ]] && ADD="--add-label $STATUS_LABEL"
-              [ -n "$REMOVE" ] || [ -n "$ADD" ] && eval "gh issue edit $ISSUE_NUM $REMOVE $ADD" 2>/dev/null || true
+              [[ "$CUR_LABELS" != *"$STATUS_LABEL"* ]] && LABEL_ARGS+=(--add-label "$STATUS_LABEL")
+              [ ${#LABEL_ARGS[@]} -gt 0 ] && gh issue edit "$ISSUE_NUM" "${LABEL_ARGS[@]}" 2>/dev/null || true
 
               # State transitions
               if [ "$STATUS_LABEL" = "completed" ] && [ "$CUR_STATE" = "OPEN" ]; then
@@ -290,7 +324,7 @@ jobs:
             fi
 
             echo "::endgroup::"
-          done <<< "${{ steps.files.outputs.files }}"
+          done < /tmp/task_files.txt
 
           echo "created=$(cat /tmp/created)" >> "$GITHUB_OUTPUT"
           echo "updated=$(cat /tmp/updated)" >> "$GITHUB_OUTPUT"
@@ -305,6 +339,7 @@ jobs:
           PROJECT_OWNER: ${{ inputs.project_owner || github.repository_owner }}
           TASKS_PATH: ${{ inputs.tasks_path }}
         run: |
+          set -euo pipefail
           echo "::group::Projects Integration"
 
           # Get project via GraphQL
@@ -374,7 +409,7 @@ jobs:
               fi
               echo "Added Task $TASK_ID to project"
             fi
-          done <<< "${{ steps.files.outputs.files }}"
+          done < /tmp/task_files.txt
 
           echo "::endgroup::"
 
@@ -384,6 +419,7 @@ jobs:
           GH_TOKEN: ${{ secrets.token || secrets.GITHUB_TOKEN }}
           STATE_FILE: ${{ inputs.state_file }}
         run: |
+          set -euo pipefail
           if grep -q '^\*\*SYNC_ALL_TASKS\*\*: true' "$STATE_FILE"; then
             sed -i 's/^\*\*SYNC_ALL_TASKS\*\*: true$/\*\*SYNC_ALL_TASKS\*\*: false/' "$STATE_FILE"
             git config user.name "github-actions[bot]"

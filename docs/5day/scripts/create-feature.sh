@@ -9,6 +9,20 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Escape special characters for sed replacement strings (/, &, \)
+sed_escape() {
+    printf '%s' "$1" | sed 's;[&/\\];\\&;g'
+}
+
+# Portable in-place sed that works on both macOS (BSD) and Linux (GNU)
+sed_inplace() {
+    if sed --version 2>/dev/null | grep -q GNU; then
+        sed -i "$@"
+    else
+        sed -i '' "$@"
+    fi
+}
+
 # Get feature name
 FEATURE_NAME="$1"
 if [ -z "$FEATURE_NAME" ]; then
@@ -137,9 +151,12 @@ Acceptance criteria work best as observable behaviors:
 -->
 EOL
 
-# Replace placeholders
-sed -i '' "s/FEATURE_NAME_PLACEHOLDER/${FEATURE_NAME}/g" "$FEATURE_FILE"
-sed -i '' "s/CREATED_DATE_PLACEHOLDER/$(date +%Y-%m-%d)/g" "$FEATURE_FILE"
+# Replace placeholders (escape user input for sed safety)
+sed_inplace "s/FEATURE_NAME_PLACEHOLDER/$(sed_escape "$FEATURE_NAME")/g" "$FEATURE_FILE"
+sed_inplace "s/CREATED_DATE_PLACEHOLDER/$(date +%Y-%m-%d)/g" "$FEATURE_FILE"
+
+# Stage the changes
+git add "$FEATURE_FILE"
 
 echo -e "${GREEN}Created feature: $FEATURE_FILE${NC}"
 echo ""

@@ -54,6 +54,14 @@ show_help() {
     echo "  status                    Show project status"
     echo "  checkfeatures             Analyze feature alignment"
     echo "  ai-context                Generate AI context summary"
+    echo ""
+    echo -e "${BLUE}Workflow:${NC}"
+    echo "  sprint [count] [focus]    Plan a sprint from backlog tasks"
+    echo "  define [limit]            Review and refine tasks in next/"
+    echo "  tasks [limit]             Execute tasks from next/"
+    echo "  split <path>              Split a large task into subtasks"
+    echo "  audit [dir] [limit] [offset]  Audit backlog tasks"
+    echo ""
     echo "  help                      Show this message"
     echo ""
 }
@@ -122,6 +130,27 @@ cmd_status() {
     fi
 }
 
+cmd_sprint() {
+    run_script "sprint.sh" "$@"
+}
+
+cmd_define() {
+    run_script "define.sh" "$@"
+}
+
+cmd_tasks() {
+    run_script "tasks.sh" "$@"
+}
+
+cmd_split() {
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Task file path required${NC}"; echo "Usage: ./5day.sh split <path/to/task.md>"; exit 1; }
+    run_script "split.sh" "$@"
+}
+
+cmd_audit() {
+    run_script "audit-backlog.sh" "$@"
+}
+
 cmd_checkfeatures() {
     run_script "check-alignment.sh"
 }
@@ -137,6 +166,11 @@ case "${1:-}" in
     newfeature)    shift; cmd_newfeature "$@" ;;
     newbug)        shift; cmd_newbug "$@" ;;
     status)        cmd_status ;;
+    sprint)        shift; cmd_sprint "$@" ;;
+    define)        shift; cmd_define "$@" ;;
+    tasks)         shift; cmd_tasks "$@" ;;
+    split)         shift; cmd_split "$@" ;;
+    audit)         shift; cmd_audit "$@" ;;
     checkfeatures) cmd_checkfeatures ;;
     ai-context)    cmd_ai_context ;;
     help|--help|-h|"") show_help ;;

@@ -218,6 +218,7 @@ ensure_task_folders() {
     safe_mkdir "docs/tasks/backlog"
     safe_mkdir "docs/tasks/next"
     safe_mkdir "docs/tasks/working"
+    safe_mkdir "docs/tasks/blocked"
     safe_mkdir "docs/tasks/review"
     safe_mkdir "docs/tasks/live"
 }
@@ -724,12 +725,99 @@ else
 fi
 
 # ============================================================================
+# HANDLE AI INSTRUCTION FILES
+# ============================================================================
+
+msg_header "Setting up AI instruction files..."
+
+# Fallback content if source templates not found
+AI_FALLBACK='Read `DOCUMENTATION.md` before making any changes. It is the single source of truth for how this project is organized, how tasks are managed, and how to use the 5DayDocs system.'
+
+# setup_ai_file "source_template" "target_path" "display_name"
+# - If target doesn't exist, ask to create it
+# - If target exists without DOCUMENTATION.md reference, prepend automatically
+# - If target already references DOCUMENTATION.md, skip
+setup_ai_file() {
+    local src="$1"
+    local target="$2"
+    local name="$3"
+
+    # Load content from source template or use fallback
+    local content
+    if [ -f "$src" ]; then
+        content=$(cat "$src")
+    else
+        content="$AI_FALLBACK"
+    fi
+
+    if [ ! -f "$target" ]; then
+        echo ""
+        echo "No $name found. Would you like to create one with 5DayDocs instructions? (y/n)"
+        read -r AI_CHOICE
+
+        if [[ "$AI_CHOICE" =~ ^[Yy]$ ]]; then
+            # Ensure parent directory exists
+            local target_dir
+            target_dir="$(dirname "$target")"
+            if [ "$target_dir" != "." ]; then
+                safe_mkdir "$target_dir"
+            fi
+
+            if printf '%s\n' "$content" > "$target" 2>/dev/null; then
+                msg_success "Created $name"
+                ((FILES_COPIED++))
+            else
+                msg_error "Failed to create $name"
+            fi
+        else
+            msg_step "Skipped $name"
+        fi
+    else
+        if grep -q "DOCUMENTATION.md" "$target" 2>/dev/null; then
+            msg_step "$name already references DOCUMENTATION.md"
+        else
+            # Use temp file to avoid clobbering target during prepend
+            local tmpfile
+            tmpfile="$(mktemp "${target}.XXXXXX")" || {
+                msg_error "Failed to create temp file for $name"
+                return 1
+            }
+
+            if { printf '%s\n' "$content"; echo ""; cat "$target"; } > "$tmpfile" 2>/dev/null; then
+                mv -f "$tmpfile" "$target"
+                msg_success "Prepended 5DayDocs reference to $name"
+            else
+                rm -f "$tmpfile"
+                msg_error "Failed to prepend to $name"
+            fi
+        fi
+    fi
+}
+
+# Claude Code
+setup_ai_file "$FIVEDAY_SOURCE_DIR/src/CLAUDE.md" "CLAUDE.md" "CLAUDE.md"
+
+# OpenAI Codex
+setup_ai_file "$FIVEDAY_SOURCE_DIR/src/AGENTS.md" "AGENTS.md" "AGENTS.md"
+
+# GitHub Copilot (only for GitHub-based projects)
+if [ "$PLATFORM" != "bitbucket-jira" ]; then
+    setup_ai_file "$FIVEDAY_SOURCE_DIR/src/copilot-instructions.md" ".github/copilot-instructions.md" ".github/copilot-instructions.md"
+fi
+
+# Cursor
+setup_ai_file "$FIVEDAY_SOURCE_DIR/src/.cursorrules" ".cursorrules" ".cursorrules"
+
+# Windsurf
+setup_ai_file "$FIVEDAY_SOURCE_DIR/src/.windsurfrules" ".windsurfrules" ".windsurfrules"
+
+# ============================================================================
 # CLEANUP LEGACY FILES
 # ============================================================================
 
 # Check for legacy INDEX.md files in task subfolders
 LEGACY_INDEX_FILES=""
-for folder in backlog next working review live; do
+for folder in backlog next working blocked review live; do
     if [ -f "docs/tasks/$folder/INDEX.md" ]; then
         LEGACY_INDEX_FILES="$LEGACY_INDEX_FILES docs/tasks/$folder/INDEX.md"
     fi
@@ -752,7 +840,7 @@ msg_header "Running validation checks..."
 VALIDATION_PASSED=true
 
 # Check required directories
-for dir in docs/tasks/backlog docs/tasks/next docs/tasks/working docs/tasks/review docs/tasks/live docs/bugs docs/5day/scripts docs/features docs/guides; do
+for dir in docs/tasks/backlog docs/tasks/next docs/tasks/working docs/tasks/blocked docs/tasks/review docs/tasks/live docs/bugs docs/5day/scripts docs/features docs/guides; do
     if [ ! -d "$dir" ]; then
         VALIDATION_PASSED=false
         msg_error "Missing directory: $dir"
@@ -832,6 +920,13 @@ else
     echo "  ./5day.sh help            # Show available commands"
     echo "  ./5day.sh newtask \"...\"   # Create a task"
     echo "  ./5day.sh status          # Show task status"
+    echo ""
+    echo "AI workflow commands:"
+    echo "  ./5day.sh sprint          # Plan a sprint from your backlog"
+    echo "  ./5day.sh define          # Break a feature into tasks"
+    echo "  ./5day.sh tasks           # Work the next task with AI"
+    echo "  ./5day.sh split           # Split a large task into smaller ones"
+    echo "  ./5day.sh audit           # Audit backlog for stale or duplicate tasks"
 fi
 
 if [ "$VALIDATION_PASSED" = true ] && [ ${#ERRORS[@]} -eq 0 ]; then

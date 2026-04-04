@@ -28,9 +28,27 @@ The GitHub Actions workflow for syncing 5DayDocs tasks to GitHub Issues had seve
 - [x] Test workflow with real task creation and movement
 
 ## Notes
-All improvements implemented in .github/workflows/sync-tasks-to-issues.yml:
+All improvements implemented in .github/workflows/sync-tasks-reusable.yml:
 - HTML metadata comment enables reliable lookup: <!-- 5daydocs-task-id: ID -->
 - Workflow now idempotent and safe to retry
 - Clear error messages with expected formats
 - Better debugging with structured logging
 - Backwards compatible with existing installations
+
+## Completed
+Implemented all missing resilience improvements in the reusable workflow and caller templates:
+
+**Concurrency control** — Added `concurrency` block (`5daydocs-sync-${{ github.repository }}`, `cancel-in-progress: false`) to prevent race conditions from overlapping workflow runs.
+
+**Strict error handling** — Added `set -euo pipefail` to all `run:` steps (Validate structure, Setup labels, Determine files, Build cache, Sync tasks, Projects integration, Reset bulk sync flag) so undefined variables and failed commands are caught immediately.
+
+**HTML comment metadata for idempotent issue lookup** — Issue bodies now include `<!-- 5daydocs-task-id: {ID} -->`. Cache fetches body field. Lookup first searches by metadata comment, then falls back to title pattern for backwards compatibility with pre-metadata issues.
+
+**Numeric task ID validation** — Added explicit `^[0-9]+$` regex check after extracting task ID.
+
+**Submodule path support** — Added `docs/docs/tasks/**/*.md` to path triggers in both the caller workflow and the distribution template.
+
+### Files changed
+- `.github/workflows/sync-tasks-reusable.yml` — concurrency, set -euo pipefail, HTML metadata in body, metadata-first lookup, numeric ID validation
+- `.github/workflows/sync-tasks-to-issues.yml` — added `docs/docs/tasks/` path trigger
+- `src/templates/workflows/github/sync-tasks-to-issues.yml` — added `docs/docs/tasks/` path trigger

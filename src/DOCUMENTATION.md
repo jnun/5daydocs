@@ -39,6 +39,7 @@ This file governs `docs/`. Read it before modifying any task, bug, or feature.
 | `backlog/` | Planned, not started |
 | `next/` | Queued for current sprint |
 | `working/` | Actively being worked on |
+| `blocked/` | Needs a product owner or engineer decision before work can continue |
 | `review/` | Done, awaiting approval |
 | `live/` | Shipped/complete |
 
@@ -60,6 +61,7 @@ docs/
 │   ├── backlog/        # Planned
 │   ├── next/           # Sprint queue
 │   ├── working/        # In progress
+│   ├── blocked/        # Waiting on decisions
 │   ├── review/         # Awaiting approval
 │   └── live/           # Complete
 ├── bugs/               # Your bug reports
@@ -96,6 +98,8 @@ Tasks move through folders. Use `git mv` or `mv` (then commit):
 ```bash
 git mv docs/tasks/backlog/ID-name.md docs/tasks/next/      # Queue
 git mv docs/tasks/next/ID-name.md docs/tasks/working/      # Start
+git mv docs/tasks/working/ID-name.md docs/tasks/blocked/   # Blocked on decision
+git mv docs/tasks/blocked/ID-name.md docs/tasks/next/      # Unblocked, re-queue
 git mv docs/tasks/working/ID-name.md docs/tasks/review/    # Submit
 git mv docs/tasks/review/ID-name.md docs/tasks/live/       # Complete
 ```

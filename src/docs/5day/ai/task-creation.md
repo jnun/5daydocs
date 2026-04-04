@@ -6,6 +6,8 @@
 
 Tasks define WHAT needs to happen. The implementer chooses HOW. This separation keeps tasks clear for any team member and allows flexibility in implementation.
 
+> **See also:** [Task Writing Rules](task-writing-rules.md) for the complete guide on separating task content from technical details.
+
 ## Why Plain English Works
 
 When tasks describe observable behaviors:

@@ -52,7 +52,7 @@ if [ -z "$DESCRIPTION" ]; then
 fi
 
 # Optional feature name
-FEATURE="$2"
+FEATURE="${2:-}"
 # Convert to kebab-case and validate
 KEBAB_CASE_DESC=$(echo "$DESCRIPTION" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9 -]/ /g' | sed 's/  */-/g' | sed 's/^-//;s/-$//')
 

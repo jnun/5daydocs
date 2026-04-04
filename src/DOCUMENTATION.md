@@ -66,7 +66,8 @@ docs/
 │   └── live/           # Complete
 ├── bugs/               # Your bug reports
 ├── guides/             # Your documentation
-└── tests/              # Your test plans
+├── tests/              # Your test plans
+└── tmp/                # Scratch workspace (gitignored)
 ```
 
 ## Creating Work
@@ -83,12 +84,26 @@ Each command creates a file with inline guidance. Fill in the sections, then com
 ## Commands
 
 ```bash
+# Creating work
 ./5day.sh newidea "My rough idea"   # Create idea to refine
 ./5day.sh newfeature "Name"         # Create feature
 ./5day.sh newtask "Description"     # Create task
 ./5day.sh newbug "Description"      # Report a bug
-./5day.sh status                    # View work
-./5day.sh help                      # All commands
+./5day.sh status                    # View project status
+./5day.sh checkfeatures             # Analyze feature alignment
+./5day.sh ai-context                # Generate AI context summary
+
+# Workflow (AI-powered — requires Claude CLI)
+./5day.sh sprint [count] [focus]    # Plan a sprint from backlog
+./5day.sh define [limit]            # Review and refine tasks in next/
+./5day.sh tasks [limit]             # Execute tasks from next/
+./5day.sh split <path>              # Split a large task into subtasks
+./5day.sh audit [folder] [limit] [offset]  # Audit tasks (backlog, next, etc.)
+
+# Maintenance
+./5day.sh validate [--fix]          # Validate task files against template
+./5day.sh cleanup [--delete|--all]  # Clean stale files from docs/tmp/
+./5day.sh help                      # Show all commands
 ```
 
 ## Moving Tasks
@@ -111,7 +126,7 @@ If `git mv` fails, use `mv` and commit the change.
 | Type | Format | Example |
 |------|--------|---------|
 | Task | `ID-description.md` | `12-fix-auth-error.md` |
-| Bug | `BUG-ID-description.md` | `BUG-3-login-fails.md` |
+| Bug | `ID-description.md` | `3-login-fails.md` |
 | Feature/Idea | `name.md` | `user-authentication.md` |
 
 IDs come from `STATE.md` (5DAY_TASK_ID for tasks, 5DAY_BUG_ID for bugs).

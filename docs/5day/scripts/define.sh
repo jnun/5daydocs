@@ -30,7 +30,7 @@ set -euo pipefail
 NEXT_DIR="docs/tasks/next"
 BLOCKED_DIR="docs/tasks/blocked"
 REVIEW_DIR="docs/tasks/review"
-LOG_DIR="tmp"
+LOG_DIR="docs/tmp"
 MAX_TASKS="${1:-999}"
 
 MODEL="opus"
@@ -62,7 +62,7 @@ for dir in "$NEXT_DIR" "$BLOCKED_DIR" "$REVIEW_DIR"; do
   fi
 done
 
-TASK_FILES=($(ls -1 "$NEXT_DIR"/*.md 2>/dev/null | sort -V))
+TASK_FILES=($(ls -1 "$NEXT_DIR"/*.md 2>/dev/null | sed 's|.*/||' | sort -t- -k1,1n | sed "s|^|$NEXT_DIR/|")) || true
 
 if [ ${#TASK_FILES[@]} -eq 0 ]; then
   echo "No tasks in $NEXT_DIR"
@@ -158,7 +158,7 @@ You may only use Edit/Write on the task file at $NEXT_DIR/$TASK_NAME. Do not cre
     --permission-mode "$PERMISSIONS" \
     --max-turns "$MAX_TURNS" \
     --output-format json \
-    --no-session-persistence | tee "$LOG_FILE"; then
+    --no-session-persistence > "$LOG_FILE"; then
 
     # Check the task file for the verdict
     if ! grep -q "Status:" "$NEXT_DIR/$TASK_NAME" 2>/dev/null; then

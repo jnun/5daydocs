@@ -15,6 +15,10 @@ desktop.ini
 \#*\#
 .\#*
 
+# Scratch workspace — a place to think before committing
+docs/tmp/*
+!docs/tmp/.gitkeep
+
 # Temporary Files
 *.tmp
 *.temp

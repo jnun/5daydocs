@@ -4,8 +4,10 @@ Thumbs.db
 desktop.ini
 *.lnk
 
-# Temporary workspace kept out of git for noise reduction
+# Temporary workspaces — scratch notes and AI logs, never committed
 tmp/
+docs/tmp/*
+!docs/tmp/.gitkeep
 
 # Editor Files
 .vscode/

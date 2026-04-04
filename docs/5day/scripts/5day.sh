@@ -33,11 +33,13 @@ count_files() {
 run_script() {
     local script="$PROJECT_ROOT/docs/5day/scripts/$1"
     shift
-    if [ -x "$script" ]; then
+    if [ ! -f "$script" ]; then
+        echo -e "${RED}ERROR: Script not found: $script${NC}"
+        exit 1
+    elif [ -x "$script" ]; then
         "$script" "$@"
     else
-        echo -e "${RED}ERROR: $script not found or not executable${NC}"
-        exit 1
+        bash "$script" "$@"
     fi
 }
 
@@ -60,7 +62,11 @@ show_help() {
     echo "  define [limit]            Review and refine tasks in next/"
     echo "  tasks [limit]             Execute tasks from next/"
     echo "  split <path>              Split a large task into subtasks"
-    echo "  audit [dir] [limit] [offset]  Audit backlog tasks"
+    echo "  audit [folder|file] [limit] [offset]  Audit tasks or a single file"
+    echo ""
+    echo -e "${BLUE}Maintenance:${NC}"
+    echo "  validate [--fix] [--dry-run]  Validate task files against template"
+    echo "  cleanup [--delete|--all]      Clean stale scratch files"
     echo ""
     echo "  help                      Show this message"
     echo ""
@@ -108,6 +114,14 @@ cmd_status() {
         echo -e "${BLUE}Ideas:${NC}  $(count_files "docs/ideas/*.md")"
     fi
 
+    if [ -d "docs/bugs" ]; then
+        local bug_count=$(find docs/bugs -maxdepth 1 -name "[0-9]*.md" 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$bug_count" -gt 0 ]; then
+            echo ""
+            echo -e "${BLUE}Bugs:${NC}   $bug_count open"
+        fi
+    fi
+
     if [ -d "docs/features" ] && ls docs/features/*.md >/dev/null 2>&1; then
         echo ""
         echo -e "${BLUE}Features:${NC}"
@@ -143,6 +157,14 @@ cmd_audit() {
     run_script "audit-backlog.sh" "$@"
 }
 
+cmd_validate() {
+    run_script "validate-tasks.sh" "$@"
+}
+
+cmd_cleanup() {
+    run_script "cleanup-tmp.sh" "$@"
+}
+
 cmd_checkfeatures() {
     run_script "check-alignment.sh"
 }
@@ -163,6 +185,8 @@ case "${1:-}" in
     tasks)         shift; cmd_tasks "$@" ;;
     split)         shift; cmd_split "$@" ;;
     audit)         shift; cmd_audit "$@" ;;
+    validate)      shift; cmd_validate "$@" ;;
+    cleanup)       shift; cmd_cleanup "$@" ;;
     checkfeatures) cmd_checkfeatures ;;
     ai-context)    cmd_ai_context ;;
     help|--help|-h|"") show_help ;;

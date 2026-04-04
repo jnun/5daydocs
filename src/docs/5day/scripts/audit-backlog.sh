@@ -2,14 +2,62 @@
 # shellcheck disable=SC2207
 set -euo pipefail
 
-# Audit backlog tasks using Claude Code CLI
-# Usage: ./audit-backlog.sh [backlog_dir] [limit] [offset]
+# Audit tasks using Claude Code CLI
+# Usage: ./audit-backlog.sh [folder] [limit] [offset]
+#   folder: backlog (default), next, working, blocked — or a full path
+#   review and live are not auditable (completed work)
 
-dir="${1:-docs/tasks/backlog}"
+folder="${1:-backlog}"
 limit="${2:-0}"       # 0 = no limit
 offset="${3:-0}"      # skip first N tasks
+
+# Resolve folder name to path
+case "$folder" in
+    backlog|next|working|blocked)
+        dir="docs/tasks/$folder"
+        ;;
+    review|live)
+        echo "Error: Cannot audit $folder/ — those are completed tasks." >&2
+        echo "Audit is for finding stale, done, or undefined work in backlog or next." >&2
+        exit 1
+        ;;
+    *)
+        # Treat as a direct path for backwards compatibility
+        dir="$folder"
+        ;;
+esac
+
+# Support single-file audit: ./5day.sh audit path/to/task.md
+single_file=""
+if [ -f "$dir" ]; then
+    single_file="$dir"
+elif [ ! -d "$dir" ]; then
+    echo "Error: Not found: $dir" >&2
+    exit 1
+fi
 timeout_sec=120       # kill hung claude calls after this
 claude_bin=$(command -v claude 2>/dev/null) || { echo "Error: 'claude' not found in PATH. Install Claude Code CLI and ensure it is in your PATH." >&2; exit 1; }
+
+# Portable timeout: macOS lacks coreutils timeout
+if command -v timeout &>/dev/null; then
+  run_with_timeout() { timeout "${timeout_sec}s" "$@"; }
+elif command -v gtimeout &>/dev/null; then
+  run_with_timeout() { gtimeout "${timeout_sec}s" "$@"; }
+else
+  run_with_timeout() {
+    "$@" &
+    local pid=$!
+    ( sleep "$timeout_sec" && kill "$pid" 2>/dev/null ) &
+    local watcher=$!
+    wait "$pid" 2>/dev/null
+    local ret=$?
+    # Kill watcher and its child sleep to avoid orphaned processes
+    kill "$watcher" 2>/dev/null
+    pkill -P "$watcher" 2>/dev/null
+    wait "$watcher" 2>/dev/null
+    return $ret
+  }
+fi
 
 review_dir="docs/tasks/review"
 blocked_dir="docs/tasks/blocked"
@@ -28,15 +76,19 @@ sed_inplace() {
 }
 
 # Get sorted list of numbered task files
-IFS=$'\n' files=($(
-  find "$dir" -maxdepth 1 -type f -name '*.md' -exec basename {} \; \
-    | awk -F- '/^[0-9]+-/ { print $0 }' \
-    | sort -t- -k1,1n \
-    | if [ "$offset" -gt 0 ]; then tail -n +"$((offset + 1))"; else cat; fi \
-    | if [ "$limit" -gt 0 ]; then head -"$limit"; else cat; fi \
-    | sed "s|^|$dir/|"
-))
-unset IFS
+if [ -n "$single_file" ]; then
+  files=("$single_file")
+else
+  IFS=$'\n' files=($(
+    find "$dir" -maxdepth 1 -type f -name '*.md' -exec basename {} \; \
+      | awk -F- '/^[0-9]+-/ { print $0 }' \
+      | sort -t- -k1,1n \
+      | if [ "$offset" -gt 0 ]; then tail -n +"$((offset + 1))"; else cat; fi \
+      | if [ "$limit" -gt 0 ]; then head -"$limit"; else cat; fi \
+      | sed "s|^|$dir/|"
+  ))
+  unset IFS
+fi
 
 total=${#files[@]}
 echo "=== Backlog Audit: $total tasks (${timeout_sec}s timeout) ==="
@@ -51,7 +103,7 @@ for i in "${!files[@]}"; do
   echo "[$idx/$total] Auditing: $taskname"
 
   # Run claude with timeout
-  verdict=$(timeout "${timeout_sec}s" "$claude_bin" -p --model sonnet \
+  verdict=$(run_with_timeout "$claude_bin" -p --model sonnet --dangerously-skip-permissions \
     "You are auditing a backlog task file.
 
 CLAUDE.md is auto-loaded with project context and conventions.

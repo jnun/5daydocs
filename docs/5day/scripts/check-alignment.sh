@@ -44,7 +44,8 @@ is_valid_status() {
 echo -e "${CYAN}${BOLD}Analyzing Features:${NC}\n"
 
 for feature_file in docs/features/*.md; do
-    # Skip template
+    # Skip if glob didn't match or is template
+    [ -f "$feature_file" ] || continue
     if [[ "$feature_file" == *"TEMPLATE"* ]]; then
         continue
     fi

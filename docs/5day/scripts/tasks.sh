@@ -30,7 +30,7 @@ set -euo pipefail
 NEXT_DIR="docs/tasks/next"
 WORKING_DIR="docs/tasks/working"
 REVIEW_DIR="docs/tasks/review"
-LOG_DIR="tmp"
+LOG_DIR="docs/tmp"
 MAX_TASKS="${1:-999}"
 
 MODEL="opus"
@@ -62,7 +62,7 @@ for dir in "$NEXT_DIR" "$WORKING_DIR" "$REVIEW_DIR"; do
   fi
 done
 
-TASK_FILES=($(ls -1 "$NEXT_DIR"/*.md 2>/dev/null | sort -V))
+TASK_FILES=($(ls -1 "$NEXT_DIR"/*.md 2>/dev/null | sed 's|.*/||' | sort -t- -k1,1n | sed "s|^|$NEXT_DIR/|")) || true
 
 if [ ${#TASK_FILES[@]} -eq 0 ]; then
   echo "No tasks in $NEXT_DIR"
@@ -129,7 +129,7 @@ Instructions:
     --permission-mode "$PERMISSIONS" \
     --max-turns "$MAX_TURNS" \
     --output-format json \
-    --no-session-persistence | tee "$LOG_FILE"; then
+    --no-session-persistence > "$LOG_FILE"; then
 
     # Check for ## Completed section before promoting to review
     if grep -q '^## Completed' "$WORKING_DIR/$TASK_NAME"; then

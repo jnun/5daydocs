@@ -26,7 +26,7 @@ MODEL="opus"
 TOOLS="Read,Bash,Grep,Glob,Edit,Write"
 PERMISSIONS="auto"
 MAX_TURNS=60
-LOG_DIR="tmp"
+LOG_DIR="docs/tmp"
 
 # ── Preflight ───────────────────────────────────────────────────────
 
@@ -104,6 +104,7 @@ LOG_FILE="$LOG_DIR/log-split-${TASK_NAME%.md}-$TIMESTAMP.json"
 
 # Timestamp marker created before the run so -newer has no same-second race
 SPLIT_MARKER=$(mktemp)
+trap 'rm -f "$SPLIT_MARKER"' EXIT
 
 if claude -p "$PROMPT" \
   --model "$MODEL" \
@@ -111,11 +112,10 @@ if claude -p "$PROMPT" \
   --permission-mode "$PERMISSIONS" \
   --max-turns "$MAX_TURNS" \
   --output-format json \
-  --no-session-persistence | tee "$LOG_FILE"; then
+  --no-session-persistence > "$LOG_FILE"; then
 
   # Verify sub-tasks were actually created before deleting the original
   NEW_TASKS=$(find docs/tasks/backlog -maxdepth 1 -name "*.md" -newer "$SPLIT_MARKER" 2>/dev/null | wc -l | tr -d ' ')
-  rm -f "$SPLIT_MARKER"
 
   if [ "$NEW_TASKS" -gt 0 ]; then
     # Delete the original — it's been replaced by atomic sub-tasks

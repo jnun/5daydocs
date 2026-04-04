@@ -1,0 +1,29 @@
+=== Backlog Audit started Sat Apr  4 12:23:14 CDT 2026 ===
+TIMEOUT | 30-jira-integration.md | No response (timed out after 120s)
+TIMEOUT | 36-research-bitbucket-jira-integration-requirements.md | No response (timed out after 120s)
+TIMEOUT | 37-create-bitbucket-pipelines-config.md | No response (timed out after 120s)
+TIMEOUT | 38-setup-script-copy-bitbucket-files.md | No response (timed out after 120s)
+TIMEOUT | 39-create-jira-sync-scripts.md | No response (timed out after 120s)
+=== Backlog Audit started Sat Apr  4 12:23:27 CDT 2026 ===
+TIMEOUT | 30-jira-integration.md | No response (timed out after 120s)
+TIMEOUT | 36-research-bitbucket-jira-integration-requirements.md | No response (timed out after 120s)
+TIMEOUT | 37-create-bitbucket-pipelines-config.md | No response (timed out after 120s)
+TIMEOUT | 38-setup-script-copy-bitbucket-files.md | No response (timed out after 120s)
+TIMEOUT | 39-create-jira-sync-scripts.md | No response (timed out after 120s)
+=== Backlog Audit started Sat Apr  4 12:25:16 CDT 2026 ===
+TIMEOUT | 30-jira-integration.md | No response (timed out after 120s)
+TIMEOUT | 36-research-bitbucket-jira-integration-requirements.md | No response (timed out after 120s)
+TIMEOUT | 37-create-bitbucket-pipelines-config.md | No response (timed out after 120s)
+TIMEOUT | 38-setup-script-copy-bitbucket-files.md | No response (timed out after 120s)
+TIMEOUT | 39-create-jira-sync-scripts.md | No response (timed out after 120s)
+=== Backlog Audit started Sat Apr  4 12:33:02 CDT 2026 ===
+DONE | 30-jira-integration.md | DONE - All success criteria are checked off and the referenced documentation files exist in the codebase.
+KEEP | 36-research-bitbucket-jira-integration-requirements.md | KEEP - The Bitbucket+Jira option is still marked "coming soon" in setup.sh and no research document exists yet.
+KEEP | 37-create-bitbucket-pipelines-config.md | KEEP - Bitbucket is wired in setup.sh but the `src/templates/bitbucket-pipelines.yml` template it references does not exist yet.
+DONE | 38-setup-script-copy-bitbucket-files.md | DONE - setup.sh already copies bitbucket-pipelines.yml and has platform-specific Bitbucket setup logic in place.
+DONE | 39-create-jira-sync-scripts.md | DONE - Jira sync scripts exist in `src/templates/workflows/bitbucket/pipelines-jira.yml` and `src/templates/workflows/github/sync-tasks-to-issues.yml`, covering both environments with issue creation, state transitions, and secure auth.
+=== Backlog Audit started Sat Apr  4 13:00:40 CDT 2026 ===
+OUTDATED | 36-research-bitbucket-jira-integration-requirements.md | OUTDATED - The task was to research and spec out Bitbucket+Jira integration, but setup.sh already has partial implementation for it (marked "coming soon"), making the pure research framing no longer accurate — tasks 30, 38, and 39 (now in review) cover the actual implementation work.
+=== Backlog Audit started Sat Apr  4 13:03:19 CDT 2026 ===
+UNDEFINED | 141-create-tests-for-scripts-from-new-task-to-tasks-th.md | UNDEFINED - The task has no problem statement or success criteria filled in — it's an empty template.
+=== Backlog Audit started Sat Apr  4 13:30:31 CDT 2026 ===

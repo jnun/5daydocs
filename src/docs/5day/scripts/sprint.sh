@@ -3,7 +3,7 @@
 # STEP 1 of 3 — Sprint Planning
 #
 # Scans docs/tasks/backlog/, reads the codebase to check
-# what's still relevant, and writes a sprint plan to tmp/sprint-plan.md.
+# what's still relevant, and writes a sprint plan to docs/tmp/sprint-plan.md.
 #
 # The plan includes:
 #   - Grouped tasks that form a coherent sprint
@@ -24,7 +24,7 @@
 #   - A parent ref: "parent:425" — finds all sub-tasks split from task 425
 #
 # After running:
-#   1. Review tmp/sprint-plan.md
+#   1. Review docs/tmp/sprint-plan.md
 #   2. Approve the move when prompted (or run commands from the plan manually)
 #   3. Run docs/5day/scripts/define.sh to review the queued tasks
 #
@@ -33,7 +33,7 @@ set -euo pipefail
 
 BACKLOG_DIR="docs/tasks/backlog"
 NEXT_DIR="docs/tasks/next"
-PLAN_FILE="tmp/sprint-plan.md"
+PLAN_FILE="docs/tmp/sprint-plan.md"
 SPRINT_SIZE="${1:-5}"
 FOCUS="${2:-}"
 
@@ -86,8 +86,8 @@ CHILD_FILES=""
 if [[ "$FOCUS" == parent:* ]]; then
   PARENT_ID="${FOCUS#parent:}"
   # Pre-find children so the AI doesn't have to search 300+ files
-  CHILD_FILES=$(grep -l "Task $PARENT_ID\|parent.*$PARENT_ID" "$BACKLOG_DIR"/*.md 2>/dev/null | sort | xargs -I{} basename {} | tr '\n' ', ')
-  CHILD_COUNT=$(grep -l "Task $PARENT_ID\|parent.*$PARENT_ID" "$BACKLOG_DIR"/*.md 2>/dev/null | wc -l | tr -d ' ')
+  CHILD_FILES=$(grep -rl "Task $PARENT_ID\|parent.*$PARENT_ID" "$BACKLOG_DIR"/ 2>/dev/null | sort | while read -r f; do basename "$f"; done | tr '\n' ', ') || CHILD_FILES=""
+  CHILD_COUNT=$(grep -rl "Task $PARENT_ID\|parent.*$PARENT_ID" "$BACKLOG_DIR"/ 2>/dev/null | wc -l | tr -d ' ') || CHILD_COUNT=0
   FOCUS_INSTRUCTION="
 PARENT TASK FILTER: This sprint is composed of sub-tasks split from parent Task $PARENT_ID.
 There are $CHILD_COUNT child tasks. Here are their filenames — include ALL of them:

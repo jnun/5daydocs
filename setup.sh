@@ -425,6 +425,7 @@ safe_mkdir "docs/5day/ai"
 safe_mkdir "docs/features"
 safe_mkdir "docs/guides"
 safe_mkdir "docs/tests"
+safe_mkdir "docs/tmp"
 
 # Platform-specific directories
 if [ "$PLATFORM" != "bitbucket-jira" ]; then
@@ -917,16 +918,10 @@ else
     echo "Documentation at DOCUMENTATION.md"
     echo ""
     echo "Get started:"
-    echo "  ./5day.sh help            # Show available commands"
+    echo "  ./5day.sh help            # Show all commands"
     echo "  ./5day.sh newtask \"...\"   # Create a task"
-    echo "  ./5day.sh status          # Show task status"
-    echo ""
-    echo "AI workflow commands:"
-    echo "  ./5day.sh sprint          # Plan a sprint from your backlog"
-    echo "  ./5day.sh define          # Break a feature into tasks"
-    echo "  ./5day.sh tasks           # Work the next task with AI"
-    echo "  ./5day.sh split           # Split a large task into smaller ones"
-    echo "  ./5day.sh audit           # Audit backlog for stale or duplicate tasks"
+    echo "  ./5day.sh newbug \"...\"    # Report a bug"
+    echo "  ./5day.sh status          # Show project status"
 fi
 
 if [ "$VALIDATION_PASSED" = true ] && [ ${#ERRORS[@]} -eq 0 ]; then

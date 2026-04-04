@@ -140,7 +140,7 @@ validate_and_fix_task() {
 
     # Attempt to fix if requested
     if [ "$FIX_MODE" = true ]; then
-        echo "  ${BLUE}🔧 Attempting to fix...${NC}"
+        printf "  ${BLUE}🔧 Attempting to fix...${NC}\n"
 
         if fix_task_file "$file" "$task_id"; then
             FIXED_FILES=$((FIXED_FILES + 1))

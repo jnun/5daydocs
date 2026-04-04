@@ -56,11 +56,16 @@ show_help() {
     echo "  ai-context                Generate AI context summary"
     echo ""
     echo -e "${BLUE}Workflow:${NC}"
+    echo "  plan <task-id>            Interactive Q&A to define an incomplete task"
     echo "  sprint [count] [focus]    Plan a sprint from backlog tasks"
     echo "  define [limit]            Review and refine tasks in next/"
     echo "  tasks [limit]             Execute tasks from next/"
     echo "  split <path>              Split a large task into subtasks"
-    echo "  audit [dir] [limit] [offset]  Audit backlog tasks"
+    echo "  audit [folder] [limit] [offset]  Audit tasks (backlog, next, etc.)"
+    echo ""
+    echo -e "${BLUE}Maintenance:${NC}"
+    echo "  validate [--fix] [--dry-run]  Validate task files against template"
+    echo "  cleanup [--delete|--all]      Clean stale scratch files"
     echo ""
     echo "  help                      Show this message"
     echo ""
@@ -79,11 +84,6 @@ cmd_newtask() {
 cmd_newfeature() {
     [ -z "$1" ] && { echo -e "${RED}ERROR: Feature name required${NC}"; exit 1; }
     run_script "create-feature.sh" "$1"
-}
-
-cmd_newbug() {
-    [ -z "$1" ] && { echo -e "${RED}ERROR: Bug description required${NC}"; exit 1; }
-    run_script "create-bug.sh" "$1"
 }
 
 cmd_status() {
@@ -130,6 +130,16 @@ cmd_status() {
     fi
 }
 
+cmd_newbug() {
+    [ -z "$1" ] && { echo -e "${RED}ERROR: Bug description required${NC}"; exit 1; }
+    run_script "create-bug.sh" "$1"
+}
+
+cmd_plan() {
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Task ID required${NC}"; echo "Usage: ./5day.sh plan <task-id>"; exit 1; }
+    run_script "plan.sh" "$@"
+}
+
 cmd_sprint() {
     run_script "sprint.sh" "$@"
 }
@@ -151,6 +161,14 @@ cmd_audit() {
     run_script "audit-backlog.sh" "$@"
 }
 
+cmd_validate() {
+    run_script "validate-tasks.sh" "$@"
+}
+
+cmd_cleanup() {
+    run_script "cleanup-tmp.sh" "$@"
+}
+
 cmd_checkfeatures() {
     run_script "check-alignment.sh"
 }
@@ -166,11 +184,14 @@ case "${1:-}" in
     newfeature)    shift; cmd_newfeature "$@" ;;
     newbug)        shift; cmd_newbug "$@" ;;
     status)        cmd_status ;;
+    plan)          shift; cmd_plan "$@" ;;
     sprint)        shift; cmd_sprint "$@" ;;
     define)        shift; cmd_define "$@" ;;
     tasks)         shift; cmd_tasks "$@" ;;
     split)         shift; cmd_split "$@" ;;
     audit)         shift; cmd_audit "$@" ;;
+    validate)      shift; cmd_validate "$@" ;;
+    cleanup)       shift; cmd_cleanup "$@" ;;
     checkfeatures) cmd_checkfeatures ;;
     ai-context)    cmd_ai_context ;;
     help|--help|-h|"") show_help ;;

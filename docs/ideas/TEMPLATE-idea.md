@@ -22,37 +22,48 @@ This document helps refine a rough idea into a clear definition.
 
 ## Phase 1: The Problem
 
-<!-- What problem does this solve? Who has this problem?
-     What happens if we don't solve it? Be specific about the pain point. -->
+<!-- What problem does this solve? Who specifically has this problem?
+     What happens if we don't solve it? Be specific about the pain point.
+     Name a real person or role who would benefit. -->
 
+**The problem:**
 
+**Who has it:**
+
+**What happens without it:**
 
 ---
 
 ## Phase 2: Plain English
 
 <!-- Describe this idea so anyone on the team can understand it.
-     Use everyday language. If you catch yourself using jargon, rephrase it. -->
+     Use everyday language. If you catch yourself using jargon, rephrase it.
+     Could a new hire with no project context understand this? -->
 
 
 
 ---
 
-## Phase 3: What It Does
+## Phase 3: Decomposition
 
-<!-- List concrete capabilities this idea enables.
-     Each should be something you can demonstrate or test. -->
+<!-- Break this idea into its smallest parts. For each part, tag it:
+     [READY]    - Clear enough to become a task right now
+     [RESEARCH] - Needs investigation before it can move forward
+     [BLOCKED]  - Depends on something else being resolved first
 
-- [ ]
-- [ ]
-- [ ]
+     If a part feels too big, break it down further. -->
+
+- [ ] `[READY]`
+- [ ] `[RESEARCH]`
+- [ ] `[BLOCKED]`
 
 ---
 
 ## Phase 4: Open Questions
 
-<!-- What's still unclear? What needs research? What assumptions are we making?
-     It's good to capture uncertainty here. -->
+<!-- What's still unclear? What assumptions are we making?
+     List anything tagged [RESEARCH] or [BLOCKED] above and what
+     needs to happen to resolve it. -->
 
 -
 
@@ -61,3 +72,19 @@ This document helps refine a rough idea into a clear definition.
 ## Notes
 
 <!-- Any additional context, links, or references. -->
+
+---
+
+## Ready to Graduate?
+
+Before promoting this idea to a feature, verify:
+
+- [ ] Phase 1 names a specific person or role who benefits
+- [ ] Phase 2 is understandable by someone with no project context
+- [ ] Phase 3 has no unresolved `[BLOCKED]` items
+- [ ] Phase 3 has no unresolved `[RESEARCH]` items
+- [ ] Every `[READY]` item is small enough to be a single task
+
+```bash
+./5day.sh promote [idea-name]
+```

@@ -10,7 +10,6 @@ on:
   push:
     paths:
       - 'docs/tasks/**/*.md'
-      - 'docs/docs/tasks/**/*.md'
       - 'docs/STATE.md'
     branches:
       - main

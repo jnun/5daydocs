@@ -91,6 +91,7 @@ jobs:
             ["backlog"]="E4E669:Task in backlog"
             ["next"]="FFA500:Task queued"
             ["working"]="0E8A16:Task in progress"
+            ["blocked"]="D93F0B:Task blocked"
             ["review"]="C2E0C6:Task in review"
             ["completed"]="98FB98:Task completed"
           )
@@ -187,7 +188,7 @@ jobs:
             echo "::group::$file"
 
             # Validate pattern
-            if [[ ! "$file" =~ ^$TASKS_PATH/(backlog|next|working|review|live)/[0-9]+-.*\.md$ ]]; then
+            if [[ ! "$file" =~ ^$TASKS_PATH/(backlog|next|working|blocked|review|live)/[0-9]+-.*\.md$ ]]; then
               echo "::warning::Unexpected pattern: $file"
               echo "::endgroup::"
               continue
@@ -250,6 +251,7 @@ jobs:
               */backlog/*) STATUS_LABEL="backlog"; STATUS="Backlog" ;;
               */next/*)    STATUS_LABEL="next"; STATUS="Next" ;;
               */working/*) STATUS_LABEL="working"; STATUS="Working" ;;
+              */blocked/*) STATUS_LABEL="blocked"; STATUS="Blocked" ;;
               */review/*)  STATUS_LABEL="review"; STATUS="In Review" ;;
               */live/*)    STATUS_LABEL="completed"; STATUS="Completed" ;;
             esac
@@ -306,7 +308,7 @@ jobs:
 
               # Update labels
               LABEL_ARGS=()
-              for l in backlog next working review completed; do
+              for l in backlog next working blocked review completed; do
                 [[ "$CUR_LABELS" == *"$l"* ]] && [ "$l" != "$STATUS_LABEL" ] && LABEL_ARGS+=(--remove-label "$l")
               done
               [[ "$CUR_LABELS" != *"$STATUS_LABEL"* ]] && LABEL_ARGS+=(--add-label "$STATUS_LABEL")
@@ -394,6 +396,7 @@ jobs:
                 */backlog/*) SNAME="Backlog" ;;
                 */next/*)    SNAME="Todo" ;;
                 */working/*) SNAME="Working" ;;
+                */blocked/*) SNAME="Blocked" ;;
                 */review/*)  SNAME="In Review" ;;
                 */live/*)    SNAME="Done" ;;
                 *)           SNAME="" ;;

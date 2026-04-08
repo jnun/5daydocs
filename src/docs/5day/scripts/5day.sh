@@ -63,6 +63,9 @@ show_help() {
     echo "  split <path>              Split a large task into subtasks"
     echo "  audit [folder] [limit] [offset]  Audit tasks (backlog, next, etc.)"
     echo ""
+    echo -e "${BLUE}Sync:${NC}"
+    echo "  sync [--all]                  Push task changes to GitHub"
+    echo ""
     echo -e "${BLUE}Maintenance:${NC}"
     echo "  validate [--fix] [--dry-run]  Validate task files against template"
     echo "  cleanup [--delete|--all]      Clean stale scratch files"
@@ -169,6 +172,10 @@ cmd_cleanup() {
     run_script "cleanup-tmp.sh" "$@"
 }
 
+cmd_sync() {
+    run_script "sync.sh" "$@"
+}
+
 cmd_checkfeatures() {
     run_script "check-alignment.sh"
 }
@@ -190,6 +197,7 @@ case "${1:-}" in
     tasks)         shift; cmd_tasks "$@" ;;
     split)         shift; cmd_split "$@" ;;
     audit)         shift; cmd_audit "$@" ;;
+    sync)          shift; cmd_sync "$@" ;;
     validate)      shift; cmd_validate "$@" ;;
     cleanup)       shift; cmd_cleanup "$@" ;;
     checkfeatures) cmd_checkfeatures ;;

@@ -53,9 +53,7 @@ This document helps refine a rough idea into a clear definition.
 
      If a part feels too big, break it down further. -->
 
-- [ ] `[READY]`
-- [ ] `[RESEARCH]`
-- [ ] `[BLOCKED]`
+- [ ] `[READY]` (example — replace with your items)
 
 ---
 

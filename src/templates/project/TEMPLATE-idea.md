@@ -54,9 +54,7 @@ This document helps refine a rough idea into a clear definition.
 
      If a part feels too big, break it down further. -->
 
-- [ ] `[READY]`
-- [ ] `[RESEARCH]`
-- [ ] `[BLOCKED]`
+- [ ] `[READY]` (example — replace with your items)
 
 ---
 
@@ -73,3 +71,19 @@ This document helps refine a rough idea into a clear definition.
 ## Notes
 
 <!-- Any additional context, links, or references. -->
+
+---
+
+## Ready to Graduate?
+
+Before promoting this idea to a feature, verify:
+
+- [ ] Phase 1 names a specific person or role who benefits
+- [ ] Phase 2 is understandable by someone with no project context
+- [ ] Phase 3 has no unresolved `[BLOCKED]` items
+- [ ] Phase 3 has no unresolved `[RESEARCH]` items
+- [ ] Every `[READY]` item is small enough to be a single task
+
+```bash
+./5day.sh promote [idea-name]
+```

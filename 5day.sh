@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eu
 
 # 5day - Five Day Docs CLI
 
@@ -33,11 +33,18 @@ count_files() {
 run_script() {
     local script="$PROJECT_ROOT/docs/5day/scripts/$1"
     shift
-    if [ -x "$script" ]; then
+    if [ ! -f "$script" ]; then
+        echo -e "${RED}ERROR: Script not found: $script${NC}"
+        exit 1
+    elif [ -x "$script" ]; then
         "$script" "$@"
     else
-        echo -e "${RED}ERROR: $script not found or not executable${NC}"
-        exit 1
+        # Fallback for filesystems that don't preserve the exec bit
+        # (Windows volumes under WSL, Docker mounts, FAT32, some NFS/SMB,
+        # git on Windows with core.fileMode=false, etc.). On those hosts
+        # setup.sh's chmod +x silently no-ops, so we run via bash directly
+        # rather than failing every command.
+        bash "$script" "$@"
     fi
 }
 
@@ -61,7 +68,7 @@ show_help() {
     echo "  define [limit]            Review and refine tasks in next/"
     echo "  tasks [limit]             Execute tasks from next/"
     echo "  split <path>              Split a large task into subtasks"
-    echo "  audit [folder] [limit] [offset]  Audit tasks (backlog, next, etc.)"
+    echo "  audit [folder|file] [limit] [offset]  Audit tasks or a single file"
     echo ""
     echo -e "${BLUE}Sync:${NC}"
     echo "  sync [--all]                  Push task changes to GitHub"
@@ -75,17 +82,17 @@ show_help() {
 }
 
 cmd_newidea() {
-    [ -z "$1" ] && { echo -e "${RED}ERROR: Idea name required${NC}"; exit 1; }
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Idea name required${NC}"; exit 1; }
     run_script "create-idea.sh" "$1"
 }
 
 cmd_newtask() {
-    [ -z "$1" ] && { echo -e "${RED}ERROR: Task description required${NC}"; exit 1; }
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Task description required${NC}"; exit 1; }
     run_script "create-task.sh" "$1"
 }
 
 cmd_newfeature() {
-    [ -z "$1" ] && { echo -e "${RED}ERROR: Feature name required${NC}"; exit 1; }
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Feature name required${NC}"; exit 1; }
     run_script "create-feature.sh" "$1"
 }
 
@@ -134,7 +141,7 @@ cmd_status() {
 }
 
 cmd_newbug() {
-    [ -z "$1" ] && { echo -e "${RED}ERROR: Bug description required${NC}"; exit 1; }
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Bug description required${NC}"; exit 1; }
     run_script "create-bug.sh" "$1"
 }
 

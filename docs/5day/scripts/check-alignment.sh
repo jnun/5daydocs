@@ -20,18 +20,6 @@ echo -e "================================================${NC}\n"
 # Track if we found any issues
 ISSUES_FOUND=0
 
-# Function to get folder status mapping
-get_folder_status() {
-    case "$1" in
-        backlog) echo "BACKLOG" ;;
-        next) echo "NEXT" ;;
-        working) echo "WORKING" ;;
-        review) echo "REVIEW" ;;
-        live) echo "LIVE" ;;
-        *) echo "UNKNOWN" ;;
-    esac
-}
-
 # Function to check feature status validity
 is_valid_status() {
     case "$1" in
@@ -44,11 +32,11 @@ is_valid_status() {
 echo -e "${CYAN}${BOLD}Analyzing Features:${NC}\n"
 
 for feature_file in docs/features/*.md; do
-    # Skip if glob didn't match or is template
+    # Skip if glob didn't match, is template, or is INDEX
     [ -f "$feature_file" ] || continue
-    if [[ "$feature_file" == *"TEMPLATE"* ]]; then
-        continue
-    fi
+    case "$(basename "$feature_file")" in
+        TEMPLATE*|INDEX.md) continue ;;
+    esac
 
     feature_name=$(basename "$feature_file" .md)
     echo -e "${BLUE}${BOLD}Feature: ${NC}$feature_name"
@@ -110,16 +98,8 @@ for feature_file in docs/features/*.md; do
                         task_id=$(basename "$task_file" .md | cut -d'-' -f1)
                         task_title=$(grep "^# Task" "$task_file" 2>/dev/null | sed 's/# Task [0-9]*: //')
                         folder=$(basename "$task_dir")
-                        folder_status=$(get_folder_status "$folder")
 
-                        # Check if folder status matches feature status
-                        if [ "$folder_status" != "$feature_status" ]; then
-                            echo -e "    ${YELLOW}→ Task $task_id in $folder/ (implies $folder_status)${NC}"
-                        else
-                            echo -e "    ${GREEN}✓ Task $task_id in $folder/ (matches $folder_status)${NC}"
-                        fi
-
-                        # Show task title
+                        echo -e "    ${GREEN}✓ Task $task_id in $folder/${NC}"
                         echo -e "      $task_title"
                     fi
                 fi
@@ -134,29 +114,30 @@ for feature_file in docs/features/*.md; do
     echo ""
 done
 
-# Now check for orphaned tasks (tasks without features)
-echo -e "${CYAN}${BOLD}Checking for Orphaned Tasks:${NC}\n"
+# Check for broken feature references (tasks pointing to non-existent feature files)
+echo -e "${CYAN}${BOLD}Checking for Broken Feature References:${NC}\n"
 
-orphan_found=0
+broken_found=0
 for task_dir in docs/tasks/{backlog,next,working,review,live}; do
     if [ -d "$task_dir" ]; then
         for task_file in "$task_dir"/*.md; do
             if [ -f "$task_file" ] && [[ ! "$task_file" == *"TEMPLATE"* ]]; then
                 task_id=$(basename "$task_file" .md | cut -d'-' -f1)
-                feature_ref=$(grep -F "**Feature**:" "$task_file" 2>/dev/null | sed 's/.*: //')
+                # Extract only the first **Feature**: line, ignoring template comments
+                feature_ref=$(grep -m1 -F "**Feature**:" "$task_file" 2>/dev/null | sed 's/.*\*\*Feature\*\*: *//')
 
-                if [ -z "$feature_ref" ] || [ "$feature_ref" = "none" ]; then
-                    if [ $orphan_found -eq 0 ]; then
-                        orphan_found=1
-                    fi
-                    folder=$(basename "$task_dir")
-                    echo -e "  ${YELLOW}⚠ Task $task_id in $folder/ has no feature reference${NC}"
-                    ISSUES_FOUND=1
-                elif [[ "$feature_ref" == *"/docs/features/"* ]]; then
-                    # Extract feature filename from path
-                    feature_file=$(echo "$feature_ref" | sed 's/.*\/docs\/features\///' | sed 's/\.md$//')
-                    if [ ! -f "docs/features/${feature_file}.md" ]; then
-                        echo -e "  ${RED}⚠ Task $task_id references non-existent feature: $feature_ref${NC}"
+                # Skip tasks with no feature field, "none", or "multiple" — feature is optional
+                if [ -z "$feature_ref" ] || [ "$feature_ref" = "none" ] || [ "$feature_ref" = "multiple" ]; then
+                    continue
+                fi
+
+                # Check if the feature reference points to a file that exists
+                if [[ "$feature_ref" == *"/docs/features/"* ]]; then
+                    feature_basename=$(echo "$feature_ref" | sed 's/.*\/docs\/features\///' | sed 's/\.md$//')
+                    if [ ! -f "docs/features/${feature_basename}.md" ]; then
+                        broken_found=1
+                        folder=$(basename "$task_dir")
+                        echo -e "  ${RED}⚠ Task $task_id in $folder/ references non-existent feature: $feature_ref${NC}"
                         ISSUES_FOUND=1
                     fi
                 fi
@@ -165,8 +146,8 @@ for task_dir in docs/tasks/{backlog,next,working,review,live}; do
     fi
 done
 
-if [ $orphan_found -eq 0 ]; then
-    echo -e "  ${GREEN}✓ All tasks have valid feature references${NC}\n"
+if [ $broken_found -eq 0 ]; then
+    echo -e "  ${GREEN}✓ All feature references point to existing files${NC}\n"
 fi
 
 # Summary and recommendations
@@ -177,19 +158,14 @@ echo -e "================================================${NC}\n"
 if [ $ISSUES_FOUND -eq 0 ]; then
     echo -e "${GREEN}✓ No alignment issues found!${NC}\n"
 else
-    echo -e "${YELLOW}⚠ Issues found that may need attention:${NC}\n"
-    echo "Recommendations:"
-    echo "1. Feature status should reflect what's actually LIVE/available"
-    echo "2. Tasks in backlog/next don't mean the feature isn't LIVE"
-    echo "3. Consider tracking individual capability statuses within features"
-    echo "4. Update feature documentation when capabilities go LIVE"
+    echo -e "${RED}⚠ Issues found that need attention — see warnings above.${NC}\n"
 fi
 
-echo -e "\n${CYAN}Best Practices:${NC}"
+echo -e "${CYAN}Best Practices:${NC}"
 echo "• Feature Status = highest completed capability state"
 echo "• Tasks are temporary work items, features are permanent"
 echo "• A LIVE feature can still have backlog tasks for enhancements"
-echo "• Track individual capabilities within features for granularity"
+echo "• The Feature field on tasks is optional — not every task belongs to a feature"
 
-# Exit with error if issues found (for CI/CD integration)
+# Exit with error only when real issues exist (broken links, invalid statuses)
 exit $ISSUES_FOUND

@@ -68,8 +68,8 @@ validate_and_fix_task() {
 
     filename=$(basename "$file")
 
-    # Skip template and index files
-    if [[ "$filename" == "TEMPLATE"* ]] || [[ "$filename" == "INDEX.md" ]]; then
+    # Skip template files
+    if [[ "$filename" == "TEMPLATE"* ]]; then
         return 0
     fi
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -eu
 
 # 5day - Five Day Docs CLI
 
@@ -39,6 +39,11 @@ run_script() {
     elif [ -x "$script" ]; then
         "$script" "$@"
     else
+        # Fallback for filesystems that don't preserve the exec bit
+        # (Windows volumes under WSL, Docker mounts, FAT32, some NFS/SMB,
+        # git on Windows with core.fileMode=false, etc.). On those hosts
+        # setup.sh's chmod +x silently no-ops, so we run via bash directly
+        # rather than failing every command.
         bash "$script" "$@"
     fi
 }
@@ -58,11 +63,15 @@ show_help() {
     echo "  ai-context                Generate AI context summary"
     echo ""
     echo -e "${BLUE}Workflow:${NC}"
+    echo "  plan <task-id>            Interactive Q&A to define an incomplete task"
     echo "  sprint [count] [focus]    Plan a sprint from backlog tasks"
     echo "  define [limit]            Review and refine tasks in next/"
     echo "  tasks [limit]             Execute tasks from next/"
     echo "  split <path>              Split a large task into subtasks"
     echo "  audit [folder|file] [limit] [offset]  Audit tasks or a single file"
+    echo ""
+    echo -e "${BLUE}Sync:${NC}"
+    echo "  sync [--all]                  Push task changes to GitHub"
     echo ""
     echo -e "${BLUE}Maintenance:${NC}"
     echo "  validate [--fix] [--dry-run]  Validate task files against template"
@@ -73,17 +82,17 @@ show_help() {
 }
 
 cmd_newidea() {
-    [ -z "$1" ] && { echo -e "${RED}ERROR: Idea name required${NC}"; exit 1; }
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Idea name required${NC}"; exit 1; }
     run_script "create-idea.sh" "$1"
 }
 
 cmd_newtask() {
-    [ -z "$1" ] && { echo -e "${RED}ERROR: Task description required${NC}"; exit 1; }
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Task description required${NC}"; exit 1; }
     run_script "create-task.sh" "$1"
 }
 
 cmd_newfeature() {
-    [ -z "$1" ] && { echo -e "${RED}ERROR: Feature name required${NC}"; exit 1; }
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Feature name required${NC}"; exit 1; }
     run_script "create-feature.sh" "$1"
 }
 
@@ -132,8 +141,13 @@ cmd_status() {
 }
 
 cmd_newbug() {
-    [ -z "$1" ] && { echo -e "${RED}ERROR: Bug description required${NC}"; exit 1; }
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Bug description required${NC}"; exit 1; }
     run_script "create-bug.sh" "$1"
+}
+
+cmd_plan() {
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Task ID required${NC}"; echo "Usage: ./5day.sh plan <task-id>"; exit 1; }
+    run_script "plan.sh" "$@"
 }
 
 cmd_sprint() {
@@ -165,6 +179,10 @@ cmd_cleanup() {
     run_script "cleanup-tmp.sh" "$@"
 }
 
+cmd_sync() {
+    run_script "sync.sh" "$@"
+}
+
 cmd_checkfeatures() {
     run_script "check-alignment.sh"
 }
@@ -180,11 +198,13 @@ case "${1:-}" in
     newfeature)    shift; cmd_newfeature "$@" ;;
     newbug)        shift; cmd_newbug "$@" ;;
     status)        cmd_status ;;
+    plan)          shift; cmd_plan "$@" ;;
     sprint)        shift; cmd_sprint "$@" ;;
     define)        shift; cmd_define "$@" ;;
     tasks)         shift; cmd_tasks "$@" ;;
     split)         shift; cmd_split "$@" ;;
     audit)         shift; cmd_audit "$@" ;;
+    sync)          shift; cmd_sync "$@" ;;
     validate)      shift; cmd_validate "$@" ;;
     cleanup)       shift; cmd_cleanup "$@" ;;
     checkfeatures) cmd_checkfeatures ;;

@@ -7,10 +7,9 @@
 
 ## Problem
 
-<!-- Write 2-5 sentences explaining what needs solving and why.
-     Describe it as you would to a colleague unfamiliar with this area. -->
+During installation, the setup.sh script asks the user whether they want to install template .cursor, etc. files.
 
-
+We should ask the user what LLMs will work on this project and then suggest prepending the file with direction that documentation and tasks are managed via DOCUMENTATION.MD
 
 ## Success criteria
 

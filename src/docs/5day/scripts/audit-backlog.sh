@@ -2,10 +2,25 @@
 # shellcheck disable=SC2207
 set -euo pipefail
 
-# Audit tasks using Claude Code CLI
+# Audit tasks using an AI CLI (default: Claude Code)
 # Usage: ./audit-backlog.sh [folder] [limit] [offset]
 #   folder: backlog (default), next, working, blocked — or a full path
 #   review and live are not auditable (completed work)
+
+# ── Config ───────────────────────────────────────────────────────────
+_CONFIG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/config.sh"
+# shellcheck source=/dev/null
+[ -f "$_CONFIG" ] && source "$_CONFIG"
+: "${FIVEDAY_CLI:=claude}"
+# Fallback resolver if config.sh is missing (pre-config-era installs).
+# Honors the per-script var if set, else FIVEDAY_MODEL_DEFAULT, else empty.
+if ! declare -F fiveday_resolve_model >/dev/null 2>&1; then
+  fiveday_resolve_model() {
+    local var="$1"
+    if [ "${!var+set}" = "set" ]; then printf '%s' "${!var}"
+    else printf '%s' "${FIVEDAY_MODEL_DEFAULT-}"; fi
+  }
+fi
 
 folder="${1:-backlog}"
 limit="${2:-0}"       # 0 = no limit
@@ -35,8 +50,13 @@ elif [ ! -d "$dir" ]; then
     echo "Error: Not found: $dir" >&2
     exit 1
 fi
-timeout_sec=120       # kill hung claude calls after this
-claude_bin=$(command -v claude 2>/dev/null) || { echo "Error: 'claude' not found in PATH. Install Claude Code CLI and ensure it is in your PATH." >&2; exit 1; }
+timeout_sec=120       # kill hung AI CLI calls after this
+cli_bin=$(command -v "$FIVEDAY_CLI" 2>/dev/null) || { echo "Error: AI CLI '$FIVEDAY_CLI' not found in PATH. Edit docs/5day/config.sh (FIVEDAY_CLI) or install the tool. Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview" >&2; exit 1; }
+
+# Build --model args (empty = let CLI pick its own default)
+_audit_model="$(fiveday_resolve_model FIVEDAY_MODEL_AUDIT)"
+_model_args=()
+[ -n "$_audit_model" ] && _model_args=(--model "$_audit_model")
 
 # Portable timeout: macOS lacks coreutils timeout
 if command -v timeout &>/dev/null; then
@@ -103,7 +123,7 @@ for i in "${!files[@]}"; do
   echo "[$idx/$total] Auditing: $taskname"
 
   # Run claude with timeout
-  verdict=$(run_with_timeout "$claude_bin" -p --model sonnet --dangerously-skip-permissions \
+  verdict=$(run_with_timeout "$cli_bin" -p "${_model_args[@]}" --dangerously-skip-permissions \
     "You are auditing a backlog task file.
 
 CLAUDE.md is auto-loaded with project context and conventions.

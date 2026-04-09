@@ -22,7 +22,22 @@
 
 set -euo pipefail
 
-MODEL="opus"
+# ── Config ───────────────────────────────────────────────────────────
+_CONFIG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/config.sh"
+# shellcheck source=/dev/null
+[ -f "$_CONFIG" ] && source "$_CONFIG"
+: "${FIVEDAY_CLI:=claude}"
+# Fallback resolver if config.sh is missing (pre-config-era installs).
+# Honors the per-script var if set, else FIVEDAY_MODEL_DEFAULT, else empty.
+if ! declare -F fiveday_resolve_model >/dev/null 2>&1; then
+  fiveday_resolve_model() {
+    local var="$1"
+    if [ "${!var+set}" = "set" ]; then printf '%s' "${!var}"
+    else printf '%s' "${FIVEDAY_MODEL_DEFAULT-}"; fi
+  }
+fi
+
+MODEL="$(fiveday_resolve_model FIVEDAY_MODEL_SPLIT)"
 TOOLS="Read,Bash,Grep,Glob,Edit,Write"
 PERMISSIONS="auto"
 MAX_TURNS=60
@@ -30,9 +45,10 @@ LOG_DIR="docs/tmp"
 
 # ── Preflight ───────────────────────────────────────────────────────
 
-if ! command -v claude &>/dev/null; then
-  echo "✗ Claude CLI not found in PATH"
-  echo "  Install: https://docs.anthropic.com/en/docs/claude-code/overview"
+if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
+  echo "✗ AI CLI '$FIVEDAY_CLI' not found in PATH"
+  echo "  Edit docs/5day/config.sh to change FIVEDAY_CLI, or install the tool."
+  echo "  Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview"
   echo "  Required by: split.sh (task splitting)"
   exit 1
 fi
@@ -106,8 +122,11 @@ LOG_FILE="$LOG_DIR/log-split-${TASK_NAME%.md}-$TIMESTAMP.json"
 SPLIT_MARKER=$(mktemp)
 trap 'rm -f "$SPLIT_MARKER"' EXIT
 
-if claude -p "$PROMPT" \
-  --model "$MODEL" \
+_model_args=()
+[ -n "$MODEL" ] && _model_args=(--model "$MODEL")
+
+if "$FIVEDAY_CLI" -p "$PROMPT" \
+  "${_model_args[@]}" \
   --allowedTools "$TOOLS" \
   --permission-mode "$PERMISSIONS" \
   --max-turns "$MAX_TURNS" \

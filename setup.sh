@@ -114,135 +114,6 @@ safe_mkdir() {
     fi
 }
 
-# ============================================================================
-# INSTALL MANIFEST — three-state update logic for user-territory files
-# ============================================================================
-#
-# User-territory files (README.md) need a smarter update rule
-# than "always overwrite" or "always preserve". The manifest records the
-# sha256 of each file at the moment we shipped it, so on a later update we
-# can tell:
-#
-#   - file matches recorded sha → still the default → safe to update
-#   - file differs from recorded sha → user customized → preserve
-#   - no manifest record → pre-manifest install → preserve (conservative)
-#
-# Manifest format: one entry per line, "<sha256>  <relative_path>"
-# (Same format as `shasum -a 256` output, so it can be verified with that
-# tool directly.)
-MANIFEST_PATH="docs/5day/MANIFEST"
-
-# Compute sha256 of a file. Handles both Linux (sha256sum) and macOS (shasum).
-compute_sha() {
-    local file="$1"
-    if [ ! -f "$file" ]; then
-        return 1
-    fi
-    if command -v sha256sum >/dev/null 2>&1; then
-        sha256sum "$file" 2>/dev/null | awk '{print $1}'
-    elif command -v shasum >/dev/null 2>&1; then
-        shasum -a 256 "$file" 2>/dev/null | awk '{print $1}'
-    else
-        return 1
-    fi
-}
-
-# Look up the recorded sha for a relative path. Empty if no record.
-manifest_get_sha() {
-    local rel_path="$1"
-    [ -f "$MANIFEST_PATH" ] || return 0
-    awk -v p="$rel_path" '$2 == p { print $1; exit }' "$MANIFEST_PATH"
-}
-
-# Record (or update) the sha for a relative path in the manifest.
-manifest_set_sha() {
-    local rel_path="$1"
-    local sha="$2"
-    safe_mkdir "$(dirname "$MANIFEST_PATH")" >/dev/null
-    if [ -f "$MANIFEST_PATH" ]; then
-        # Remove any existing entry for this path, then append the new one
-        local tmp
-        tmp="$(mktemp)" || return 1
-        awk -v p="$rel_path" '$2 != p' "$MANIFEST_PATH" > "$tmp" && mv "$tmp" "$MANIFEST_PATH"
-    fi
-    printf '%s  %s\n' "$sha" "$rel_path" >> "$MANIFEST_PATH"
-}
-
-# Install a user-territory file with three-state update semantics.
-# Usage: safe_install_user_file "source" "dest_relative_to_target"
-safe_install_user_file() {
-    local src="$1"
-    local dest="$2"
-    local desc="${3:-$dest}"
-
-    if [ ! -f "$src" ]; then
-        msg_warning "Source not found: $desc"
-        return 1
-    fi
-
-    local src_sha
-    src_sha="$(compute_sha "$src")"
-    if [ -z "$src_sha" ]; then
-        msg_warning "Cannot compute sha256 for $desc — falling back to skip-if-exists"
-        if [ ! -f "$dest" ]; then
-            safe_mkdir "$(dirname "$dest")" >/dev/null
-            safe_copy "$src" "$dest" "$desc"
-        else
-            msg_step "Preserved $desc (no sha256 tool available)"
-        fi
-        return 0
-    fi
-
-    if [ ! -f "$dest" ]; then
-        # Fresh install: copy and record
-        safe_mkdir "$(dirname "$dest")" >/dev/null
-        if safe_copy "$src" "$dest" "$desc"; then
-            manifest_set_sha "$dest" "$src_sha"
-            return 0
-        fi
-        return 1
-    fi
-
-    # File exists. Decide based on manifest.
-    local recorded_sha
-    recorded_sha="$(manifest_get_sha "$dest")"
-    local current_sha
-    current_sha="$(compute_sha "$dest")"
-
-    if [ -z "$recorded_sha" ]; then
-        # No manifest record (pre-manifest install or never tracked).
-        # If the user's current file already matches the source, adopt it into
-        # the manifest — they're in sync, even if accidentally. Otherwise
-        # preserve conservatively.
-        if [ "$current_sha" = "$src_sha" ]; then
-            manifest_set_sha "$dest" "$src_sha"
-            msg_step "Adopted $desc into manifest (already matches default)"
-        else
-            msg_step "Preserved $desc (no manifest record — assuming user-customized)"
-        fi
-        return 0
-    fi
-
-    if [ "$current_sha" = "$recorded_sha" ]; then
-        # Unchanged from what we shipped. Safe to update.
-        if [ "$current_sha" = "$src_sha" ]; then
-            # Source identical too — no-op, but refresh the manifest entry to
-            # keep it canonical.
-            manifest_set_sha "$dest" "$src_sha"
-            msg_step "Up to date: $desc"
-        else
-            if safe_copy "$src" "$dest" "$desc (updating default)"; then
-                manifest_set_sha "$dest" "$src_sha"
-            fi
-        fi
-        return 0
-    fi
-
-    # User customized — preserve.
-    msg_step "Preserved $desc (user-customized)"
-    return 0
-}
-
 # Read current version from source
 if [ -f "$FIVEDAY_SOURCE_DIR/src/VERSION" ]; then
     CURRENT_VERSION=$(cat "$FIVEDAY_SOURCE_DIR/src/VERSION")
@@ -688,9 +559,74 @@ msg_header "Setting up documentation files..."
 # Track counters
 FILES_COPIED=0
 
-# README.md — three-state install (preserve user customization)
-if safe_install_user_file "$FIVEDAY_SOURCE_DIR/src/README.md" "README.md" "README.md"; then
-    ((FILES_COPIED++))
+# README.md — we don't ship one (the user owns theirs). If a README exists,
+# prepend a pointer to DOCUMENTATION.md so readers know where the project
+# docs live. Same pattern as the AI instruction files below.
+README_POINTER='> **Project documentation** → see [`DOCUMENTATION.md`](DOCUMENTATION.md) (managed by [5DayDocs](https://github.com/jnun/5daydocs))'
+
+# Strict yes/no prompt — loops until the user gives an unambiguous answer.
+# Sets the variable named in $1 to "yes" or "no". $2 is the prompt text.
+prompt_yes_no() {
+    local __varname="$1"
+    local __prompt="$2"
+    local __answer
+    while true; do
+        echo "$__prompt (yes/no)"
+        read -r __answer
+        case "$__answer" in
+            [Yy]|[Yy][Ee][Ss])  printf -v "$__varname" "yes"; return 0 ;;
+            [Nn]|[Nn][Oo])      printf -v "$__varname" "no";  return 0 ;;
+            *) echo "Please answer yes or no." ;;
+        esac
+    done
+}
+
+if [ ! -f "README.md" ]; then
+    echo ""
+    prompt_yes_no README_CHOICE "No README.md found. Create one with a 5DayDocs documentation pointer?"
+
+    if [ "$README_CHOICE" = "yes" ]; then
+        if printf '%s\n' "$README_POINTER" > "README.md" 2>/dev/null; then
+            msg_success "Created README.md with documentation pointer"
+            ((FILES_COPIED++))
+        else
+            msg_error "Failed to create README.md"
+        fi
+    else
+        msg_step "Skipped README.md creation"
+    fi
+else
+    if grep -q "DOCUMENTATION.md" "README.md" 2>/dev/null; then
+        msg_step "README.md already references DOCUMENTATION.md"
+    else
+        echo ""
+        prompt_yes_no README_PREPEND_CHOICE "README.md exists but does not reference DOCUMENTATION.md. Prepend a 5DayDocs documentation pointer to it?"
+
+        if [ "$README_PREPEND_CHOICE" = "yes" ]; then
+            tmpfile=""
+            tmpfile="$(mktemp "README.md.XXXXXX")" || tmpfile=""
+            if [ -z "$tmpfile" ]; then
+                msg_error "Failed to create temp file for README.md"
+            else
+                # Make sure a stray temp file never survives an interrupt
+                # or a failed cat/mv. Cleared on successful mv below.
+                trap 'rm -f "$tmpfile"' EXIT INT TERM
+                if { printf '%s\n\n' "$README_POINTER"; cat "README.md"; } > "$tmpfile" 2>/dev/null \
+                   && mv -f "$tmpfile" "README.md"; then
+                    tmpfile=""
+                    trap - EXIT INT TERM
+                    msg_success "Prepended 5DayDocs documentation pointer to README.md"
+                else
+                    rm -f "$tmpfile"
+                    tmpfile=""
+                    trap - EXIT INT TERM
+                    msg_error "Failed to prepend to README.md"
+                fi
+            fi
+        else
+            msg_step "Preserved README.md (no pointer added)"
+        fi
+    fi
 fi
 
 # Copy DOCUMENTATION.md
@@ -732,6 +668,12 @@ if [ -d "$SRC_5DAY" ]; then
         rel_path="${src_file#"$SRC_5DAY"/}"
         dest_path="docs/5day/$rel_path"
 
+        # config.sh is user-territory — installed separately with skip-if-exists
+        # so user edits survive updates.
+        if [ "$rel_path" = "config.sh" ]; then
+            continue
+        fi
+
         safe_mkdir "$(dirname "$dest_path")"
         if safe_copy "$src_file" "$dest_path" "$dest_path"; then
             # Make shell scripts executable
@@ -741,6 +683,17 @@ if [ -d "$SRC_5DAY" ]; then
             ((FILES_COPIED++))
         fi
     done < <(find "$SRC_5DAY" -type f -print0)
+fi
+
+# AI CLI/model config (user-territory: skip if already present so edits survive)
+if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/5day/config.sh" ]; then
+    if [ ! -f "docs/5day/config.sh" ]; then
+        if safe_copy "$FIVEDAY_SOURCE_DIR/src/docs/5day/config.sh" "docs/5day/config.sh" "docs/5day/config.sh (AI CLI/model configuration)"; then
+            ((FILES_COPIED++))
+        fi
+    else
+        msg_step "Preserved docs/5day/config.sh (user-territory)"
+    fi
 fi
 
 # Copy 5day.sh to project root (main CLI interface)
@@ -1096,6 +1049,7 @@ else
     echo "Directory structure created in docs/"
     echo "Scripts available at docs/5day/scripts/"
     echo "Documentation at DOCUMENTATION.md"
+    echo "AI CLI/model config at docs/5day/config.sh (edit to change CLI or models)"
     echo ""
     echo "Get started:"
     echo "  ./5day.sh help            # Show all commands"

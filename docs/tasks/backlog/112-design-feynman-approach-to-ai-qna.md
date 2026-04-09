@@ -1,5 +1,7 @@
 # Task 112: Design Feynman approach to AI QnA
 
+**Feature**: none
+
 ## Problem
 A user has a new idea, but hasn't thought it out well.
 

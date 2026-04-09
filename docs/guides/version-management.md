@@ -53,7 +53,7 @@ Before committing a version change:
 
 **Rationale:**
 1. **setup.sh requires it** - Will warn without VERSION file in source directory
-2. **setup.sh needs it** - Falls back to "1.0.0" without it (causing incorrect STATE.md)
+2. **setup.sh needs it** - Falls back to "1.0.0" without it (causing incorrect DOC_STATE.md)
 3. **Distribution IS the source** - For users, the distributed repo is their 5daydocs source
 4. **Version tracking** - No other way to know which distribution version is installed
 
@@ -71,16 +71,16 @@ Before committing a version change:
 - **Status**: **REQUIRED** - setup.sh will warn without it
 
 #### Target Project (User's Project)
-- **Path**: `docs/STATE.md` field: `5DAY_VERSION`
+- **Path**: `docs/5day/DOC_STATE.md` field: `5DAY_VERSION`
 - **Purpose**: Tracks which version of 5DayDocs is installed
-- **Created by**: setup.sh reads distribution VERSION and writes to STATE.md
+- **Created by**: setup.sh reads distribution VERSION and writes to DOC_STATE.md
 
 ### Version Flow Diagram
 
 ```
 Source Repo          Distribution Repo      Target Project
 -----------          -----------------      --------------
-VERSION file    →    VERSION file      →   docs/STATE.md
+VERSION file    →    VERSION file      →   docs/5day/DOC_STATE.md
 (2.0.0)         copy (2.0.0)          read  5DAY_VERSION: 2.0.0
                 by build-dist.sh       by setup.sh
 ```
@@ -134,7 +134,7 @@ VERSION file    →    VERSION file      →   docs/STATE.md
 - Automatic migration in setup.sh for all users on version < 2.0.0
 - Creates timestamped backup before migration
 - Safely merges content if conflicts exist
-- All user data (tasks, bugs, STATE.md IDs) preserved
+- All user data (tasks, bugs, DOC_STATE.md IDs) preserved
 
 **Why This Change:**
 - Simpler paths (less nesting)

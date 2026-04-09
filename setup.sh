@@ -4,7 +4,7 @@
 #   Prompts for target project path and sets up/updates 5DayDocs structure there
 #
 # This script handles both fresh installations and updates with version migrations.
-# Templates: Workflow templates are stored in templates/workflows/
+# Templates: All distributed templates live under src/templates/.
 
 # Note: We don't use set -e to allow graceful error handling
 
@@ -114,6 +114,135 @@ safe_mkdir() {
     fi
 }
 
+# ============================================================================
+# INSTALL MANIFEST — three-state update logic for user-territory files
+# ============================================================================
+#
+# User-territory files (README.md) need a smarter update rule
+# than "always overwrite" or "always preserve". The manifest records the
+# sha256 of each file at the moment we shipped it, so on a later update we
+# can tell:
+#
+#   - file matches recorded sha → still the default → safe to update
+#   - file differs from recorded sha → user customized → preserve
+#   - no manifest record → pre-manifest install → preserve (conservative)
+#
+# Manifest format: one entry per line, "<sha256>  <relative_path>"
+# (Same format as `shasum -a 256` output, so it can be verified with that
+# tool directly.)
+MANIFEST_PATH="docs/5day/MANIFEST"
+
+# Compute sha256 of a file. Handles both Linux (sha256sum) and macOS (shasum).
+compute_sha() {
+    local file="$1"
+    if [ ! -f "$file" ]; then
+        return 1
+    fi
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$file" 2>/dev/null | awk '{print $1}'
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$file" 2>/dev/null | awk '{print $1}'
+    else
+        return 1
+    fi
+}
+
+# Look up the recorded sha for a relative path. Empty if no record.
+manifest_get_sha() {
+    local rel_path="$1"
+    [ -f "$MANIFEST_PATH" ] || return 0
+    awk -v p="$rel_path" '$2 == p { print $1; exit }' "$MANIFEST_PATH"
+}
+
+# Record (or update) the sha for a relative path in the manifest.
+manifest_set_sha() {
+    local rel_path="$1"
+    local sha="$2"
+    safe_mkdir "$(dirname "$MANIFEST_PATH")" >/dev/null
+    if [ -f "$MANIFEST_PATH" ]; then
+        # Remove any existing entry for this path, then append the new one
+        local tmp
+        tmp="$(mktemp)" || return 1
+        awk -v p="$rel_path" '$2 != p' "$MANIFEST_PATH" > "$tmp" && mv "$tmp" "$MANIFEST_PATH"
+    fi
+    printf '%s  %s\n' "$sha" "$rel_path" >> "$MANIFEST_PATH"
+}
+
+# Install a user-territory file with three-state update semantics.
+# Usage: safe_install_user_file "source" "dest_relative_to_target"
+safe_install_user_file() {
+    local src="$1"
+    local dest="$2"
+    local desc="${3:-$dest}"
+
+    if [ ! -f "$src" ]; then
+        msg_warning "Source not found: $desc"
+        return 1
+    fi
+
+    local src_sha
+    src_sha="$(compute_sha "$src")"
+    if [ -z "$src_sha" ]; then
+        msg_warning "Cannot compute sha256 for $desc — falling back to skip-if-exists"
+        if [ ! -f "$dest" ]; then
+            safe_mkdir "$(dirname "$dest")" >/dev/null
+            safe_copy "$src" "$dest" "$desc"
+        else
+            msg_step "Preserved $desc (no sha256 tool available)"
+        fi
+        return 0
+    fi
+
+    if [ ! -f "$dest" ]; then
+        # Fresh install: copy and record
+        safe_mkdir "$(dirname "$dest")" >/dev/null
+        if safe_copy "$src" "$dest" "$desc"; then
+            manifest_set_sha "$dest" "$src_sha"
+            return 0
+        fi
+        return 1
+    fi
+
+    # File exists. Decide based on manifest.
+    local recorded_sha
+    recorded_sha="$(manifest_get_sha "$dest")"
+    local current_sha
+    current_sha="$(compute_sha "$dest")"
+
+    if [ -z "$recorded_sha" ]; then
+        # No manifest record (pre-manifest install or never tracked).
+        # If the user's current file already matches the source, adopt it into
+        # the manifest — they're in sync, even if accidentally. Otherwise
+        # preserve conservatively.
+        if [ "$current_sha" = "$src_sha" ]; then
+            manifest_set_sha "$dest" "$src_sha"
+            msg_step "Adopted $desc into manifest (already matches default)"
+        else
+            msg_step "Preserved $desc (no manifest record — assuming user-customized)"
+        fi
+        return 0
+    fi
+
+    if [ "$current_sha" = "$recorded_sha" ]; then
+        # Unchanged from what we shipped. Safe to update.
+        if [ "$current_sha" = "$src_sha" ]; then
+            # Source identical too — no-op, but refresh the manifest entry to
+            # keep it canonical.
+            manifest_set_sha "$dest" "$src_sha"
+            msg_step "Up to date: $desc"
+        else
+            if safe_copy "$src" "$dest" "$desc (updating default)"; then
+                manifest_set_sha "$dest" "$src_sha"
+            fi
+        fi
+        return 0
+    fi
+
+    # User customized — preserve.
+    msg_step "Preserved $desc (user-customized)"
+    return 0
+}
+
 # Read current version from source
 if [ -f "$FIVEDAY_SOURCE_DIR/src/VERSION" ]; then
     CURRENT_VERSION=$(cat "$FIVEDAY_SOURCE_DIR/src/VERSION")
@@ -174,17 +303,28 @@ INSTALLED_VERSION=""
 UPDATE_MODE=false
 
 # Check if 5DayDocs is already installed
-if [ -f "docs/STATE.md" ]; then
-    # Extract installed version
-    INSTALLED_VERSION=$(grep '^\*\*5DAY_VERSION\*\*:' docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | head -1)
+if [ -f "docs/5day/DOC_STATE.md" ]; then
+    # 2.2.0+ install
+    INSTALLED_VERSION=$(grep '^\*\*5DAY_VERSION\*\*:' docs/5day/DOC_STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | head -1)
 
-    # Fallback if no version found
     if [ -z "$INSTALLED_VERSION" ]; then
         INSTALLED_VERSION="0.0.0"
     fi
 
     UPDATE_MODE=true
     echo "Existing 5DayDocs installation detected (version $INSTALLED_VERSION)"
+    echo "This will update to version $CURRENT_VERSION"
+    echo ""
+elif [ -f "docs/STATE.md" ]; then
+    # Pre-2.2.0 install — STATE.md still at old location, will be migrated
+    INSTALLED_VERSION=$(grep '^\*\*5DAY_VERSION\*\*:' docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | head -1)
+
+    if [ -z "$INSTALLED_VERSION" ]; then
+        INSTALLED_VERSION="0.0.0"
+    fi
+
+    UPDATE_MODE=true
+    echo "Existing 5DayDocs installation detected (version $INSTALLED_VERSION, pre-2.2.0 layout)"
     echo "This will update to version $CURRENT_VERSION"
     echo ""
 elif [ -d "docs/tasks" ] || [ -d "work/tasks" ] || [ -d "docs/work/tasks" ]; then
@@ -363,6 +503,19 @@ if $UPDATE_MODE; then
         INSTALLED_VERSION="2.1.0"
     fi
 
+    # Migration from 2.1.x to 2.2.0 - Move STATE.md into docs/5day/ as DOC_STATE.md
+    if [[ "$INSTALLED_VERSION" < "2.2.0" ]]; then
+        if [ -f "docs/STATE.md" ] && [ ! -f "docs/5day/DOC_STATE.md" ]; then
+            echo ""
+            echo "Migrating to 2.2.0 - Moving STATE.md to docs/5day/DOC_STATE.md..."
+            mkdir -p "docs/5day"
+            mv docs/STATE.md docs/5day/DOC_STATE.md
+            echo "  Moved docs/STATE.md -> docs/5day/DOC_STATE.md"
+        fi
+
+        INSTALLED_VERSION="2.2.0"
+    fi
+
     echo ""
     echo "Migrations complete."
 fi
@@ -377,8 +530,9 @@ if ! $UPDATE_MODE; then
     echo "1) GitHub with GitHub Issues (default)"
     echo "2) GitHub with Jira (coming soon)"
     echo "3) Bitbucket with Jira (coming soon)"
+    echo "4) No sync for now"
     echo ""
-    echo "Enter your choice (1-3, or press Enter for default):"
+    echo "Enter your choice (1-4, or press Enter for default):"
     read -r PLATFORM_CHOICE
 
     case "$PLATFORM_CHOICE" in
@@ -389,6 +543,10 @@ if ! $UPDATE_MODE; then
         3)
             PLATFORM="bitbucket-jira"
             echo "Selected: Bitbucket with Jira (Note: Integration not fully implemented yet)"
+            ;;
+        4)
+            PLATFORM="none"
+            echo "Selected: No sync — skipping issue tracker integration"
             ;;
         *)
             PLATFORM="github-issues"
@@ -428,7 +586,7 @@ safe_mkdir "docs/tests"
 safe_mkdir "docs/tmp"
 
 # Platform-specific directories
-if [ "$PLATFORM" != "bitbucket-jira" ]; then
+if [ "$PLATFORM" != "bitbucket-jira" ] && [ "$PLATFORM" != "none" ]; then
     safe_mkdir ".github/workflows"
     safe_mkdir ".github/ISSUE_TEMPLATE"
 fi
@@ -443,10 +601,25 @@ msg_step "Added .gitkeep files to empty directories"
 
 msg_header "Managing state tracking..."
 
-if [ ! -f "docs/STATE.md" ]; then
-    # Create new STATE.md
-    if cat > docs/STATE.md << STATE_EOF
-# docs/STATE.md
+safe_mkdir "docs/5day"
+
+if [ ! -f "docs/5day/DOC_STATE.md" ]; then
+    # Create new DOC_STATE.md
+    if cat > docs/5day/DOC_STATE.md << STATE_EOF
+# 5DayDocs Documentation State
+
+Part of the 5daydocs documentation system, not source code for the host project.
+Managed by scripts in \`docs/5day/scripts/\` and by \`setup.sh\`. Safe to edit by hand
+if you need to fix a counter — the field lines below are what scripts parse.
+
+Fields:
+- \`5DAY_VERSION\`   — installed file-structure version; \`setup.sh\` reads this on upgrade to decide which migrations to run
+- \`5DAY_TASK_ID\`   — highest task ID used; next task = this + 1
+- \`5DAY_BUG_ID\`    — highest bug ID used; next bug = this + 1
+- \`SYNC_ALL_TASKS\` — GitHub Issues sync flag (managed by \`sync.sh\`)
+- \`Last Updated\`   — ISO date; bump when you change a field
+
+---
 
 **Last Updated**: $(date +%Y-%m-%d)
 **5DAY_VERSION**: $CURRENT_VERSION
@@ -455,24 +628,36 @@ if [ ! -f "docs/STATE.md" ]; then
 **SYNC_ALL_TASKS**: false
 STATE_EOF
     then
-        msg_step "Created docs/STATE.md"
+        msg_step "Created docs/5day/DOC_STATE.md"
     else
-        msg_error "Failed to create docs/STATE.md"
+        msg_error "Failed to create docs/5day/DOC_STATE.md"
     fi
 else
-    # Reconcile STATE.md - preserve user data, update version
-    EXISTING_DATE=$(grep '^\*\*Last Updated\*\*:' docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | head -1)
-    EXISTING_TASK_ID=$(grep '^\*\*5DAY_TASK_ID\*\*:' docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
-    EXISTING_BUG_ID=$(grep '^\*\*5DAY_BUG_ID\*\*:' docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
-    EXISTING_SYNC_FLAG=$(grep '^\*\*SYNC_ALL_TASKS\*\*:' docs/STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | head -1)
+    # Reconcile DOC_STATE.md - preserve user data, update version
+    EXISTING_TASK_ID=$(grep '^\*\*5DAY_TASK_ID\*\*:' docs/5day/DOC_STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
+    EXISTING_BUG_ID=$(grep '^\*\*5DAY_BUG_ID\*\*:' docs/5day/DOC_STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
+    EXISTING_SYNC_FLAG=$(grep '^\*\*SYNC_ALL_TASKS\*\*:' docs/5day/DOC_STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | head -1)
 
     # Validate and set defaults
     [[ "$EXISTING_TASK_ID" =~ ^[0-9]+$ ]] || EXISTING_TASK_ID=0
     [[ "$EXISTING_BUG_ID" =~ ^[0-9]+$ ]] || EXISTING_BUG_ID=0
     [[ "$EXISTING_SYNC_FLAG" == "true" || "$EXISTING_SYNC_FLAG" == "false" ]] || EXISTING_SYNC_FLAG="false"
 
-    if cat > docs/STATE.md << STATE_EOF
-# docs/STATE.md
+    if cat > docs/5day/DOC_STATE.md << STATE_EOF
+# 5DayDocs Documentation State
+
+Part of the 5daydocs documentation system, not source code for the host project.
+Managed by scripts in \`docs/5day/scripts/\` and by \`setup.sh\`. Safe to edit by hand
+if you need to fix a counter — the field lines below are what scripts parse.
+
+Fields:
+- \`5DAY_VERSION\`   — installed file-structure version; \`setup.sh\` reads this on upgrade to decide which migrations to run
+- \`5DAY_TASK_ID\`   — highest task ID used; next task = this + 1
+- \`5DAY_BUG_ID\`    — highest bug ID used; next bug = this + 1
+- \`SYNC_ALL_TASKS\` — GitHub Issues sync flag (managed by \`sync.sh\`)
+- \`Last Updated\`   — ISO date; bump when you change a field
+
+---
 
 **Last Updated**: $(date +%Y-%m-%d)
 **5DAY_VERSION**: $CURRENT_VERSION
@@ -481,9 +666,9 @@ else
 **SYNC_ALL_TASKS**: $EXISTING_SYNC_FLAG
 STATE_EOF
     then
-        msg_step "Updated docs/STATE.md (preserved IDs: task=$EXISTING_TASK_ID, bug=$EXISTING_BUG_ID)"
+        msg_step "Updated docs/5day/DOC_STATE.md (preserved IDs: task=$EXISTING_TASK_ID, bug=$EXISTING_BUG_ID)"
     else
-        msg_error "Failed to update docs/STATE.md"
+        msg_error "Failed to update docs/5day/DOC_STATE.md"
     fi
 fi
 
@@ -503,11 +688,9 @@ msg_header "Setting up documentation files..."
 # Track counters
 FILES_COPIED=0
 
-# Copy README.md only if project has none
-if [ ! -f "README.md" ]; then
-    if safe_copy "$FIVEDAY_SOURCE_DIR/src/README.md" "README.md" "README.md"; then
-        ((FILES_COPIED++))
-    fi
+# README.md — three-state install (preserve user customization)
+if safe_install_user_file "$FIVEDAY_SOURCE_DIR/src/README.md" "README.md" "README.md"; then
+    ((FILES_COPIED++))
 fi
 
 # Copy DOCUMENTATION.md
@@ -535,34 +718,29 @@ if safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-idea.md" "docs/
 fi
 
 # ============================================================================
-# COPY SCRIPTS
+# COPY 5DAY TREE (scripts, ai, theory, and any future additions)
 # ============================================================================
 
-msg_header "Setting up automation scripts..."
+msg_header "Setting up automation scripts and guides..."
 
-# Copy all scripts from src/docs/5day/scripts/
-if [ -d "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts" ]; then
-    for script in "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts"/*.sh; do
-        if [ -f "$script" ]; then
-            script_name=$(basename "$script")
-            if safe_copy "$script" "docs/5day/scripts/$script_name" "$script_name"; then
-                chmod +x "docs/5day/scripts/$script_name" 2>/dev/null || msg_warning "Could not make $script_name executable"
-                ((FILES_COPIED++))
-            fi
-        fi
-    done
-fi
+# Mirror every file under src/docs/5day/ into the target project, recursively.
+# This ensures new content categories (theory, etc.) and any nested layout
+# ship automatically without requiring installer edits.
+SRC_5DAY="$FIVEDAY_SOURCE_DIR/src/docs/5day"
+if [ -d "$SRC_5DAY" ]; then
+    while IFS= read -r -d '' src_file; do
+        rel_path="${src_file#"$SRC_5DAY"/}"
+        dest_path="docs/5day/$rel_path"
 
-# Copy AI context files
-if [ -d "$FIVEDAY_SOURCE_DIR/src/docs/5day/ai" ]; then
-    for ai_file in "$FIVEDAY_SOURCE_DIR/src/docs/5day/ai"/*.md; do
-        if [ -f "$ai_file" ]; then
-            ai_name=$(basename "$ai_file")
-            if safe_copy "$ai_file" "docs/5day/ai/$ai_name" "$ai_name"; then
-                ((FILES_COPIED++))
+        safe_mkdir "$(dirname "$dest_path")"
+        if safe_copy "$src_file" "$dest_path" "$dest_path"; then
+            # Make shell scripts executable
+            if [[ "$src_file" == *.sh ]]; then
+                chmod +x "$dest_path" 2>/dev/null || msg_warning "Could not make $dest_path executable"
             fi
+            ((FILES_COPIED++))
         fi
-    done
+    done < <(find "$SRC_5DAY" -type f -print0)
 fi
 
 # Copy 5day.sh to project root (main CLI interface)
@@ -572,54 +750,24 @@ if safe_copy "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts/5day.sh" "./5day.sh" "5d
 fi
 
 # ============================================================================
-# COPY INDEX.MD FILES
-# ============================================================================
-
-msg_header "Setting up INDEX.md documentation files..."
-
-INDEX_FILES=(
-    "docs/tasks/INDEX.md"
-    "docs/bugs/INDEX.md"
-    "docs/5day/scripts/INDEX.md"
-    "docs/designs/INDEX.md"
-    "docs/examples/INDEX.md"
-    "docs/data/INDEX.md"
-    "docs/INDEX.md"
-    "docs/features/INDEX.md"
-    "docs/guides/INDEX.md"
-)
-
-for index_file in "${INDEX_FILES[@]}"; do
-    if [ -f "$FIVEDAY_SOURCE_DIR/$index_file" ]; then
-        # Skip if source and target are the same file (dogfood mode)
-        if [ "$FIVEDAY_SOURCE_DIR/$index_file" -ef "$TARGET_PATH/$index_file" ] 2>/dev/null; then
-            continue
-        fi
-
-        safe_mkdir "$(dirname "$index_file")"
-        if safe_copy "$FIVEDAY_SOURCE_DIR/$index_file" "$index_file" "$index_file"; then
-            ((FILES_COPIED++))
-        fi
-    fi
-done
-
-# ============================================================================
 # GITHUB/BITBUCKET WORKFLOWS
 # ============================================================================
 
-if [ "$PLATFORM" != "bitbucket-jira" ]; then
+if [ "$PLATFORM" = "none" ]; then
+    msg_header "Skipping issue tracker integration (no sync selected)"
+elif [ "$PLATFORM" != "bitbucket-jira" ]; then
     msg_header "Setting up GitHub Actions..."
 
-    safe_copy "$FIVEDAY_SOURCE_DIR/templates/workflows/github/sync-tasks-to-issues.yml" ".github/workflows/sync-tasks-to-issues.yml" "sync-tasks-to-issues.yml"
-    safe_copy "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/bug_report.md" ".github/ISSUE_TEMPLATE/bug_report.md" "bug report template"
-    safe_copy "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/feature_request.md" ".github/ISSUE_TEMPLATE/feature_request.md" "feature request template"
-    safe_copy "$FIVEDAY_SOURCE_DIR/templates/github/ISSUE_TEMPLATE/task.md" ".github/ISSUE_TEMPLATE/task.md" "task issue template"
-    safe_copy "$FIVEDAY_SOURCE_DIR/templates/github/pull_request_template.md" ".github/pull_request_template.md" "pull request template"
+    safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/workflows/github/sync-tasks-to-issues.yml" ".github/workflows/sync-tasks-to-issues.yml" "sync-tasks-to-issues.yml"
+    safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/github/ISSUE_TEMPLATE/bug_report.md" ".github/ISSUE_TEMPLATE/bug_report.md" "bug report template"
+    safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/github/ISSUE_TEMPLATE/feature_request.md" ".github/ISSUE_TEMPLATE/feature_request.md" "feature request template"
+    safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/github/ISSUE_TEMPLATE/task.md" ".github/ISSUE_TEMPLATE/task.md" "task issue template"
+    safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/github/pull_request_template.md" ".github/pull_request_template.md" "pull request template"
 else
     msg_header "Setting up Bitbucket Pipelines..."
 
     if [ ! -f "bitbucket-pipelines.yml" ] || $UPDATE_MODE; then
-        safe_copy "$FIVEDAY_SOURCE_DIR/templates/bitbucket-pipelines.yml" "bitbucket-pipelines.yml" "bitbucket-pipelines.yml"
+        safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/workflows/bitbucket/pipelines.yml" "bitbucket-pipelines.yml" "bitbucket-pipelines.yml"
     fi
 fi
 
@@ -802,7 +950,7 @@ setup_ai_file "$FIVEDAY_SOURCE_DIR/src/CLAUDE.md" "CLAUDE.md" "CLAUDE.md"
 setup_ai_file "$FIVEDAY_SOURCE_DIR/src/AGENTS.md" "AGENTS.md" "AGENTS.md"
 
 # GitHub Copilot (only for GitHub-based projects)
-if [ "$PLATFORM" != "bitbucket-jira" ]; then
+if [ "$PLATFORM" != "bitbucket-jira" ] && [ "$PLATFORM" != "none" ]; then
     setup_ai_file "$FIVEDAY_SOURCE_DIR/src/copilot-instructions.md" ".github/copilot-instructions.md" ".github/copilot-instructions.md"
 fi
 
@@ -816,21 +964,53 @@ setup_ai_file "$FIVEDAY_SOURCE_DIR/src/.windsurfrules" ".windsurfrules" ".windsu
 # CLEANUP LEGACY FILES
 # ============================================================================
 
-# Check for legacy INDEX.md files in task subfolders
-LEGACY_INDEX_FILES=""
-for folder in backlog next working blocked review live; do
-    if [ -f "docs/tasks/$folder/INDEX.md" ]; then
-        LEGACY_INDEX_FILES="$LEGACY_INDEX_FILES docs/tasks/$folder/INDEX.md"
-    fi
+# Legacy INDEX.md cleanup. Earlier versions of 5DayDocs shipped a curated set
+# of INDEX.md files into docs/ as per-folder orientation pages. They turned
+# out to be confusing and useless, so they were removed. Offer to delete any
+# that are still sitting in the user's project from an older install.
+LEGACY_INDEX_PATHS=(
+    "docs/INDEX.md"
+    "docs/tasks/INDEX.md"
+    "docs/bugs/INDEX.md"
+    "docs/features/INDEX.md"
+    "docs/designs/INDEX.md"
+    "docs/examples/INDEX.md"
+    "docs/data/INDEX.md"
+    "docs/guides/INDEX.md"
+    "docs/5day/scripts/INDEX.md"
+)
+
+LEGACY_INDEX_FOUND=()
+for f in "${LEGACY_INDEX_PATHS[@]}"; do
+    [ -f "$f" ] && LEGACY_INDEX_FOUND+=("$f")
 done
 
-if [ -n "$LEGACY_INDEX_FILES" ]; then
-    msg_header "Legacy files detected"
-    msg_warning "Legacy INDEX.md files found in task subfolders (no longer used)"
-    echo "  Consider deleting:"
-    for f in $LEGACY_INDEX_FILES; do
-        echo "    rm $f"
+if [ ${#LEGACY_INDEX_FOUND[@]} -gt 0 ]; then
+    msg_header "Legacy INDEX.md files detected"
+    echo "In older versions of 5DayDocs we supported INDEX.md files, but decided"
+    echo "they were confusing and useless."
+    echo ""
+    echo "Files to be deleted:"
+    for f in "${LEGACY_INDEX_FOUND[@]}"; do
+        echo "  $f"
     done
+    echo ""
+    echo "Do you want to remove these files from your docs/ directory? [Y]es/No"
+    read -r LEGACY_INDEX_CHOICE
+
+    if [[ -z "$LEGACY_INDEX_CHOICE" ]] || [[ "$LEGACY_INDEX_CHOICE" =~ ^[Yy] ]]; then
+        for f in "${LEGACY_INDEX_FOUND[@]}"; do
+            if git rm -f "$f" >/dev/null 2>&1; then
+                msg_success "git rm $f"
+            elif rm -f "$f" 2>/dev/null; then
+                msg_success "rm $f"
+            else
+                msg_error "Failed to remove $f"
+            fi
+        done
+    else
+        msg_step "Skipped legacy INDEX.md cleanup"
+    fi
 fi
 
 # ============================================================================
@@ -849,7 +1029,7 @@ for dir in docs/tasks/backlog docs/tasks/next docs/tasks/working docs/tasks/bloc
 done
 
 # Check required files
-for file in docs/STATE.md DOCUMENTATION.md; do
+for file in docs/5day/DOC_STATE.md DOCUMENTATION.md; do
     if [ ! -f "$file" ]; then
         VALIDATION_PASSED=false
         msg_error "Missing file: $file"
@@ -907,7 +1087,7 @@ if $UPDATE_MODE; then
     echo ""
     echo "Changes:"
     echo "  - Scripts synced from source"
-    echo "  - STATE.md reconciled"
+    echo "  - DOC_STATE.md reconciled"
     echo "  - Templates updated"
 else
     msg_success "5DayDocs installed to: $TARGET_PATH"

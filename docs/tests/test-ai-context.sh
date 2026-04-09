@@ -22,11 +22,11 @@ setup() {
 
     cp "$SCRIPT_UNDER_TEST" "$TMPDIR/docs/5day/scripts/ai-context.sh"
 
-    cat > "$TMPDIR/docs/STATE.md" << 'EOF'
-# docs/STATE.md
+    cat > "$TMPDIR/docs/5day/DOC_STATE.md" << 'EOF'
+# 5DayDocs Documentation State
 
 **Last Updated**: 2026-01-01
-**5DAY_VERSION**: 2.1.3
+**5DAY_VERSION**: 2.2.0
 **5DAY_TASK_ID**: 10
 **5DAY_BUG_ID**: 1
 EOF
@@ -53,9 +53,9 @@ setup
 output=$(bash "$TMPDIR/docs/5day/scripts/ai-context.sh" 2>&1)
 assert_contains "Header present" "$output" "# Project Context Summary"
 
-# Test 2: Shows STATE.md content
-echo "Test 2: Shows STATE.md content"
-assert_contains "STATE content" "$output" "5DAY_TASK_ID"
+# Test 2: Shows DOC_STATE.md content
+echo "Test 2: Shows DOC_STATE.md content"
+assert_contains "DOC_STATE content" "$output" "5DAY_TASK_ID"
 
 # Test 3: Shows section headers
 echo "Test 3: Shows section headers"
@@ -83,12 +83,12 @@ echo "# Task 2: Next" > "$TMPDIR/docs/tasks/next/2-next.md"
 output=$(bash "$TMPDIR/docs/5day/scripts/ai-context.sh" 2>&1)
 assert_contains "Suggests picking from next" "$output" "Pick a task from"
 
-# Test 7: Missing STATE.md handled gracefully
-echo "Test 7: Missing STATE.md shows fallback"
+# Test 7: Missing DOC_STATE.md handled gracefully
+echo "Test 7: Missing DOC_STATE.md shows fallback"
 setup
-rm "$TMPDIR/docs/STATE.md"
+rm "$TMPDIR/docs/5day/DOC_STATE.md"
 output=$(bash "$TMPDIR/docs/5day/scripts/ai-context.sh" 2>&1)
-assert_contains "Shows not found" "$output" "STATE.md not found"
+assert_contains "Shows not found" "$output" "DOC_STATE.md not found"
 
 # --- Summary ---
 echo ""

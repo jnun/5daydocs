@@ -95,7 +95,7 @@ METADATA
   Depends on:  **Depends on**: Task 42 (or "none")
   Blocks:      **Blocks**: Task 101 (or "none")
 
-Get next ID: docs/STATE.md (5DAY_TASK_ID field + 1)
+Get next ID: docs/5day/DOC_STATE.md (5DAY_TASK_ID field + 1)
 Full protocol: docs/5day/ai/task-creation.md
 Writing rules: docs/5day/ai/task-writing-rules.md
 

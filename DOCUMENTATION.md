@@ -20,7 +20,7 @@ Project management in markdown files. Like Jira, but folders and plain text.
 - `docs/bugs/` — your bug reports
 - `docs/guides/` — your documentation
 - `docs/tests/` — your test plans
-- `docs/STATE.md` — your project state (see format below)
+- `docs/5day/DOC_STATE.md` — your project state (see format below)
 
 ## AI Agents
 
@@ -29,7 +29,7 @@ This file governs `docs/`. Read it before modifying any task, bug, or feature.
 **Rules:**
 1. `docs/` is the active project management system — not source code, not stale
 2. Tasks in `review/` and `live/` are completed work — old dates mean done, not abandoned
-3. Always read `STATE.md` before creating tasks (get next ID)
+3. Always read `docs/5day/DOC_STATE.md` before creating tasks (get next ID)
 4. Use `./5day.sh` commands when available — don't create task files manually
 5. Move tasks by changing folders — folder location = status
 
@@ -53,8 +53,8 @@ This file governs `docs/`. Read it before modifying any task, bug, or feature.
 docs/
 ├── 5day/               # FRAMEWORK (do not edit)
 │   ├── scripts/        # 5day.sh, create-task.sh, etc.
-│   └── ai/             # AI instructions
-├── STATE.md            # Project state (ID tracking)
+│   ├── ai/             # AI instructions
+│   └── DOC_STATE.md    # Project state (ID tracking)
 ├── ideas/              # Rough ideas being refined
 ├── features/           # Fully defined feature specs
 ├── tasks/              # Your work items
@@ -129,14 +129,14 @@ If `git mv` fails, use `mv` and commit the change.
 | Bug | `ID-description.md` | `3-login-fails.md` |
 | Feature/Idea | `name.md` | `user-authentication.md` |
 
-IDs come from `STATE.md` (5DAY_TASK_ID for tasks, 5DAY_BUG_ID for bugs).
+IDs come from `docs/5day/DOC_STATE.md` (5DAY_TASK_ID for tasks, 5DAY_BUG_ID for bugs).
 
 ## Key Concepts
 
 **Ideas** = Rough concepts being refined. Start here when unclear.
 **Features** = Fully defined specs. What capabilities exist.
 **Tasks** = Work items. Move through folders as status changes.
-**STATE.md** = Source of truth for IDs.
+**DOC_STATE.md** = Source of truth for IDs (`docs/5day/DOC_STATE.md`).
 
 ## Ideas Workflow
 
@@ -173,7 +173,7 @@ git pull
 # Enter your project path when prompted
 ```
 
-Your STATE.md values (task IDs, bug IDs) are preserved during updates.
+Your DOC_STATE.md values (task IDs, bug IDs) are preserved during updates.
 
 ---
 

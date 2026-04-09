@@ -24,7 +24,7 @@ Running `setup.sh` on your project adds:
 | `5day.sh` | CLI for creating tasks, bugs, features, and checking status |
 | `DOCUMENTATION.md` | Complete workflow guide (the real manual) |
 | `CLAUDE.md` | Auto-loaded context for Claude Code / AI agents |
-| `docs/STATE.md` | Tracks auto-incrementing task and bug IDs |
+| `docs/5day/DOC_STATE.md` | Tracks auto-incrementing task and bug IDs |
 | `docs/tasks/` | Task pipeline folders (backlog, next, working, blocked, review, live) |
 | `docs/bugs/` | Bug reports |
 | `docs/features/` | Feature specifications |
@@ -51,7 +51,7 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-To update an existing installation, re-run `setup.sh` pointing at the same project. Your `STATE.md` (task/bug IDs) is preserved.
+To update an existing installation, re-run `setup.sh` pointing at the same project. Your `DOC_STATE.md` (task/bug IDs) is preserved.
 
 ## CLI Commands
 
@@ -64,7 +64,7 @@ To update an existing installation, re-run `setup.sh` pointing at the same proje
 ./5day.sh newidea "Push notifications"          # --> docs/ideas/push-notifications.md
 ```
 
-Each task and bug gets an auto-incrementing ID from `docs/STATE.md`. Files are named `{ID}-{description}.md` and created from templates.
+Each task and bug gets an auto-incrementing ID from `docs/5day/DOC_STATE.md`. Files are named `{ID}-{description}.md` and created from templates.
 
 ### Checking status
 
@@ -131,7 +131,7 @@ Bug reports follow a similar structure with severity levels and reproduction ste
 If you are an AI agent working in a project that uses 5DayDocs:
 
 1. Read `DOCUMENTATION.md` first. It is the complete reference.
-2. Read `docs/STATE.md` before creating any task or bug (to get the current ID).
+2. Read `docs/5day/DOC_STATE.md` before creating any task or bug (to get the current ID).
 3. Use `./5day.sh` commands to create work items. Do not create task files manually.
 4. Do not edit files under `docs/5day/`. Those are framework files managed by `setup.sh`.
 5. Tasks in `blocked/` need a human decision before work can continue. Do not attempt to unblock them.

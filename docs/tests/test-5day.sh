@@ -31,11 +31,11 @@ setup() {
         cp "$script" "$TMPDIR/docs/5day/scripts/"
     done
 
-    cat > "$TMPDIR/docs/STATE.md" << 'EOF'
-# docs/STATE.md
+    cat > "$TMPDIR/docs/5day/DOC_STATE.md" << 'EOF'
+# 5DayDocs Documentation State
 
 **Last Updated**: 2026-01-01
-**5DAY_VERSION**: 2.1.3
+**5DAY_VERSION**: 2.2.0
 **5DAY_TASK_ID**: 10
 **5DAY_BUG_ID**: 1
 **SYNC_ALL_TASKS**: false

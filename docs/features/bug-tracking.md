@@ -25,7 +25,7 @@ Bugs can be converted to tasks for tracking through the development pipeline:
 
 ## Bug State Management
 **Status**: LIVE
-Automatic ID management through `docs/STATE.md`:
+Automatic ID management through `docs/5day/DOC_STATE.md`:
 - Bug IDs tracked in unified state file
 - Sequential integer IDs (0, 1, 2, ...)
 - Central tracking in "Bug State" section

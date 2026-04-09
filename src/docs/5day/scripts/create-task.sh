@@ -23,18 +23,18 @@ sed_inplace() {
     fi
 }
 
-# Verify STATE.md exists and is valid
-if [ ! -f "docs/STATE.md" ]; then
-    echo -e "${RED}ERROR: docs/STATE.md not found!${NC}"
+# Verify DOC_STATE.md exists and is valid
+if [ ! -f "docs/5day/DOC_STATE.md" ]; then
+    echo -e "${RED}ERROR: docs/5day/DOC_STATE.md not found!${NC}"
     echo "Run ./setup.sh first to initialize the project."
     exit 1
 fi
 
 # Read highest task ID and increment with error handling
-HIGHEST_ID=$(awk '/5DAY_TASK_ID/{print $NF}' docs/STATE.md)
+HIGHEST_ID=$(awk '/^\*\*5DAY_TASK_ID\*\*:/{print $NF}' docs/5day/DOC_STATE.md)
 if [ -z "$HIGHEST_ID" ] || ! [[ "$HIGHEST_ID" =~ ^[0-9]+$ ]]; then
-    echo -e "${RED}ERROR: Invalid or missing task ID in STATE.md${NC}"
-    echo "Please fix docs/STATE.md manually. Expected format: '5DAY_TASK_ID: NUMBER'"
+    echo -e "${RED}ERROR: Invalid or missing task ID in DOC_STATE.md${NC}"
+    echo "Please fix docs/5day/DOC_STATE.md manually. Expected format: '**5DAY_TASK_ID**: NUMBER'"
     exit 1
 fi
 
@@ -130,7 +130,7 @@ Success criteria that verify easily:
   - [ ] Dashboard shows total for selected date range
   - [ ] Search returns results within 500ms
 
-Get next ID: docs/STATE.md (5DAY_TASK_ID field + 1)
+Get next ID: docs/5day/DOC_STATE.md (5DAY_TASK_ID field + 1)
 Full protocol: docs/5day/ai/task-creation.md
 -->
 TASKEOF
@@ -141,16 +141,16 @@ sed_inplace "s/DESCRIPTION_PLACEHOLDER/$(sed_escape "$DESCRIPTION")/g" "docs/tas
 sed_inplace "s/FEATURE_LINE_PLACEHOLDER/$(sed_escape "$FEATURE_LINE")/g" "docs/tasks/backlog/$FILENAME"
 sed_inplace "s/CREATED_DATE_PLACEHOLDER/$CREATED_DATE/g" "docs/tasks/backlog/$FILENAME"
 
-# Update STATE.md in place — only touch the fields that changed
+# Update DOC_STATE.md in place — only touch the fields that changed
 LAST_UPDATED=$(date +%F)
-TEMP_STATE="docs/STATE.md.tmp.$$"
-cp docs/STATE.md "$TEMP_STATE"
+TEMP_STATE="docs/5day/DOC_STATE.md.tmp.$$"
+cp docs/5day/DOC_STATE.md "$TEMP_STATE"
 sed_inplace "s/^\*\*5DAY_TASK_ID\*\*:.*/**5DAY_TASK_ID**: $NEW_ID/" "$TEMP_STATE"
 sed_inplace "s/^\*\*Last Updated\*\*:.*/**Last Updated**: $LAST_UPDATED/" "$TEMP_STATE"
-if mv -f "$TEMP_STATE" docs/STATE.md; then
-    echo -e "${GREEN}✓ STATE.md updated successfully${NC}"
+if mv -f "$TEMP_STATE" docs/5day/DOC_STATE.md; then
+    echo -e "${GREEN}✓ DOC_STATE.md updated successfully${NC}"
 else
-    echo -e "${RED}ERROR: Failed to update STATE.md${NC}"
+    echo -e "${RED}ERROR: Failed to update DOC_STATE.md${NC}"
     rm -f "docs/tasks/backlog/$FILENAME"
     rm -f "$TEMP_STATE"
     exit 1
@@ -163,7 +163,7 @@ if [ ! -f "docs/tasks/backlog/$FILENAME" ]; then
 fi
 
 # Stage the changes
-git add docs/STATE.md "docs/tasks/backlog/$FILENAME"
+git add docs/5day/DOC_STATE.md "docs/tasks/backlog/$FILENAME"
 
 echo -e "${GREEN}Created task: docs/tasks/backlog/$FILENAME${NC}"
 echo ""

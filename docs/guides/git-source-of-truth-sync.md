@@ -160,12 +160,12 @@ When resolving conflicts:
 # 1. Always pull latest
 git pull
 
-# 2. Check STATE.md for current highest ID
-cat docs/STATE.md
+# 2. Check DOC_STATE.md for current highest ID
+cat docs/5day/DOC_STATE.md
 
 # 3. If creating tasks from Jira tickets, use next ID
 # 4. If conflict in IDs, renumber the newer one
-# 5. Update STATE.md with new highest
+# 5. Update DOC_STATE.md with new highest
 # 6. Commit all changes together
 ```
 
@@ -173,10 +173,10 @@ cat docs/STATE.md
 
 ### Task ID Management
 
-- **STATE.md** is the authority for ID assignment
+- **DOC_STATE.md** is the authority for ID assignment
 - IDs are sequential, starting from 0
 - Never reuse IDs, even if task deleted
-- Reconciliation auto-updates STATE.md
+- Reconciliation auto-updates DOC_STATE.md
 
 ### Timing Considerations
 
@@ -225,7 +225,7 @@ GitHub repository needs:
 ### Duplicate Tasks Created
 
 This shouldn't happen, but if it does:
-1. Check STATE.md for highest ID
+1. Check DOC_STATE.md for highest ID
 2. Renumber the duplicate
 3. Update Jira ticket with correct ID
 4. Commit fixes
@@ -271,7 +271,7 @@ Include additional Jira fields in task files by modifying the reconciliation scr
    - Check for failed workflows
    - Review logs if sync seems broken
 
-5. **Keep STATE.md accurate:**
+5. **Keep DOC_STATE.md accurate:**
    - Never edit manually unless fixing corruption
    - Let workflows maintain it
 

@@ -14,9 +14,9 @@ on:
         type: string
         default: 'docs/tasks'
       state_file:
-        description: 'Path to STATE.md file (default: docs/STATE.md)'
+        description: 'Path to DOC_STATE.md file (default: docs/5day/DOC_STATE.md)'
         type: string
-        default: 'docs/STATE.md'
+        default: 'docs/5day/DOC_STATE.md'
       project_number:
         description: 'GitHub Project number (optional)'
         type: string

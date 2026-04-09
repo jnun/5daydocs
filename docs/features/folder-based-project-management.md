@@ -42,7 +42,7 @@ All project management data stored as markdown files:
 
 ## Automated ID Management
 **Status**: LIVE
-Sequential task IDs managed through STATE.md:
+Sequential task IDs managed through `docs/5day/DOC_STATE.md`:
 - Automatic ID assignment
 - No ID collisions
 - Simple integer sequence

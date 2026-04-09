@@ -7,8 +7,7 @@ This directory contains template files that are copied to new projects during se
 ```
 templates/
 ├── project/
-│   ├── README.md                     # Template for project README
-│   └── STATE.md.template             # Template for STATE.md with placeholders
+│   └── README.md                     # Template for project README
 ├── workflows/
 │   ├── github/
 │   │   └── sync-tasks-to-issues.yml  # GitHub Issues integration workflow

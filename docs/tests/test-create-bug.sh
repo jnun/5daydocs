@@ -1,6 +1,6 @@
 #!/bin/bash
 # Test: create-bug.sh
-# Tests bug creation, STATE.md updates, error cases
+# Tests bug creation, DOC_STATE.md updates, error cases
 
 set -e
 
@@ -17,11 +17,11 @@ setup() {
 
     cp "$SCRIPT_UNDER_TEST" "$TMPDIR/docs/5day/scripts/create-bug.sh"
 
-    cat > "$TMPDIR/docs/STATE.md" << 'EOF'
-# docs/STATE.md
+    cat > "$TMPDIR/docs/5day/DOC_STATE.md" << 'EOF'
+# 5DayDocs Documentation State
 
 **Last Updated**: 2026-01-01
-**5DAY_VERSION**: 2.1.3
+**5DAY_VERSION**: 2.2.0
 **5DAY_TASK_ID**: 10
 **5DAY_BUG_ID**: 5
 **SYNC_ALL_TASKS**: false
@@ -88,9 +88,9 @@ assert_contains "Problem section" "$content" "## Problem"
 assert_contains "Steps to reproduce" "$content" "## Steps to reproduce"
 assert_contains "Success criteria" "$content" "## Success criteria"
 
-# Test 5: STATE.md updated with new bug ID
-echo "Test 5: STATE.md updated"
-state=$(cat "$TMPDIR/docs/STATE.md")
+# Test 5: DOC_STATE.md updated with new bug ID
+echo "Test 5: DOC_STATE.md updated"
+state=$(cat "$TMPDIR/docs/5day/DOC_STATE.md")
 assert_contains "Bug ID incremented to 6" "$state" "**5DAY_BUG_ID**: 6"
 
 # Test 6: Missing description — should fail
@@ -104,15 +104,15 @@ else
     PASS=$((PASS + 1))
 fi
 
-# Test 7: Missing STATE.md — should fail
-echo "Test 7: Missing STATE.md exits 1"
+# Test 7: Missing DOC_STATE.md — should fail
+echo "Test 7: Missing DOC_STATE.md exits 1"
 setup
-rm "$TMPDIR/docs/STATE.md"
+rm "$TMPDIR/docs/5day/DOC_STATE.md"
 if (cd "$TMPDIR" && bash docs/5day/scripts/create-bug.sh "Some bug" > /dev/null 2>&1); then
     echo "  FAIL: Should have exited non-zero"
     FAIL=$((FAIL + 1))
 else
-    echo "  PASS: Exits non-zero without STATE.md"
+    echo "  PASS: Exits non-zero without DOC_STATE.md"
     PASS=$((PASS + 1))
 fi
 

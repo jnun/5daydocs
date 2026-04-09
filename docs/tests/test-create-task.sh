@@ -1,6 +1,6 @@
 #!/bin/bash
 # Test: create-task.sh
-# Tests task creation, STATE.md updates, error cases
+# Tests task creation, DOC_STATE.md updates, error cases
 
 set -e
 
@@ -19,12 +19,12 @@ setup() {
     # Copy script into correct location
     cp "$SCRIPT_UNDER_TEST" "$TMPDIR/docs/5day/scripts/create-task.sh"
 
-    # Create minimal STATE.md
-    cat > "$TMPDIR/docs/STATE.md" << 'EOF'
-# docs/STATE.md
+    # Create minimal DOC_STATE.md
+    cat > "$TMPDIR/docs/5day/DOC_STATE.md" << 'EOF'
+# 5DayDocs Documentation State
 
 **Last Updated**: 2026-01-01
-**5DAY_VERSION**: 2.1.3
+**5DAY_VERSION**: 2.2.0
 **5DAY_TASK_ID**: 10
 **5DAY_BUG_ID**: 1
 **SYNC_ALL_TASKS**: false
@@ -82,9 +82,9 @@ echo "Test 2: Task file has correct title"
 content=$(cat "$TMPDIR/docs/tasks/backlog/11-fix-login-bug.md")
 assert_contains "Title has task ID" "$content" "# Task 11: Fix login bug"
 
-# Test 3: STATE.md updated with new ID
-echo "Test 3: STATE.md updated"
-state=$(cat "$TMPDIR/docs/STATE.md")
+# Test 3: DOC_STATE.md updated with new ID
+echo "Test 3: DOC_STATE.md updated"
+state=$(cat "$TMPDIR/docs/5day/DOC_STATE.md")
 assert_contains "Task ID incremented to 11" "$state" "**5DAY_TASK_ID**: 11"
 
 # Test 4: Feature reference defaults to none
@@ -109,15 +109,15 @@ else
     PASS=$((PASS + 1))
 fi
 
-# Test 7: Missing STATE.md — should fail
-echo "Test 7: Missing STATE.md exits 1"
+# Test 7: Missing DOC_STATE.md — should fail
+echo "Test 7: Missing DOC_STATE.md exits 1"
 setup
-rm "$TMPDIR/docs/STATE.md"
+rm "$TMPDIR/docs/5day/DOC_STATE.md"
 if (cd "$TMPDIR" && bash docs/5day/scripts/create-task.sh "Some task" > /dev/null 2>&1); then
     echo "  FAIL: Should have exited non-zero"
     FAIL=$((FAIL + 1))
 else
-    echo "  PASS: Exits non-zero without STATE.md"
+    echo "  PASS: Exits non-zero without DOC_STATE.md"
     PASS=$((PASS + 1))
 fi
 

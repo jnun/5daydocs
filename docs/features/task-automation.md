@@ -7,16 +7,16 @@ Automation scripts streamline common task management operations.
 ## Task Creation Script
 **Status**: LIVE
 `docs/5day/scripts/create-task.sh` automates task creation:
-- Automatic ID assignment from STATE.md
+- Automatic ID assignment from `docs/5day/DOC_STATE.md`
 - Creates properly formatted task file
-- Updates STATE.md automatically
+- Updates `docs/5day/DOC_STATE.md` automatically
 - Supports feature linking
 
 ## Setup Script
 **Status**: LIVE
 `setup.sh` initializes the entire project structure:
 - Creates all required directories
-- Initializes unified STATE.md with task and bug tracking
+- Initializes unified `docs/5day/DOC_STATE.md` with task and bug tracking
 - Makes scripts executable
 - Adds sample content if needed
 - Creates .gitignore

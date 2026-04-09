@@ -11,7 +11,7 @@ chmod +x setup.sh
 ### Task Management
 ```bash
 # Check current highest task ID
-cat docs/STATE.md
+cat docs/5day/DOC_STATE.md
 
 # Create new task (manual)
 echo "# Task 1: Task Title" > docs/tasks/backlog/1-task-name.md
@@ -26,7 +26,7 @@ mv docs/tasks/review/1-task.md docs/tasks/live/
 ### Bug Management
 ```bash
 # Check current highest bug ID
-cat docs/STATE.md
+cat docs/5day/DOC_STATE.md
 
 # Create bug report
 ./5day.sh newbug "Brief description of the bug"
@@ -55,13 +55,13 @@ ls docs/tasks/live/
 ### Tasks
 - Format: `ID-description.md`
 - Example: `1-fix-login-bug.md`
-- ID is numeric, increments from docs/STATE.md
+- ID is numeric, increments from docs/5day/DOC_STATE.md
 - Description is kebab-case
 
 ### Bugs
 - Format: `ID-description.md`
 - Example: `1-login-not-working.md`
-- ID is numeric, increments from docs/STATE.md
+- ID is numeric, increments from docs/5day/DOC_STATE.md
 - Description is kebab-case
 
 ### Features
@@ -127,8 +127,8 @@ git commit -m "Task #1: Fix login bug"
 
 ## Tips
 
-- Always check STATE.md before creating tasks
-- Always update STATE.md after creating tasks
+- Always check docs/5day/DOC_STATE.md before creating tasks
+- Always update docs/5day/DOC_STATE.md after creating tasks
 - Keep working tasks minimal (1-3 max)
 - Document blockers when moving backwards
 - Review folder is mandatory (no skipping)

@@ -49,7 +49,7 @@ To sync changes from `src/` to `docs/`:
 
 This copies framework files from `src/` to `docs/` while preserving:
 - Task files
-- STATE.md values (IDs)
+- DOC_STATE.md values (IDs)
 - User content
 
 ## 3. Version Release
@@ -103,7 +103,7 @@ git pull
 ```
 
 `setup.sh` handles migrations:
-- Preserves STATE.md values
+- Preserves DOC_STATE.md values
 - Preserves user content (tasks, features, etc.)
 - Updates framework files only
 
@@ -135,8 +135,8 @@ git pull
 │   5day.sh                     ├── tasks/        ← their work│
 │                               ├── features/                 │
 │                               ├── ideas/                    │
-│                               ├── 5day/         ← framework │
-│                               └── STATE.md                  │
+│                               └── 5day/         ← framework │
+│                                   └── DOC_STATE.md          │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -145,5 +145,5 @@ git pull
 
 1. **src/ is source of truth** — All edits happen here
 2. **setup.sh is the sync tool** — Never manually copy files
-3. **User content is preserved** — Tasks, features, STATE.md survive updates
+3. **User content is preserved** — Tasks, features, DOC_STATE.md survive updates
 4. **Framework files are replaced** — scripts, templates, docs get overwritten

@@ -62,22 +62,22 @@ for folder in $FOLDERS; do
     fi
 done
 
-# Also stage STATE.md if changed
-if git status --porcelain docs/STATE.md 2>/dev/null | grep -q .; then
-    git add docs/STATE.md
-    echo -e "  ${GREEN}+${NC} STATE.md"
+# Also stage DOC_STATE.md if changed
+if git status --porcelain docs/5day/DOC_STATE.md 2>/dev/null | grep -q .; then
+    git add docs/5day/DOC_STATE.md
+    echo -e "  ${GREEN}+${NC} DOC_STATE.md"
     STAGED=$((STAGED + 1))
 fi
 
 # If --all, set the bulk sync flag
 if [ "$FORCE_ALL" = "true" ]; then
-    if grep -q '^\*\*SYNC_ALL_TASKS\*\*: false' docs/STATE.md; then
+    if grep -q '^\*\*SYNC_ALL_TASKS\*\*: false' docs/5day/DOC_STATE.md; then
         if sed --version 2>/dev/null | grep -q GNU; then
-            sed -i 's/^\*\*SYNC_ALL_TASKS\*\*: false$/\*\*SYNC_ALL_TASKS\*\*: true/' docs/STATE.md
+            sed -i 's/^\*\*SYNC_ALL_TASKS\*\*: false$/\*\*SYNC_ALL_TASKS\*\*: true/' docs/5day/DOC_STATE.md
         else
-            sed -i '' 's/^\*\*SYNC_ALL_TASKS\*\*: false$/\*\*SYNC_ALL_TASKS\*\*: true/' docs/STATE.md
+            sed -i '' 's/^\*\*SYNC_ALL_TASKS\*\*: false$/\*\*SYNC_ALL_TASKS\*\*: true/' docs/5day/DOC_STATE.md
         fi
-        git add docs/STATE.md
+        git add docs/5day/DOC_STATE.md
         echo -e "  ${YELLOW}!${NC} SYNC_ALL_TASKS set to true (full resync)"
         STAGED=$((STAGED + 1))
     fi

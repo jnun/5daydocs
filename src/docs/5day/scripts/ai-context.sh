@@ -10,11 +10,11 @@ DOCS_DIR="$PROJECT_ROOT/docs"
 
 echo "# Project Context Summary"
 echo ""
-echo "## Global State (STATE.md)"
-if [ -f "$DOCS_DIR/STATE.md" ]; then
-    cat "$DOCS_DIR/STATE.md"
+echo "## Global State (DOC_STATE.md)"
+if [ -f "$DOCS_DIR/5day/DOC_STATE.md" ]; then
+    cat "$DOCS_DIR/5day/DOC_STATE.md"
 else
-    echo "STATE.md not found."
+    echo "DOC_STATE.md not found."
 fi
 echo ""
 

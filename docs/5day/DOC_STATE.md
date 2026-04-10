@@ -17,4 +17,4 @@ Fields:
 **5DAY_VERSION**: 2.2.0
 **5DAY_TASK_ID**: 158
 **5DAY_BUG_ID**: 1
-**SYNC_ALL_TASKS**: true
+**SYNC_ALL_TASKS**: false

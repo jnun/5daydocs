@@ -761,10 +761,18 @@ if [ "$PLATFORM" = "none" ]; then
             msg_warning "Could not remove .github/workflows/sync-tasks-to-issues.yml"
         fi
     fi
+    if [ -f ".github/workflows/sync-status-to-label.yml" ]; then
+        if rm -f ".github/workflows/sync-status-to-label.yml" 2>/dev/null; then
+            msg_step "Removed .github/workflows/sync-status-to-label.yml"
+        else
+            msg_warning "Could not remove .github/workflows/sync-status-to-label.yml"
+        fi
+    fi
 elif [ "$PLATFORM" != "bitbucket-jira" ]; then
     msg_header "Setting up GitHub Actions..."
 
     safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/workflows/github/sync-tasks-to-issues.yml" ".github/workflows/sync-tasks-to-issues.yml" "sync-tasks-to-issues.yml"
+    safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/workflows/github/sync-status-to-label.yml" ".github/workflows/sync-status-to-label.yml" "sync-status-to-label.yml"
     safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/github/ISSUE_TEMPLATE/bug_report.md" ".github/ISSUE_TEMPLATE/bug_report.md" "bug report template"
     safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/github/ISSUE_TEMPLATE/feature_request.md" ".github/ISSUE_TEMPLATE/feature_request.md" "feature request template"
     safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/github/ISSUE_TEMPLATE/task.md" ".github/ISSUE_TEMPLATE/task.md" "task issue template"

@@ -232,13 +232,20 @@ Once set up, share your board with partners:
    - **Public** - Anyone with the link can view (read-only for non-collaborators)
 4. Share the project URL with your partners
 
+## Label-to-Status Sync
+
+A second workflow (`sync-status-to-label.yml`) keeps your project board in sync when labels are applied to issues — whether by the task sync or manually. It uses your folder names as the source of truth, so adding a new folder automatically creates a new status option.
+
+See [Label-to-Project Status Sync Guide](guides/github-label-project-sync.md) for details.
+
 ## Automation Summary
 
-The workflow automatically:
+The workflows automatically:
 1. Creates/updates GitHub Issues from task files
 2. Adds issues to your project board
 3. Sets the status column based on folder location
 4. Updates labels to match status
 5. Closes issues when tasks move to "live"
+6. Syncs project board status when labels are applied
 
 **You just move files. Everything else is automatic.**

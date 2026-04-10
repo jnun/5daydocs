@@ -158,13 +158,15 @@ jobs:
           GH_TOKEN: ${{ secrets.token || secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          # Fetch all task issues (title pattern: "Task {ID}:") with body for metadata lookup
+          # Fetch all task issues (title pattern: "Task {ID}:") with body for metadata lookup.
+          # Output as compact JSONL (one object per line) so downstream `head -1` reads a
+          # complete object instead of truncating a multi-line pretty-printed object to "{".
           gh issue list \
             --state all \
             --limit 1000 \
             --json number,title,state,body \
-            --jq '.[] | select(.title | test("^Task [0-9]+:")) | {number, title, state, body}' \
-            > /tmp/cache.json || echo "" > /tmp/cache.json
+            | jq -c '.[] | select(.title | test("^Task [0-9]+:")) | {number, title, state, body}' \
+            > /tmp/cache.json 2>/dev/null || echo "" > /tmp/cache.json
 
           echo "Cached $(wc -l < /tmp/cache.json | tr -d ' ') existing task issues"
 
@@ -205,10 +207,10 @@ jobs:
 
             # Idempotent lookup: first try HTML comment metadata, then fall back to title
             METADATA_TAG="<!-- 5daydocs-task-id: $TASK_ID -->"
-            EXISTING=$(jq -r "select(.body | contains(\"$METADATA_TAG\"))" /tmp/cache.json 2>/dev/null | head -1 || true)
+            EXISTING=$(jq -c "select(.body | contains(\"$METADATA_TAG\"))" /tmp/cache.json 2>/dev/null | head -1 || true)
             if [ -z "$EXISTING" ]; then
               # Fallback: title-based lookup for issues created before metadata was added
-              EXISTING=$(jq -r "select(.title | startswith(\"Task $TASK_ID:\"))" /tmp/cache.json 2>/dev/null | head -1 || true)
+              EXISTING=$(jq -c "select(.title | startswith(\"Task $TASK_ID:\"))" /tmp/cache.json 2>/dev/null | head -1 || true)
             fi
             if [ -n "$EXISTING" ]; then
               ISSUE_NUM=$(echo "$EXISTING" | jq -r '.number')

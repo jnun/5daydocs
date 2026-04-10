@@ -395,44 +395,62 @@ fi
 # PLATFORM CONFIGURATION
 # ============================================================================
 
-# Only ask for platform selection on fresh install
-if ! $UPDATE_MODE; then
-    echo "Select your platform configuration:"
-    echo "1) GitHub with GitHub Issues (default)"
-    echo "2) GitHub with Jira (coming soon)"
-    echo "3) Bitbucket with Jira (coming soon)"
-    echo "4) No sync for now"
-    echo ""
-    echo "Enter your choice (1-4, or press Enter for default):"
-    read -r PLATFORM_CHOICE
+# Determine current platform (used as default during updates)
+CURRENT_PLATFORM=""
+if $UPDATE_MODE && [ -f "docs/.platform-config" ]; then
+    CURRENT_PLATFORM=$(grep '^PLATFORM=' docs/.platform-config | cut -d'"' -f2)
+fi
 
-    case "$PLATFORM_CHOICE" in
-        2)
-            PLATFORM="github-jira"
-            echo "Selected: GitHub with Jira (Note: Integration not fully implemented yet)"
-            ;;
-        3)
-            PLATFORM="bitbucket-jira"
-            echo "Selected: Bitbucket with Jira (Note: Integration not fully implemented yet)"
-            ;;
-        4)
-            PLATFORM="none"
-            echo "Selected: No sync — skipping issue tracker integration"
-            ;;
-        *)
+if $UPDATE_MODE; then
+    echo "Select your platform configuration:"
+    echo "  Current: ${CURRENT_PLATFORM:-github-issues (default)}"
+else
+    echo "Select your platform configuration:"
+fi
+echo "1) GitHub with GitHub Issues (default)"
+echo "2) GitHub with Jira (coming soon)"
+echo "3) Bitbucket with Jira (coming soon)"
+echo "4) No sync — opt out of GitHub/Jira issue tracking"
+echo ""
+if $UPDATE_MODE; then
+    echo "Enter your choice (1-4, or press Enter to keep current):"
+else
+    echo "Enter your choice (1-4, or press Enter for default):"
+fi
+read -r PLATFORM_CHOICE
+
+case "$PLATFORM_CHOICE" in
+    1)
+        PLATFORM="github-issues"
+        echo "Selected: GitHub with GitHub Issues"
+        ;;
+    2)
+        PLATFORM="github-jira"
+        echo "Selected: GitHub with Jira (Note: Integration not fully implemented yet)"
+        ;;
+    3)
+        PLATFORM="bitbucket-jira"
+        echo "Selected: Bitbucket with Jira (Note: Integration not fully implemented yet)"
+        ;;
+    4)
+        PLATFORM="none"
+        echo "Selected: No sync — opting out of issue tracker integration"
+        ;;
+    "")
+        if $UPDATE_MODE && [ -n "$CURRENT_PLATFORM" ]; then
+            PLATFORM="$CURRENT_PLATFORM"
+            echo "Keeping current: $PLATFORM"
+        else
             PLATFORM="github-issues"
             echo "Selected: GitHub with GitHub Issues"
-            ;;
-    esac
-    echo ""
-else
-    # Read existing platform config
-    if [ -f "docs/.platform-config" ]; then
-        PLATFORM=$(grep '^PLATFORM=' docs/.platform-config | cut -d'"' -f2)
-    else
+        fi
+        ;;
+    *)
         PLATFORM="github-issues"
-    fi
-fi
+        echo "Selected: GitHub with GitHub Issues"
+        ;;
+esac
+echo ""
 
 # ============================================================================
 # CREATE DIRECTORY STRUCTURE
@@ -566,13 +584,19 @@ README_POINTER='> **Project documentation** → see [`DOCUMENTATION.md`](DOCUMEN
 
 # Strict yes/no prompt — loops until the user gives an unambiguous answer.
 # Sets the variable named in $1 to "yes" or "no". $2 is the prompt text.
+# On EOF (closed stdin, e.g. piped/CI install) defaults to "no" so we never
+# mutate user files without an explicit yes, and never hang.
 prompt_yes_no() {
     local __varname="$1"
     local __prompt="$2"
     local __answer
     while true; do
         echo "$__prompt (yes/no)"
-        read -r __answer
+        if ! read -r __answer; then
+            echo "  (no input — defaulting to no)"
+            printf -v "$__varname" "no"
+            return 0
+        fi
         case "$__answer" in
             [Yy]|[Yy][Ee][Ss])  printf -v "$__varname" "yes"; return 0 ;;
             [Nn]|[Nn][Oo])      printf -v "$__varname" "no";  return 0 ;;
@@ -707,7 +731,18 @@ fi
 # ============================================================================
 
 if [ "$PLATFORM" = "none" ]; then
-    msg_header "Skipping issue tracker integration (no sync selected)"
+    msg_header "Skipping issue tracker integration (opted out of GitHub/Jira sync)"
+
+    # If a previous install left the sync workflow in place, remove it so opting
+    # out actually stops the sync. Issue templates and PR template are user-owned
+    # GitHub conventions, so we leave those alone.
+    if [ -f ".github/workflows/sync-tasks-to-issues.yml" ]; then
+        if rm -f ".github/workflows/sync-tasks-to-issues.yml" 2>/dev/null; then
+            msg_step "Removed .github/workflows/sync-tasks-to-issues.yml"
+        else
+            msg_warning "Could not remove .github/workflows/sync-tasks-to-issues.yml"
+        fi
+    fi
 elif [ "$PLATFORM" != "bitbucket-jira" ]; then
     msg_header "Setting up GitHub Actions..."
 

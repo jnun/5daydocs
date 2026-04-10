@@ -1,8 +1,13 @@
 # 5DayDocs Reusable Workflow - Task to GitHub Issue Sync
 # https://github.com/jnun/5daydocs
 #
-# This is the engine. User projects call this workflow, they don't copy it.
-# To use in your project, see: src/templates/workflows/github/sync-tasks-to-issues.yml
+# All sync logic lives here. This file exists separately from sync-tasks-to-issues.yml
+# because GitHub requires workflow_call (reusable) and push/workflow_dispatch triggers
+# to be in different files. User projects call this workflow remotely via
+# `uses: jnun/5daydocs/.github/workflows/sync-tasks-reusable.yml@main`, so updates
+# here are picked up automatically without users re-copying anything.
+#
+# See also: sync-tasks-to-issues.yml (the thin caller wrapper)
 
 name: 5DayDocs Sync (Reusable)
 
@@ -94,6 +99,7 @@ jobs:
             ["blocked"]="D93F0B:Task blocked"
             ["review"]="C2E0C6:Task in review"
             ["completed"]="98FB98:Task completed"
+            ["unknown"]="CCCCCC:Task issue not found in filesystem"
           )
 
           for label in "${!LABELS[@]}"; do
@@ -133,7 +139,12 @@ jobs:
             if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
               BASE_SHA="HEAD~1"
             fi
-            FILES=$(git diff --name-only "$BASE_SHA" HEAD -- "$TASKS_PATH/**/*.md" | grep -vE '(INDEX|TEMPLATE)' || true)
+            FILES=$(git diff --name-only --diff-filter=ACDMR "$BASE_SHA" HEAD -- "$TASKS_PATH/**/*.md" | grep -vE '(INDEX|TEMPLATE)' || true)
+            # Also capture deleted files explicitly
+            DELETED=$(git diff --name-only --diff-filter=D "$BASE_SHA" HEAD -- "$TASKS_PATH/**/*.md" | grep -vE '(INDEX|TEMPLATE)' || true)
+            if [ -n "$DELETED" ]; then
+              FILES=$(printf '%s\n%s' "$FILES" "$DELETED" | sort -u | sed '/^$/d')
+            fi
           fi
 
           if [ -n "$FILES" ]; then
@@ -308,13 +319,19 @@ jobs:
               CUR_LABELS=$(echo "$DATA" | jq -r '.labels[].name' | tr '\n' ' ')
               CUR_STATE=$(echo "$DATA" | jq -r '.state')
 
-              # Update labels
+              # Update labels — use word-boundary matching to avoid false positives
               LABEL_ARGS=()
-              for l in backlog next working blocked review completed; do
-                [[ "$CUR_LABELS" == *"$l"* ]] && [ "$l" != "$STATUS_LABEL" ] && LABEL_ARGS+=(--remove-label "$l")
+              for l in backlog next working blocked review completed unknown; do
+                if echo " $CUR_LABELS " | grep -qw "$l"; then
+                  [ "$l" != "$STATUS_LABEL" ] && LABEL_ARGS+=(--remove-label "$l")
+                fi
               done
-              [[ "$CUR_LABELS" != *"$STATUS_LABEL"* ]] && LABEL_ARGS+=(--add-label "$STATUS_LABEL")
-              [ ${#LABEL_ARGS[@]} -gt 0 ] && gh issue edit "$ISSUE_NUM" "${LABEL_ARGS[@]}" 2>/dev/null || true
+              if ! echo " $CUR_LABELS " | grep -qw "$STATUS_LABEL"; then
+                LABEL_ARGS+=(--add-label "$STATUS_LABEL")
+              fi
+              if [ ${#LABEL_ARGS[@]} -gt 0 ]; then
+                gh issue edit "$ISSUE_NUM" "${LABEL_ARGS[@]}" || echo "::warning::Failed to update labels on #$ISSUE_NUM"
+              fi
 
               # State transitions
               if [ "$STATUS_LABEL" = "completed" ] && [ "$CUR_STATE" = "OPEN" ]; then
@@ -334,6 +351,207 @@ jobs:
           echo "updated=$(cat /tmp/updated)" >> "$GITHUB_OUTPUT"
           echo "closed=$(cat /tmp/closed)" >> "$GITHUB_OUTPUT"
           echo "errors=$(cat /tmp/errors)" >> "$GITHUB_OUTPUT"
+
+      - name: Reconcile issues with filesystem
+        id: reconcile
+        env:
+          GH_TOKEN: ${{ secrets.token || secrets.GITHUB_TOKEN }}
+          TASKS_PATH: ${{ inputs.tasks_path }}
+        run: |
+          set -euo pipefail
+          echo "::group::Reconciliation"
+          echo "0" > /tmp/reconcile_created
+          echo "0" > /tmp/reconcile_updated
+          echo "0" > /tmp/reconcile_closed
+          echo "0" > /tmp/reconcile_unknown
+
+          rinc() { echo "$(($(cat /tmp/reconcile_$1) + 1))" > /tmp/reconcile_$1; }
+
+          STATUS_LABELS="backlog next working blocked review completed unknown"
+
+          # --- Build filesystem map: task_id -> folder ---
+          declare -A FS_MAP
+          for folder in backlog next working blocked review live; do
+            dir="$TASKS_PATH/$folder"
+            [ -d "$dir" ] || continue
+            for f in "$dir"/[0-9]*.md; do
+              [ -f "$f" ] || continue
+              tid=$(basename "$f" | grep -oE '^[0-9]+')
+              [ -n "$tid" ] && FS_MAP["$tid"]="$folder"
+            done
+          done
+          echo "Filesystem tasks: ${#FS_MAP[@]}"
+
+          # --- Fetch ALL task issues from GitHub ---
+          gh issue list \
+            --state all \
+            --limit 1000 \
+            --json number,title,state,body,labels \
+            | jq -c '.[] | select(.title | test("^Task [0-9]+:")) | {number, title, state, body, labels: [.labels[].name]}' \
+            > /tmp/reconcile_cache.json 2>/dev/null || echo "" > /tmp/reconcile_cache.json
+          echo "GitHub task issues: $(wc -l < /tmp/reconcile_cache.json | tr -d ' ')"
+
+          # --- Build GitHub map: task_id -> issue_number ---
+          declare -A GH_MAP
+          declare -A GH_LABELS
+          declare -A GH_STATE
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            num=$(echo "$line" | jq -r '.number')
+            title=$(echo "$line" | jq -r '.title')
+            state=$(echo "$line" | jq -r '.state')
+            labels=$(echo "$line" | jq -r '.labels | join(" ")')
+
+            # Extract task ID from metadata comment or title
+            body=$(echo "$line" | jq -r '.body // ""')
+            tid=""
+            if echo "$body" | grep -qoE '5daydocs-task-id: [0-9]+'; then
+              tid=$(echo "$body" | grep -oE '5daydocs-task-id: [0-9]+' | grep -oE '[0-9]+')
+            fi
+            if [ -z "$tid" ]; then
+              tid=$(echo "$title" | grep -oE '^Task ([0-9]+):' | grep -oE '[0-9]+')
+            fi
+
+            if [ -n "$tid" ]; then
+              GH_MAP["$tid"]="$num"
+              GH_LABELS["$tid"]="$labels"
+              GH_STATE["$tid"]="$state"
+            fi
+          done < /tmp/reconcile_cache.json
+
+          # --- 1. GitHub issues with no matching filesystem file → label "unknown" ---
+          for tid in "${!GH_MAP[@]}"; do
+            if [ -z "${FS_MAP[$tid]:-}" ]; then
+              num="${GH_MAP[$tid]}"
+              cur_labels="${GH_LABELS[$tid]}"
+              # Skip if already labelled unknown
+              if echo " $cur_labels " | grep -qw "unknown"; then
+                continue
+              fi
+              # Remove any status labels, add unknown
+              LABEL_ARGS=()
+              for l in $STATUS_LABELS; do
+                if echo " $cur_labels " | grep -qw "$l"; then
+                  LABEL_ARGS+=(--remove-label "$l")
+                fi
+              done
+              LABEL_ARGS+=(--add-label "unknown")
+              gh issue edit "$num" "${LABEL_ARGS[@]}" || echo "::warning::Failed to label #$num as unknown"
+              echo "Labelled #$num as unknown (task $tid not in filesystem)"
+              rinc unknown
+            fi
+          done
+
+          # --- 2. Filesystem tasks with no matching GitHub issue → create ---
+          for tid in "${!FS_MAP[@]}"; do
+            if [ -z "${GH_MAP[$tid]:-}" ]; then
+              folder="${FS_MAP[$tid]}"
+              file=$(find "$TASKS_PATH/$folder" -name "${tid}-*.md" -type f 2>/dev/null | head -1)
+              [ -z "$file" ] && continue
+
+              TITLE=$(grep -E '^# Task [0-9]+:' "$file" | sed -E 's/^# Task [0-9]+: //' | head -1)
+              [ -z "$TITLE" ] && { echo "::warning::Task $tid missing title, skipping"; continue; }
+
+              FEATURE=$(grep -E '^\*\*Feature\*\*:' "$file" | sed 's/\*\*Feature\*\*: //' | head -1 || echo "")
+              PROBLEM=$(awk '/^## Problem$/,/^## / {if (!/^##/) print}' "$file" | sed '/^[[:space:]]*$/d' | head -20 || echo "")
+              CRITERIA=$(awk '/^## Success criteria$/,/^## |^---/ {if (!/^##/ && !/^---/) print}' "$file" | sed '/^[[:space:]]*$/d' | head -20 || echo "")
+
+              case "$folder" in
+                backlog) STATUS_LABEL="backlog"; STATUS="Backlog" ;;
+                next)    STATUS_LABEL="next"; STATUS="Next" ;;
+                working) STATUS_LABEL="working"; STATUS="Working" ;;
+                blocked) STATUS_LABEL="blocked"; STATUS="Blocked" ;;
+                review)  STATUS_LABEL="review"; STATUS="In Review" ;;
+                live)    STATUS_LABEL="completed"; STATUS="Completed" ;;
+              esac
+
+              BODY=$(printf '%s\n' \
+                "<!-- 5daydocs-task-id: $tid -->" \
+                "| Field | Value |" \
+                "|-------|-------|" \
+                "| Status | $STATUS |" \
+                "| Feature | ${FEATURE:-none} |" \
+                "| Source | \`$file\` |" \
+                "" \
+                "## Problem" \
+                "${PROBLEM:-No description}" \
+                "" \
+                "## Success Criteria" \
+                "${CRITERIA:-No criteria}")
+
+              ISSUE_URL=$(gh issue create \
+                --title "Task $tid: $TITLE" \
+                --body "$BODY" \
+                --label "$STATUS_LABEL") || { echo "::warning::Failed to create issue for task $tid"; continue; }
+              ISSUE_NUM=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
+              echo "Created #$ISSUE_NUM for task $tid (reconciliation)"
+              rinc created
+
+              if [ "$STATUS_LABEL" = "completed" ] && [ -n "$ISSUE_NUM" ]; then
+                gh issue close "$ISSUE_NUM" --reason "completed" || true
+                rinc closed
+              fi
+            fi
+          done
+
+          # --- 3. Matched issues with wrong labels → fix ---
+          for tid in "${!FS_MAP[@]}"; do
+            num="${GH_MAP[$tid]:-}"
+            [ -z "$num" ] && continue
+
+            folder="${FS_MAP[$tid]}"
+            case "$folder" in
+              backlog) EXPECTED="backlog" ;;
+              next)    EXPECTED="next" ;;
+              working) EXPECTED="working" ;;
+              blocked) EXPECTED="blocked" ;;
+              review)  EXPECTED="review" ;;
+              live)    EXPECTED="completed" ;;
+            esac
+
+            cur_labels="${GH_LABELS[$tid]}"
+            cur_state="${GH_STATE[$tid]}"
+
+            # Check if label correction needed
+            LABEL_ARGS=()
+            for l in $STATUS_LABELS; do
+              if echo " $cur_labels " | grep -qw "$l"; then
+                [ "$l" != "$EXPECTED" ] && LABEL_ARGS+=(--remove-label "$l")
+              fi
+            done
+            if ! echo " $cur_labels " | grep -qw "$EXPECTED"; then
+              LABEL_ARGS+=(--add-label "$EXPECTED")
+            fi
+
+            if [ ${#LABEL_ARGS[@]} -gt 0 ]; then
+              gh issue edit "$num" "${LABEL_ARGS[@]}" || echo "::warning::Failed to fix labels on #$num"
+              echo "Fixed labels on #$num (task $tid: expected=$EXPECTED)"
+              rinc updated
+            fi
+
+            # Fix open/closed state
+            if [ "$EXPECTED" = "completed" ] && [ "$cur_state" = "OPEN" ]; then
+              gh issue close "$num" --reason "completed" || true
+              echo "Closed #$num (task $tid completed)"
+              rinc closed
+            elif [ "$EXPECTED" != "completed" ] && [ "$cur_state" = "CLOSED" ]; then
+              gh issue reopen "$num" || true
+              echo "Reopened #$num (task $tid is $EXPECTED)"
+              rinc updated
+            fi
+          done
+
+          echo "::endgroup::"
+
+          RC=$(cat /tmp/reconcile_created)
+          RU=$(cat /tmp/reconcile_updated)
+          RX=$(cat /tmp/reconcile_closed)
+          RK=$(cat /tmp/reconcile_unknown)
+          echo "reconcile_created=$RC" >> "$GITHUB_OUTPUT"
+          echo "reconcile_updated=$RU" >> "$GITHUB_OUTPUT"
+          echo "reconcile_closed=$RX" >> "$GITHUB_OUTPUT"
+          echo "reconcile_unknown=$RK" >> "$GITHUB_OUTPUT"
+          echo "Reconciliation: created=$RC updated=$RU closed=$RX unknown=$RK"
 
       - name: GitHub Projects integration
         if: steps.files.outputs.count != '0' && inputs.project_number != ''
@@ -435,12 +653,16 @@ jobs:
           fi
 
       - name: Summary
-        if: always() && steps.files.outputs.count != '0'
+        if: always()
         run: |
           C="${{ steps.sync.outputs.created || '0' }}"
           U="${{ steps.sync.outputs.updated || '0' }}"
           X="${{ steps.sync.outputs.closed || '0' }}"
           E="${{ steps.sync.outputs.errors || '0' }}"
+          RC="${{ steps.reconcile.outputs.reconcile_created || '0' }}"
+          RU="${{ steps.reconcile.outputs.reconcile_updated || '0' }}"
+          RX="${{ steps.reconcile.outputs.reconcile_closed || '0' }}"
+          RK="${{ steps.reconcile.outputs.reconcile_unknown || '0' }}"
 
           {
             echo "## Task Sync Summary"
@@ -451,7 +673,13 @@ jobs:
             echo "| Closed | $X |"
             echo "| Errors | $E |"
             echo ""
-            echo "**Total:** $((C + U + X))"
+            echo "## Reconciliation"
+            echo "| Metric | Count |"
+            echo "|--------|------:|"
+            echo "| Created (missing) | $RC |"
+            echo "| Updated (label fix) | $RU |"
+            echo "| Closed (completed) | $RX |"
+            echo "| Labelled unknown | $RK |"
           } >> "$GITHUB_STEP_SUMMARY"
 
           [ "$E" -gt 0 ] && exit 1 || exit 0

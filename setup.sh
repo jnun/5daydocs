@@ -8,6 +8,24 @@
 
 # Note: We don't use set -e to allow graceful error handling
 
+# If stdin is a pipe (e.g. `curl ... | bash setup.sh`), try to rebind it
+# to the controlling tty so interactive prompts still work. If no tty is
+# available (backgrounded process, Docker without -t, daemon, etc.) the
+# exec silently fails — bash leaves fd 0 intact, we keep reading from
+# the pipe, and prompt_yes_no's EOF fallback handles the empty case.
+# File redirection (`bash setup.sh < answers.txt`) is untouched: regular
+# files don't match `-p`, so scripted installs continue to work.
+if [ -p /dev/stdin ]; then
+    # Brace group + 2>/dev/null is required: `exec < /dev/tty 2>/dev/null`
+    # parses as exec-with-two-redirects, and bash prints the failure of
+    # the first redirect to the *original* fd 2 before the second redirect
+    # is applied — the error message leaks. Wrapping in `{ ...; } 2>/dev/null`
+    # gives the exec a temporary fd 2 pointing at /dev/null for the
+    # duration of the group, so the failure (if any) is silenced. The exec
+    # only modifies fd 0; the brace group's temporary fd 2 reverts after.
+    { exec < /dev/tty; } 2>/dev/null || true
+fi
+
 # Get the 5daydocs source directory (where this script lives)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FIVEDAY_SOURCE_DIR="$SCRIPT_DIR"

@@ -1,8 +1,11 @@
 # Sync tasks from docs/tasks/ to GitHub Issues
 # Powered by 5DayDocs: https://github.com/jnun/5daydocs
 #
-# This workflow calls the 5DayDocs reusable workflow.
-# All logic is maintained in the 5DayDocs repository - updates are automatic.
+# Thin caller wrapper — triggers on push/dispatch and delegates to the reusable
+# workflow (sync-tasks-reusable.yml) where all sync logic lives. The two files
+# are separate because GitHub requires workflow_call and push/dispatch triggers
+# to be in different files. This split also lets user projects call the reusable
+# workflow remotely and get updates for free.
 
 name: Sync Tasks to Issues
 

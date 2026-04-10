@@ -1,0 +1,36 @@
+# Sync issue labels to GitHub Project status columns
+# Powered by 5DayDocs: https://github.com/jnun/5daydocs
+#
+# When a label matching a task folder name (backlog, next, working, etc.) is
+# applied to an issue, this workflow updates the issue's status on the GitHub
+# Project board. No webhook setup required — this trigger is native to
+# GitHub Actions.
+#
+# Prerequisites:
+#   - GH_PROJECT_TOKEN secret (PAT with project scope)
+#   - PROJECT_NUMBER repository variable
+#
+# See also:
+#   - sync-status-to-label-reusable.yml (contains all logic)
+#   - docs/guides/github-label-project-sync.md (setup guide)
+
+name: Sync Labels to Project Status
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  sync:
+    if: github.event.label.name != ''
+    permissions:
+      issues: write
+      contents: read
+    uses: jnun/5daydocs/.github/workflows/sync-status-to-label-reusable.yml@main
+    with:
+      label_name: ${{ github.event.label.name }}
+      issue_number: ${{ github.event.issue.number }}
+      project_number: ${{ vars.PROJECT_NUMBER }}
+      project_owner: ${{ github.repository_owner }}
+    secrets:
+      project_token: ${{ secrets.GH_PROJECT_TOKEN }}

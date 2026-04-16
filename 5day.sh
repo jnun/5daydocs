@@ -69,6 +69,7 @@ show_help() {
     echo "  tasks [limit]             Execute tasks from next/"
     echo "  split <path>              Split a large task into subtasks"
     echo "  audit [folder|file] [limit] [offset]  Audit tasks or a single file"
+    echo "  review-code <file> [passes]   Run code audit on a task's changes"
     echo ""
     echo -e "${BLUE}Sync:${NC}"
     echo "  sync [--all]                  Push task changes to GitHub"
@@ -171,6 +172,11 @@ cmd_audit() {
     run_script "audit-backlog.sh" "$@"
 }
 
+cmd_review_code() {
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: File path(s) required${NC}"; echo "Usage: ./5day.sh review-code <task.md> [max-passes]"; echo "       ./5day.sh review-code <file1> <file2> ... [-- max-passes]"; exit 1; }
+    run_script "audit-code.sh" "$@"
+}
+
 cmd_validate() {
     run_script "validate-tasks.sh" "$@"
 }
@@ -204,6 +210,7 @@ case "${1:-}" in
     tasks)         shift; cmd_tasks "$@" ;;
     split)         shift; cmd_split "$@" ;;
     audit)         shift; cmd_audit "$@" ;;
+    review-code)   shift; cmd_review_code "$@" ;;
     sync)          shift; cmd_sync "$@" ;;
     validate)      shift; cmd_validate "$@" ;;
     cleanup)       shift; cmd_cleanup "$@" ;;

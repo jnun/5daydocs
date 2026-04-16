@@ -71,7 +71,7 @@ if [ -f "docs/tasks/backlog/$FILENAME" ]; then
     exit 1
 fi
 
-# Create the task file matching src/templates/project/TEMPLATE-task.md
+# Create the task file matching src/docs/tasks/.TEMPLATE-task.md
 if [ -n "$FEATURE" ]; then
     FEATURE_LINE="**Feature**: /docs/features/${FEATURE}.md"
 else
@@ -162,8 +162,8 @@ if [ ! -f "docs/tasks/backlog/$FILENAME" ]; then
     exit 1
 fi
 
-# Stage the changes
-git add docs/5day/DOC_STATE.md "docs/tasks/backlog/$FILENAME"
+# Stage the changes (skip gracefully if not in a git repo)
+git add docs/5day/DOC_STATE.md "docs/tasks/backlog/$FILENAME" 2>/dev/null || true
 
 echo -e "${GREEN}Created task: docs/tasks/backlog/$FILENAME${NC}"
 echo ""

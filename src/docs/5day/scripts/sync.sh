@@ -64,7 +64,7 @@ done
 
 # Also stage DOC_STATE.md if changed
 if git status --porcelain docs/5day/DOC_STATE.md 2>/dev/null | grep -q .; then
-    git add docs/5day/DOC_STATE.md
+    git add docs/5day/DOC_STATE.md 2>/dev/null || true
     echo -e "  ${GREEN}+${NC} DOC_STATE.md"
     STAGED=$((STAGED + 1))
 fi
@@ -77,7 +77,7 @@ if [ "$FORCE_ALL" = "true" ]; then
         else
             sed -i '' 's/^\*\*SYNC_ALL_TASKS\*\*: false$/\*\*SYNC_ALL_TASKS\*\*: true/' docs/5day/DOC_STATE.md
         fi
-        git add docs/5day/DOC_STATE.md
+        git add docs/5day/DOC_STATE.md 2>/dev/null || true
         echo -e "  ${YELLOW}!${NC} SYNC_ALL_TASKS set to true (full resync)"
         STAGED=$((STAGED + 1))
     fi

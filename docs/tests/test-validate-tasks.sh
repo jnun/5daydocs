@@ -185,7 +185,7 @@ assert_contains "Shows usage" "$output" "Usage:"
 # Test 9: TEMPLATE files are skipped
 echo "Test 9: TEMPLATE files skipped"
 setup
-cat > "$TMPDIR/docs/tasks/backlog/TEMPLATE-task.md" << 'EOF'
+cat > "$TMPDIR/docs/tasks/backlog/.TEMPLATE-task.md" << 'EOF'
 # Template — not a real task
 EOF
 rc=0

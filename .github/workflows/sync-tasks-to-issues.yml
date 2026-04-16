@@ -2,10 +2,8 @@
 # Powered by 5DayDocs: https://github.com/jnun/5daydocs
 #
 # Thin caller wrapper — triggers on push/dispatch and delegates to the reusable
-# workflow (sync-tasks-reusable.yml) where all sync logic lives. The two files
-# are separate because GitHub requires workflow_call and push/dispatch triggers
-# to be in different files. This split also lets user projects call the reusable
-# workflow remotely and get updates for free.
+# workflow in the 5DayDocs repo where all sync logic lives. Updates to the sync
+# engine are picked up automatically without re-copying this file.
 
 name: Sync Tasks to Issues
 
@@ -13,6 +11,7 @@ on:
   push:
     paths:
       - 'docs/tasks/**/*.md'
+      - 'docs/docs/tasks/**/*.md'
       - 'docs/5day/DOC_STATE.md'
     branches:
       - main

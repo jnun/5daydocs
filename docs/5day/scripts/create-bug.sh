@@ -154,8 +154,8 @@ if [ ! -f "docs/bugs/$FILENAME" ]; then
     exit 1
 fi
 
-# Stage the changes
-git add docs/5day/DOC_STATE.md "docs/bugs/$FILENAME"
+# Stage the changes (skip gracefully if not in a git repo)
+git add docs/5day/DOC_STATE.md "docs/bugs/$FILENAME" 2>/dev/null || true
 
 echo -e "${GREEN}Created bug: docs/bugs/$FILENAME${NC}"
 echo ""

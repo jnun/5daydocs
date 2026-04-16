@@ -157,10 +157,10 @@ Work through it manually, or ask an AI agent to guide you.
 ## Templates
 
 Use templates in each folder:
-- `docs/ideas/TEMPLATE-idea.md`
-- `docs/tasks/TEMPLATE-task.md`
-- `docs/features/TEMPLATE-feature.md`
-- `docs/bugs/TEMPLATE-bug.md`
+- `docs/ideas/.TEMPLATE-idea.md`
+- `docs/tasks/.TEMPLATE-task.md`
+- `docs/features/.TEMPLATE-feature.md`
+- `docs/bugs/.TEMPLATE-bug.md`
 
 ## Updating 5DayDocs
 

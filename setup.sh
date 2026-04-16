@@ -4,7 +4,7 @@
 #   Prompts for target project path and sets up/updates 5DayDocs structure there
 #
 # This script handles both fresh installations and updates with version migrations.
-# Templates: All distributed templates live under src/templates/.
+# Distribution: src/ mirrors the deployed layout — setup.sh walks it recursively.
 
 # Note: We don't use set -e to allow graceful error handling
 
@@ -587,7 +587,7 @@ PLATFORM="$PLATFORM"
 CONFIG_EOF
 
 # ============================================================================
-# COPY DOCUMENTATION FILES
+# README SETUP
 # ============================================================================
 
 msg_header "Setting up documentation files..."
@@ -671,118 +671,184 @@ else
     fi
 fi
 
-# Copy DOCUMENTATION.md
-if [ ! -f "DOCUMENTATION.md" ] || $UPDATE_MODE; then
-    if safe_copy "$FIVEDAY_SOURCE_DIR/src/DOCUMENTATION.md" "DOCUMENTATION.md" "DOCUMENTATION.md"; then
-        ((FILES_COPIED++))
+# ============================================================================
+# COPY DISTRIBUTION FILES — single recursive walk of src/
+# ============================================================================
+#
+# src/ mirrors the deployed layout: every file's relative path under src/
+# matches its destination in the target project. The walk below copies each
+# file, with behavior determined by list membership, not per-file routing.
+#
+# Behavior lists (relative paths under src/):
+#   SKIP_FILES       — metadata, never copied (VERSION, .gitignore.template)
+#   PREPEND_FILES    — AI instruction files: prepend-or-create, never overwrite
+#   USER_TERRITORY   — copy only on fresh install; skip if file already exists
+#   .github/**       — only copied when platform is github-based
+#   bitbucket-*      — only copied when platform is bitbucket
+#   Everything else  — standard overwrite via safe_copy
+
+msg_header "Installing distribution files..."
+
+SKIP_FILES=(
+    "VERSION"
+    ".gitignore.template"
+)
+
+PREPEND_FILES=(
+    "CLAUDE.md"
+    "AGENTS.md"
+    ".cursorrules"
+    ".windsurfrules"
+    ".github/copilot-instructions.md"
+)
+
+USER_TERRITORY=(
+    "docs/5day/config.sh"
+)
+
+# Helper: check if a value is in an array
+_in_list() {
+    local needle="$1"; shift
+    for item in "$@"; do
+        [[ "$item" = "$needle" ]] && return 0
+    done
+    return 1
+}
+
+# Fallback content if source AI templates not found
+AI_FALLBACK='Read `DOCUMENTATION.md` before making any changes. It is the single source of truth for how this project is organized, how tasks are managed, and how to use the 5DayDocs system.'
+
+# setup_ai_file "source_template" "target_path" "display_name"
+# - If target doesn't exist, ask to create it
+# - If target exists without DOCUMENTATION.md reference, prepend automatically
+# - If target already references DOCUMENTATION.md, skip
+setup_ai_file() {
+    local src="$1"
+    local target="$2"
+    local name="$3"
+
+    local content
+    if [ -f "$src" ]; then
+        content=$(cat "$src")
+    else
+        content="$AI_FALLBACK"
     fi
-fi
 
-# Copy template files
-if safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-task.md" "docs/tasks/TEMPLATE-task.md" "task template"; then
-    ((FILES_COPIED++))
-fi
+    if [ ! -f "$target" ]; then
+        echo ""
+        echo "No $name found. Would you like to create one with 5DayDocs instructions? (y/n)"
+        read -r AI_CHOICE
 
-if safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-bug.md" "docs/bugs/TEMPLATE-bug.md" "bug template"; then
-    ((FILES_COPIED++))
-fi
-
-if safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-feature.md" "docs/features/TEMPLATE-feature.md" "feature template"; then
-    ((FILES_COPIED++))
-fi
-
-if safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/project/TEMPLATE-idea.md" "docs/ideas/TEMPLATE-idea.md" "idea template"; then
-    ((FILES_COPIED++))
-fi
-
-# ============================================================================
-# COPY 5DAY TREE (scripts, ai, theory, and any future additions)
-# ============================================================================
-
-msg_header "Setting up automation scripts and guides..."
-
-# Mirror every file under src/docs/5day/ into the target project, recursively.
-# This ensures new content categories (theory, etc.) and any nested layout
-# ship automatically without requiring installer edits.
-SRC_5DAY="$FIVEDAY_SOURCE_DIR/src/docs/5day"
-if [ -d "$SRC_5DAY" ]; then
-    while IFS= read -r -d '' src_file; do
-        rel_path="${src_file#"$SRC_5DAY"/}"
-        dest_path="docs/5day/$rel_path"
-
-        # config.sh is user-territory — installed separately with skip-if-exists
-        # so user edits survive updates.
-        if [ "$rel_path" = "config.sh" ]; then
-            continue
-        fi
-
-        safe_mkdir "$(dirname "$dest_path")"
-        if safe_copy "$src_file" "$dest_path" "$dest_path"; then
-            # Make shell scripts executable
-            if [[ "$src_file" == *.sh ]]; then
-                chmod +x "$dest_path" 2>/dev/null || msg_warning "Could not make $dest_path executable"
+        if [[ "$AI_CHOICE" =~ ^[Yy]$ ]]; then
+            local target_dir
+            target_dir="$(dirname "$target")"
+            if [ "$target_dir" != "." ]; then
+                safe_mkdir "$target_dir"
             fi
-            ((FILES_COPIED++))
-        fi
-    done < <(find "$SRC_5DAY" -type f -print0)
-fi
 
-# AI CLI/model config (user-territory: skip if already present so edits survive)
-if [ -f "$FIVEDAY_SOURCE_DIR/src/docs/5day/config.sh" ]; then
-    if [ ! -f "docs/5day/config.sh" ]; then
-        if safe_copy "$FIVEDAY_SOURCE_DIR/src/docs/5day/config.sh" "docs/5day/config.sh" "docs/5day/config.sh (AI CLI/model configuration)"; then
-            ((FILES_COPIED++))
+            if printf '%s\n' "$content" > "$target" 2>/dev/null; then
+                msg_success "Created $name"
+                ((FILES_COPIED++))
+            else
+                msg_error "Failed to create $name"
+            fi
+        else
+            msg_step "Skipped $name"
         fi
     else
-        msg_step "Preserved docs/5day/config.sh (user-territory)"
+        if grep -q "DOCUMENTATION.md" "$target" 2>/dev/null; then
+            msg_step "$name already references DOCUMENTATION.md"
+        else
+            local tmpfile
+            tmpfile="$(mktemp "${target}.XXXXXX")" || {
+                msg_error "Failed to create temp file for $name"
+                return 1
+            }
+
+            if { printf '%s\n' "$content"; echo ""; cat "$target"; } > "$tmpfile" 2>/dev/null; then
+                mv -f "$tmpfile" "$target"
+                msg_success "Prepended 5DayDocs reference to $name"
+            else
+                rm -f "$tmpfile"
+                msg_error "Failed to prepend to $name"
+            fi
+        fi
     fi
-fi
+}
 
-# Copy 5day.sh to project root (main CLI interface)
-if safe_copy "$FIVEDAY_SOURCE_DIR/src/docs/5day/scripts/5day.sh" "./5day.sh" "5day.sh to project root"; then
-    chmod +x ./5day.sh 2>/dev/null || msg_warning "Could not make 5day.sh executable"
-    ((FILES_COPIED++))
-fi
-
-# ============================================================================
-# GITHUB/BITBUCKET WORKFLOWS
-# ============================================================================
-
+# --- Platform=none cleanup: remove sync workflows from prior installs ---
 if [ "$PLATFORM" = "none" ]; then
-    msg_header "Skipping issue tracker integration (opted out of GitHub/Jira sync)"
+    for wf in ".github/workflows/sync-tasks-to-issues.yml" ".github/workflows/sync-status-to-label.yml"; do
+        if [ -f "$wf" ]; then
+            if rm -f "$wf" 2>/dev/null; then
+                msg_step "Removed $wf (opted out of sync)"
+            else
+                msg_warning "Could not remove $wf"
+            fi
+        fi
+    done
+fi
 
-    # If a previous install left the sync workflow in place, remove it so opting
-    # out actually stops the sync. Issue templates and PR template are user-owned
-    # GitHub conventions, so we leave those alone.
-    if [ -f ".github/workflows/sync-tasks-to-issues.yml" ]; then
-        if rm -f ".github/workflows/sync-tasks-to-issues.yml" 2>/dev/null; then
-            msg_step "Removed .github/workflows/sync-tasks-to-issues.yml"
-        else
-            msg_warning "Could not remove .github/workflows/sync-tasks-to-issues.yml"
+# --- Walk src/ and install each file by its relative path ---
+# Uses fd 3 for find output so stdin stays available for interactive prompts
+# inside setup_ai_file.
+PENDING_PREPEND=()
+SRC_DIR="$FIVEDAY_SOURCE_DIR/src"
+while IFS= read -r -d '' src_file <&3; do
+    rel_path="${src_file#"$SRC_DIR"/}"
+
+    # Skip metadata files
+    if _in_list "$rel_path" "${SKIP_FILES[@]}"; then continue; fi
+
+    # Platform filter: .github/** only for github-based platforms
+    if [[ "$rel_path" == .github/* ]]; then
+        if [ "$PLATFORM" = "bitbucket-jira" ] || [ "$PLATFORM" = "none" ]; then
+            continue
         fi
     fi
-    if [ -f ".github/workflows/sync-status-to-label.yml" ]; then
-        if rm -f ".github/workflows/sync-status-to-label.yml" 2>/dev/null; then
-            msg_step "Removed .github/workflows/sync-status-to-label.yml"
-        else
-            msg_warning "Could not remove .github/workflows/sync-status-to-label.yml"
+
+    # Platform filter: bitbucket-pipelines.yml only for bitbucket
+    if [[ "$rel_path" == bitbucket-* ]]; then
+        if [ "$PLATFORM" != "bitbucket-jira" ]; then
+            continue
         fi
     fi
-elif [ "$PLATFORM" != "bitbucket-jira" ]; then
-    msg_header "Setting up GitHub Actions..."
 
-    safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/workflows/github/sync-tasks-to-issues.yml" ".github/workflows/sync-tasks-to-issues.yml" "sync-tasks-to-issues.yml"
-    safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/workflows/github/sync-status-to-label.yml" ".github/workflows/sync-status-to-label.yml" "sync-status-to-label.yml"
-    safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/github/ISSUE_TEMPLATE/bug_report.md" ".github/ISSUE_TEMPLATE/bug_report.md" "bug report template"
-    safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/github/ISSUE_TEMPLATE/feature_request.md" ".github/ISSUE_TEMPLATE/feature_request.md" "feature request template"
-    safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/github/ISSUE_TEMPLATE/task.md" ".github/ISSUE_TEMPLATE/task.md" "task issue template"
-    safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/github/pull_request_template.md" ".github/pull_request_template.md" "pull request template"
-else
-    msg_header "Setting up Bitbucket Pipelines..."
-
-    if [ ! -f "bitbucket-pipelines.yml" ] || $UPDATE_MODE; then
-        safe_copy "$FIVEDAY_SOURCE_DIR/src/templates/workflows/bitbucket/pipelines.yml" "bitbucket-pipelines.yml" "bitbucket-pipelines.yml"
+    # Prepend files (AI instruction files) — defer to after the walk so
+    # interactive prompts are grouped together, not scattered among copies.
+    if _in_list "$rel_path" "${PREPEND_FILES[@]}"; then
+        PENDING_PREPEND+=("$src_file|$rel_path")
+        continue
     fi
+
+    # User territory — preserve existing file on update
+    if _in_list "$rel_path" "${USER_TERRITORY[@]}"; then
+        if [ -f "$rel_path" ]; then
+            msg_step "Preserved $rel_path (user-territory)"
+            continue
+        fi
+    fi
+
+    # Standard copy
+    safe_mkdir "$(dirname "$rel_path")"
+    if safe_copy "$src_file" "$rel_path" "$rel_path"; then
+        if [[ "$rel_path" == *.sh ]]; then
+            chmod +x "$rel_path" 2>/dev/null || msg_warning "Could not make $rel_path executable"
+        fi
+        ((FILES_COPIED++))
+    fi
+done 3< <(find "$SRC_DIR" -type f -print0)
+
+# --- AI instruction files (deferred from the walk above) ---
+# Grouped here so interactive create/prepend prompts appear together rather
+# than scattered between file-copy messages.
+if [ ${#PENDING_PREPEND[@]} -gt 0 ]; then
+    msg_header "Setting up AI instruction files..."
+    for entry in "${PENDING_PREPEND[@]}"; do
+        src_file="${entry%%|*}"
+        rel_path="${entry#*|}"
+        setup_ai_file "$src_file" "$rel_path" "$rel_path"
+    done
 fi
 
 # ============================================================================
@@ -792,7 +858,7 @@ fi
 msg_header "Checking .gitignore..."
 
 # Load gitignore content from template or use inline fallback
-GITIGNORE_TEMPLATE="$FIVEDAY_SOURCE_DIR/src/templates/project/gitignore.template"
+GITIGNORE_TEMPLATE="$FIVEDAY_SOURCE_DIR/src/.gitignore.template"
 if [ -f "$GITIGNORE_TEMPLATE" ]; then
     GITIGNORE_CONTENT=$(cat "$GITIGNORE_TEMPLATE")
 else
@@ -886,93 +952,6 @@ else
         esac
     fi
 fi
-
-# ============================================================================
-# HANDLE AI INSTRUCTION FILES
-# ============================================================================
-
-msg_header "Setting up AI instruction files..."
-
-# Fallback content if source templates not found
-AI_FALLBACK='Read `DOCUMENTATION.md` before making any changes. It is the single source of truth for how this project is organized, how tasks are managed, and how to use the 5DayDocs system.'
-
-# setup_ai_file "source_template" "target_path" "display_name"
-# - If target doesn't exist, ask to create it
-# - If target exists without DOCUMENTATION.md reference, prepend automatically
-# - If target already references DOCUMENTATION.md, skip
-setup_ai_file() {
-    local src="$1"
-    local target="$2"
-    local name="$3"
-
-    # Load content from source template or use fallback
-    local content
-    if [ -f "$src" ]; then
-        content=$(cat "$src")
-    else
-        content="$AI_FALLBACK"
-    fi
-
-    if [ ! -f "$target" ]; then
-        echo ""
-        echo "No $name found. Would you like to create one with 5DayDocs instructions? (y/n)"
-        read -r AI_CHOICE
-
-        if [[ "$AI_CHOICE" =~ ^[Yy]$ ]]; then
-            # Ensure parent directory exists
-            local target_dir
-            target_dir="$(dirname "$target")"
-            if [ "$target_dir" != "." ]; then
-                safe_mkdir "$target_dir"
-            fi
-
-            if printf '%s\n' "$content" > "$target" 2>/dev/null; then
-                msg_success "Created $name"
-                ((FILES_COPIED++))
-            else
-                msg_error "Failed to create $name"
-            fi
-        else
-            msg_step "Skipped $name"
-        fi
-    else
-        if grep -q "DOCUMENTATION.md" "$target" 2>/dev/null; then
-            msg_step "$name already references DOCUMENTATION.md"
-        else
-            # Use temp file to avoid clobbering target during prepend
-            local tmpfile
-            tmpfile="$(mktemp "${target}.XXXXXX")" || {
-                msg_error "Failed to create temp file for $name"
-                return 1
-            }
-
-            if { printf '%s\n' "$content"; echo ""; cat "$target"; } > "$tmpfile" 2>/dev/null; then
-                mv -f "$tmpfile" "$target"
-                msg_success "Prepended 5DayDocs reference to $name"
-            else
-                rm -f "$tmpfile"
-                msg_error "Failed to prepend to $name"
-            fi
-        fi
-    fi
-}
-
-# Claude Code
-setup_ai_file "$FIVEDAY_SOURCE_DIR/src/CLAUDE.md" "CLAUDE.md" "CLAUDE.md"
-
-# OpenAI Codex
-setup_ai_file "$FIVEDAY_SOURCE_DIR/src/AGENTS.md" "AGENTS.md" "AGENTS.md"
-
-# GitHub Copilot (only for GitHub-based projects)
-if [ "$PLATFORM" != "bitbucket-jira" ] && [ "$PLATFORM" != "none" ]; then
-    setup_ai_file "$FIVEDAY_SOURCE_DIR/src/copilot-instructions.md" ".github/copilot-instructions.md" ".github/copilot-instructions.md"
-fi
-
-# Cursor
-setup_ai_file "$FIVEDAY_SOURCE_DIR/src/.cursorrules" ".cursorrules" ".cursorrules"
-
-# Windsurf
-setup_ai_file "$FIVEDAY_SOURCE_DIR/src/.windsurfrules" ".windsurfrules" ".windsurfrules"
 
 # ============================================================================
 # CLEANUP LEGACY FILES

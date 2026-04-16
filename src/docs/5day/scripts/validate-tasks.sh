@@ -69,7 +69,7 @@ validate_and_fix_task() {
     filename=$(basename "$file")
 
     # Skip template files
-    if [[ "$filename" == "TEMPLATE"* ]]; then
+    if [[ "$filename" == ".TEMPLATE"* ]] || [[ "$filename" == "TEMPLATE"* ]]; then
         return 0
     fi
 

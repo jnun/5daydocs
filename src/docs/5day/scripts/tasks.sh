@@ -113,6 +113,12 @@ for i in $(seq 0 $((COUNT - 1))); do
   # Move to working
   move_file "$TASK_FILE" "$WORKING_DIR/$TASK_NAME"
 
+  # Snapshot tree state before Claude runs (for audit manifest)
+  PRE_SNAPSHOT="$LOG_DIR/.pre-snapshot-$$"
+  git diff --name-only > "$PRE_SNAPSHOT" 2>/dev/null || true
+  git diff --cached --name-only >> "$PRE_SNAPSHOT" 2>/dev/null || true
+  git ls-files --others --exclude-standard >> "$PRE_SNAPSHOT" 2>/dev/null || true
+
   TASK_CONTENT=$(cat "$WORKING_DIR/$TASK_NAME")
 
   PROMPT="You are working on a task from the project task queue.
@@ -152,6 +158,38 @@ Instructions:
 
     # Check for ## Completed section before promoting to review
     if grep -q '^## Completed' "$WORKING_DIR/$TASK_NAME"; then
+
+      # ── Code Audit (fresh-context review of changes) ──────
+      # Build manifest: files that changed AFTER Claude ran (subtract pre-snapshot)
+      AUDIT_SCRIPT="$(dirname "${BASH_SOURCE[0]}")/audit-code.sh"
+      if [ -f "$AUDIT_SCRIPT" ]; then
+        POST_SNAPSHOT="$LOG_DIR/.post-snapshot-$$"
+        git diff --name-only > "$POST_SNAPSHOT" 2>/dev/null || true
+        git diff --cached --name-only >> "$POST_SNAPSHOT" 2>/dev/null || true
+        git ls-files --others --exclude-standard >> "$POST_SNAPSHOT" 2>/dev/null || true
+
+        AUDIT_MANIFEST_FILE="$LOG_DIR/.audit-manifest-$$"
+        # New/changed files = in post but not in pre (what THIS task changed)
+        comm -23 <(sort -u "$POST_SNAPSHOT") <(sort -u "$PRE_SNAPSHOT") \
+          > "$AUDIT_MANIFEST_FILE" 2>/dev/null || true
+
+        # If manifest is empty, fall back to full post-snapshot (first task in a clean tree)
+        if [ ! -s "$AUDIT_MANIFEST_FILE" ]; then
+          sort -u "$POST_SNAPSHOT" | grep -v '^$' > "$AUDIT_MANIFEST_FILE" || true
+        fi
+
+        echo ""
+        echo "▸ Running code audit for $TASK_NAME..."
+        if AUDIT_MANIFEST="$AUDIT_MANIFEST_FILE" bash "$AUDIT_SCRIPT" "$WORKING_DIR/$TASK_NAME"; then
+          echo "  ✓ Audit passed"
+        else
+          echo "  ⚠ Audit completed with warnings (see task file)"
+        fi
+
+        rm -f "$PRE_SNAPSHOT" "$POST_SNAPSHOT" "$AUDIT_MANIFEST_FILE"
+      fi
+      # ──────────────────────────────────────────────────────
+
       move_file "$WORKING_DIR/$TASK_NAME" "$REVIEW_DIR/$TASK_NAME"
       COMPLETED=$((COMPLETED + 1))
       echo ""

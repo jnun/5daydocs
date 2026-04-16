@@ -155,8 +155,8 @@ EOL
 sed_inplace "s/FEATURE_NAME_PLACEHOLDER/$(sed_escape "$FEATURE_NAME")/g" "$FEATURE_FILE"
 sed_inplace "s/CREATED_DATE_PLACEHOLDER/$(date +%Y-%m-%d)/g" "$FEATURE_FILE"
 
-# Stage the changes
-git add "$FEATURE_FILE"
+# Stage the changes (skip gracefully if not in a git repo)
+git add "$FEATURE_FILE" 2>/dev/null || true
 
 echo -e "${GREEN}Created feature: $FEATURE_FILE${NC}"
 echo ""

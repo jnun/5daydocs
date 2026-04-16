@@ -45,6 +45,10 @@ FIVEDAY_MODEL_SPLIT="${FIVEDAY_MODEL_SPLIT-opus}"   # task splitting
 FIVEDAY_MODEL_SPRINT="${FIVEDAY_MODEL_SPRINT-opus}" # sprint execution
 FIVEDAY_MODEL_TASKS="${FIVEDAY_MODEL_TASKS-opus}"   # batched task review
 
+# Code audit — iterative, quality-critical, bounded passes.
+FIVEDAY_MODEL_CODE_AUDIT="${FIVEDAY_MODEL_CODE_AUDIT-opus}"
+FIVEDAY_AUDIT_MAX_PASSES="${FIVEDAY_AUDIT_MAX_PASSES:-3}"
+
 # Bulk / loop operations — runs over many items, token cost matters.
 FIVEDAY_MODEL_AUDIT="${FIVEDAY_MODEL_AUDIT-sonnet}" # backlog audit loop
 

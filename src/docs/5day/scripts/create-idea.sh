@@ -139,8 +139,8 @@ sed_inplace "s/IDEA_NAME_PLACEHOLDER/$(sed_escape "$IDEA_NAME")/g" "$IDEA_FILE"
 sed_inplace "s/CREATED_DATE_PLACEHOLDER/$(date +%Y-%m-%d)/g" "$IDEA_FILE"
 sed_inplace "s/KEBAB_CASE_PLACEHOLDER/$(sed_escape "$KEBAB_CASE")/g" "$IDEA_FILE"
 
-# Stage the changes
-git add "$IDEA_FILE"
+# Stage the changes (skip gracefully if not in a git repo)
+git add "$IDEA_FILE" 2>/dev/null || true
 
 echo -e "${GREEN}Created idea: $IDEA_FILE${NC}"
 echo ""

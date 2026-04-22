@@ -51,6 +51,7 @@ FIVEDAY_AUDIT_MAX_PASSES="${FIVEDAY_AUDIT_MAX_PASSES:-3}"
 
 # Bulk / loop operations — runs over many items, token cost matters.
 FIVEDAY_MODEL_AUDIT="${FIVEDAY_MODEL_AUDIT-sonnet}" # backlog audit loop
+FIVEDAY_MODEL_DRIFT="${FIVEDAY_MODEL_DRIFT-sonnet}" # pre-work drift check
 
 # ── Resolution helper ────────────────────────────────────────────────
 # Usage inside a script:

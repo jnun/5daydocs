@@ -975,37 +975,86 @@ else
     if grep -q "5DayDocs" .gitignore 2>/dev/null; then
         msg_step ".gitignore already contains 5DayDocs entries"
     else
-        echo ""
-        echo "Existing .gitignore found. Would you like to add 5DayDocs recommended entries?"
-        echo "1) Prepend (add at the beginning)"
-        echo "2) Append (add at the end)"
-        echo "3) Skip"
-        echo ""
-        echo "Enter your choice (1-3):"
-        read -r GITIGNORE_CHOICE
+        # Filter out lines that already exist in .gitignore.
+        # Process in sections (groups separated by blank lines).
+        # A section is only emitted if it contains at least one
+        # non-duplicate entry; this prevents orphaned headers.
+        FILTERED_CONTENT=""
+        HAS_NEW_ENTRIES=false
 
-        case "$GITIGNORE_CHOICE" in
-            1)
-                # Prepend
-                EXISTING_CONTENT=$(cat .gitignore)
-                if { echo "# === 5DayDocs Recommended Entries ==="; echo "$GITIGNORE_CONTENT"; echo ""; echo "# === Project-Specific Entries ==="; echo "$EXISTING_CONTENT"; } > .gitignore 2>/dev/null; then
-                    msg_success "Prepended 5DayDocs entries to .gitignore"
-                else
-                    msg_error "Failed to prepend to .gitignore"
+        # Accumulates lines for the current section
+        SECTION_LINES=""
+        SECTION_HAS_NEW=false
+
+        # Flush current section into FILTERED_CONTENT if it has new entries
+        flush_section() {
+            if [ "$SECTION_HAS_NEW" = true ] && [ -n "$SECTION_LINES" ]; then
+                if [ -n "$FILTERED_CONTENT" ]; then
+                    FILTERED_CONTENT="${FILTERED_CONTENT}"$'\n'
                 fi
-                ;;
-            2)
-                # Append
-                if { echo ""; echo "# === 5DayDocs Recommended Entries ==="; echo "$GITIGNORE_CONTENT"; } >> .gitignore 2>/dev/null; then
-                    msg_success "Appended 5DayDocs entries to .gitignore"
-                else
-                    msg_error "Failed to append to .gitignore"
-                fi
-                ;;
-            *)
-                msg_step "Skipped .gitignore modification"
-                ;;
-        esac
+                FILTERED_CONTENT="${FILTERED_CONTENT}${SECTION_LINES}"
+                HAS_NEW_ENTRIES=true
+            fi
+            SECTION_LINES=""
+            SECTION_HAS_NEW=false
+        }
+
+        while IFS= read -r line; do
+            if [[ "$line" =~ ^[[:space:]]*$ ]]; then
+                # Blank line = section boundary
+                flush_section
+            elif [[ "$line" =~ ^# ]]; then
+                # Comment — keep in section, decide later
+                SECTION_LINES="${SECTION_LINES}${line}"$'\n'
+            elif ! grep -qxF -- "$line" .gitignore 2>/dev/null; then
+                # New entry — section will be emitted
+                SECTION_LINES="${SECTION_LINES}${line}"$'\n'
+                SECTION_HAS_NEW=true
+            fi
+            # Duplicate entries are silently dropped
+        done <<< "$GITIGNORE_CONTENT"
+        flush_section
+
+        if [ "$HAS_NEW_ENTRIES" = false ]; then
+            msg_step ".gitignore already contains all recommended entries"
+        else
+            echo ""
+            echo "Existing .gitignore found. Would you like to add 5DayDocs recommended entries?"
+            echo "1) Prepend (add at the beginning)"
+            echo "2) Append (add at the end)"
+            echo "3) Skip"
+            echo ""
+            echo "Enter your choice (1-3):"
+            read -r GITIGNORE_CHOICE
+
+            case "$GITIGNORE_CHOICE" in
+                1)
+                    # Prepend — atomic write via temp file so a partial
+                    # failure cannot truncate the original .gitignore
+                    EXISTING_CONTENT=$(cat .gitignore)
+                    TMPFILE=$(mktemp ".gitignore.tmp.XXXXXX" 2>/dev/null)
+                    if [ -z "$TMPFILE" ]; then
+                        msg_error "Failed to create temp file for .gitignore"
+                    elif { echo "# === 5DayDocs Recommended Entries ==="; printf '%s\n' "$FILTERED_CONTENT"; echo "# === Project-Specific Entries ==="; printf '%s\n' "$EXISTING_CONTENT"; } > "$TMPFILE" 2>/dev/null && mv -f "$TMPFILE" .gitignore 2>/dev/null; then
+                        msg_success "Prepended 5DayDocs entries to .gitignore"
+                    else
+                        msg_error "Failed to prepend to .gitignore"
+                        rm -f "$TMPFILE" 2>/dev/null
+                    fi
+                    ;;
+                2)
+                    # Append
+                    if { echo ""; echo "# === 5DayDocs Recommended Entries ==="; printf '%s\n' "$FILTERED_CONTENT"; } >> .gitignore 2>/dev/null; then
+                        msg_success "Appended 5DayDocs entries to .gitignore"
+                    else
+                        msg_error "Failed to append to .gitignore"
+                    fi
+                    ;;
+                *)
+                    msg_step "Skipped .gitignore modification"
+                    ;;
+            esac
+        fi
     fi
 fi
 

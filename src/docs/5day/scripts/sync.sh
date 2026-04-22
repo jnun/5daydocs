@@ -69,37 +69,32 @@ if git status --porcelain docs/5day/DOC_STATE.md 2>/dev/null | grep -q .; then
     STAGED=$((STAGED + 1))
 fi
 
-# If --all, set the bulk sync flag
-if [ "$FORCE_ALL" = "true" ]; then
-    if grep -q '^\*\*SYNC_ALL_TASKS\*\*: false' docs/5day/DOC_STATE.md; then
-        if sed --version 2>/dev/null | grep -q GNU; then
-            sed -i 's/^\*\*SYNC_ALL_TASKS\*\*: false$/\*\*SYNC_ALL_TASKS\*\*: true/' docs/5day/DOC_STATE.md
-        else
-            sed -i '' 's/^\*\*SYNC_ALL_TASKS\*\*: false$/\*\*SYNC_ALL_TASKS\*\*: true/' docs/5day/DOC_STATE.md
-        fi
-        git add docs/5day/DOC_STATE.md 2>/dev/null || true
-        echo -e "  ${YELLOW}!${NC} SYNC_ALL_TASKS set to true (full resync)"
-        STAGED=$((STAGED + 1))
-    fi
-fi
-
-if [ "$STAGED" -eq 0 ]; then
+if [ "$STAGED" -eq 0 ] && [ "$FORCE_ALL" != "true" ]; then
     echo -e "${YELLOW}No task changes to sync.${NC}"
-    if [ "$FORCE_ALL" != "true" ]; then
-        echo "Use --all to force a full resync of all tasks."
-    fi
+    echo "Use --all to force a full resync of all tasks."
     exit 0
 fi
 
 echo ""
 
-# Commit
-git commit -m "sync: update task files for GitHub issue sync"
+# Push any staged changes
+if [ "$STAGED" -gt 0 ]; then
+    git commit -m "sync: update task files for GitHub issue sync"
+    echo -e "${CYAN}Pushing to origin/main...${NC}"
+    git push origin main
+    echo ""
+    echo -e "${GREEN}Synced $STAGED file(s). GitHub Actions will update issues shortly.${NC}"
+fi
 
-# Push
-echo -e "${CYAN}Pushing to origin/main...${NC}"
-git push origin main
+# If --all, trigger a full resync via workflow_dispatch
+if [ "$FORCE_ALL" = "true" ]; then
+    echo -e "${YELLOW}Triggering full resync via workflow_dispatch...${NC}"
+    if ! command -v gh >/dev/null 2>&1; then
+        echo -e "${RED}ERROR: gh CLI is required for --all. Install from https://cli.github.com${NC}"
+        exit 1
+    fi
+    gh workflow run sync-tasks-to-issues.yml -f force_sync_all=true
+    echo -e "${GREEN}Full resync triggered. All tasks will be synced to GitHub Issues.${NC}"
+fi
 
-echo ""
-echo -e "${GREEN}Synced $STAGED file(s). GitHub Actions will update issues shortly.${NC}"
 echo "Check workflow status: gh run list --workflow=sync-tasks-to-issues.yml --limit 1"

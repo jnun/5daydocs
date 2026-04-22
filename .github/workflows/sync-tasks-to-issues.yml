@@ -12,7 +12,6 @@ on:
     paths:
       - 'docs/tasks/**/*.md'
       - 'docs/docs/tasks/**/*.md'
-      - 'docs/5day/DOC_STATE.md'
     branches:
       - main
   workflow_dispatch:
@@ -26,7 +25,7 @@ jobs:
   sync:
     permissions:
       issues: write
-      contents: write
+      contents: read
     uses: jnun/5daydocs/.github/workflows/sync-tasks-reusable.yml@main
     with:
       force_sync_all: ${{ github.event.inputs.force_sync_all == 'true' }}

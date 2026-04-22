@@ -52,7 +52,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       issues: write
-      contents: write
+      contents: read
 
     steps:
       - name: Checkout
@@ -114,7 +114,6 @@ jobs:
         id: files
         env:
           TASKS_PATH: ${{ inputs.tasks_path }}
-          STATE_FILE: ${{ inputs.state_file }}
           FORCE_SYNC: ${{ inputs.force_sync_all }}
         run: |
           set -euo pipefail
@@ -122,12 +121,7 @@ jobs:
 
           if [ "$FORCE_SYNC" = "true" ]; then
             SYNC_ALL="true"
-            echo "::notice::Force sync enabled"
-          fi
-
-          if grep -qE '^\*\*SYNC_ALL_TASKS\*\*:\s*true' "$STATE_FILE" 2>/dev/null; then
-            SYNC_ALL="true"
-            echo "::notice::Bulk sync flag detected"
+            echo "::notice::Force sync enabled via workflow_dispatch"
           fi
 
           echo "sync_all=$SYNC_ALL" >> "$GITHUB_OUTPUT"
@@ -635,22 +629,6 @@ jobs:
           done < /tmp/task_files.txt
 
           echo "::endgroup::"
-
-      - name: Reset bulk sync flag
-        if: steps.files.outputs.sync_all == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.token || secrets.GITHUB_TOKEN }}
-          STATE_FILE: ${{ inputs.state_file }}
-        run: |
-          set -euo pipefail
-          if grep -q '^\*\*SYNC_ALL_TASKS\*\*: true' "$STATE_FILE"; then
-            sed -i 's/^\*\*SYNC_ALL_TASKS\*\*: true$/\*\*SYNC_ALL_TASKS\*\*: false/' "$STATE_FILE"
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add "$STATE_FILE"
-            git diff --cached --quiet || git commit -m "chore: reset SYNC_ALL_TASKS [skip ci]"
-            git push || echo "::warning::Could not push reset"
-          fi
 
       - name: Summary
         if: always()

@@ -78,14 +78,11 @@ for dir in "$NEXT_DIR" "$WORKING_DIR" "$REVIEW_DIR"; do
   fi
 done
 
-TASK_FILES=()
-while IFS= read -r f; do
-  TASK_FILES+=("$f")
-done < <(
-  ls -1 "$NEXT_DIR"/*.md 2>/dev/null \
-    | sed 's|.*/||' \
+mapfile -t TASK_FILES < <(
+  shopt -s nullglob
+  for f in "$NEXT_DIR"/*.md; do basename "$f"; done \
     | sort -t- -k1,1n \
-    | sed "s|^|$NEXT_DIR/|"
+    | while IFS= read -r name; do printf '%s/%s\n' "$NEXT_DIR" "$name"; done
 )
 
 if [ ${#TASK_FILES[@]} -eq 0 ]; then
@@ -107,37 +104,32 @@ COMPLETED=0
 FAILED=0
 INCOMPLETE=0
 TOTAL_START=$SECONDS
-AUDIT_SCRIPT="$(dirname "${BASH_SOURCE[0]}")/audit-code.sh"
-_model_args=()
-[ -n "$MODEL" ] && _model_args=(--model "$MODEL")
 
-trap 'echo ""; [ -n "${TASK_NAME:-}" ] && echo "▸ Interrupted — current task left in $WORKING_DIR/$TASK_NAME" || echo "▸ Interrupted"; exit 130' INT TERM
-
-for ((i=0; i<COUNT; i++)); do
+for i in $(seq 0 $((COUNT - 1))); do
   TASK_FILE="${TASK_FILES[$i]}"
-  TASK_NAME="${TASK_FILE##*/}"
+  TASK_NAME=$(basename "$TASK_FILE")
   N=$((i + 1))
   TASK_START=$SECONDS
 
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "▸ Task $N/$COUNT: $TASK_NAME"
+  echo "▸ Task ${N}/${COUNT}: ${TASK_NAME}"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
   # Move to working
   move_file "$TASK_FILE" "$WORKING_DIR/$TASK_NAME"
 
-  TASK_CONTENT=$(<"$WORKING_DIR/$TASK_NAME")
+  TASK_CONTENT=$(cat "$WORKING_DIR/$TASK_NAME")
 
   PROMPT="You are working on a task from the project task queue.
 
 CLAUDE.md is auto-loaded with project context and conventions.
 For task workflow details, see DOCUMENTATION.md.
 
-The task file is at: $WORKING_DIR/$TASK_NAME
+The task file is at: ${WORKING_DIR}/${TASK_NAME}
 
 Here is the task:
 ---
-$TASK_CONTENT
+${TASK_CONTENT}
 ---
 
 Instructions:
@@ -146,11 +138,14 @@ Instructions:
 3. After making changes, run any existing tests, linters, or build/compile checks relevant to the files you modified. Fix issues before moving on.
 4. If you cannot complete all action items, document what remains and why in the task file so the next person can pick it up.
 5. After completing the work, update the task file: check off completed items and add a ## Completed section at the bottom summarizing what was done and any files changed.
-6. Do NOT commit — just make the changes."
+6. Do NOT commit -- just make the changes."
 
   # Run in fresh context
   TIMESTAMP=$(date +%Y%m%d-%H%M%S)
   LOG_FILE="$LOG_DIR/log-tasks-${TASK_NAME%.md}-$TIMESTAMP.json"
+
+  _model_args=()
+  [ -n "$MODEL" ] && _model_args=(--model "$MODEL")
 
   if "$FIVEDAY_CLI" -p "$PROMPT" \
     "${_model_args[@]}" \
@@ -160,39 +155,71 @@ Instructions:
     --output-format json \
     --no-session-persistence > "$LOG_FILE"; then
 
-    # Check for ## Completed section before promoting to review
+    # Check for ## Completed section before running audit
     if grep -q '^## Completed' "$WORKING_DIR/$TASK_NAME"; then
 
-      # ── Code Audit (fresh-context review via ## Completed section) ──
-      if [ -f "$AUDIT_SCRIPT" ]; then
-        echo ""
-        echo "▸ Running code audit for $TASK_NAME..."
-        if bash "$AUDIT_SCRIPT" "$WORKING_DIR/$TASK_NAME"; then
-          echo "  ✓ Audit passed"
-        else
-          echo "  ⚠ Audit completed with warnings (see task file)"
-        fi
+      # ── Post-task audit ──────────────────────────────────────────
+      echo ""
+      echo "▸ Auditing task ${N}…"
+
+      AUDIT_TASK_CONTENT=$(cat "$WORKING_DIR/$TASK_NAME")
+
+      AUDIT_PROMPT="You are auditing work that was just completed on a task.
+
+CLAUDE.md is auto-loaded with project context and conventions.
+
+The task file is at: ${WORKING_DIR}/${TASK_NAME}
+
+Here is the task (with its ## Completed summary):
+---
+${AUDIT_TASK_CONTENT}
+---
+
+Instructions:
+1. Read the ## Completed section to understand what was done and which files were changed.
+2. Read every file that was changed or created.
+3. Evaluate all changes against these criteria:
+   a. **Elegant & syntax correct** -- clean, readable, no syntax errors
+   b. **Efficient** -- no unnecessary work, good algorithmic choices
+   c. **No regressions** -- changes must not break prior existing features
+   d. **No security risks** -- no injection, leaks, or OWASP issues introduced
+   e. **Best practices** -- follows established patterns and conventions in the codebase
+   f. **Antifragile** -- robust under unexpected inputs; fails gracefully
+4. If you find issues, fix them directly in the code.
+5. Run any relevant tests, linters, or build checks to confirm the fix worked and nothing is broken.
+6. Append a ## Audit section to the task file summarizing:
+   - What you reviewed
+   - Any issues found and fixed
+   - Final verdict: PASS or PASS WITH FIXES
+   If everything was clean, just write PASS with a one-line confirmation.
+7. Do NOT commit -- just make changes."
+
+      AUDIT_LOG_FILE="$LOG_DIR/log-audit-${TASK_NAME%.md}-$TIMESTAMP.json"
+
+      if "$FIVEDAY_CLI" -p "$AUDIT_PROMPT" \
+        "${_model_args[@]}" \
+        --allowedTools "$TOOLS" \
+        --permission-mode "$PERMISSIONS" \
+        --max-turns "$MAX_TURNS" \
+        --output-format json \
+        --no-session-persistence > "$AUDIT_LOG_FILE"; then
+        echo "✓ Audit complete"
       else
-        echo ""
-        echo "⚠ Audit script not found: $AUDIT_SCRIPT"
-        echo "  Skipping code audit — task will still be promoted"
+        echo "⚠ Audit failed — task still promoted but review carefully"
       fi
-      # ──────────────────────────────────────────────────────
 
       move_file "$WORKING_DIR/$TASK_NAME" "$REVIEW_DIR/$TASK_NAME"
-
       COMPLETED=$((COMPLETED + 1))
       echo ""
-      echo "✓ Task $N complete → $REVIEW_DIR/$TASK_NAME"
+      echo "✓ Task ${N} complete → ${REVIEW_DIR}/${TASK_NAME}"
     else
-
       INCOMPLETE=$((INCOMPLETE + 1))
       echo ""
-      echo "⚠ Task $N incomplete (no ## Completed section) — left in $WORKING_DIR/$TASK_NAME"
+      echo "⚠ Task ${N} incomplete (no ## Completed section) -- left in ${WORKING_DIR}/${TASK_NAME}"
     fi
   else
     echo ""
-    echo "✗ Task $N failed — left in $WORKING_DIR/$TASK_NAME"
+    echo "✗ Task ${N} failed -- left in ${WORKING_DIR}/${TASK_NAME}"
     FAILED=$((FAILED + 1))
     TASK_ELAPSED=$((SECONDS - TASK_START))
     echo "⏱ Elapsed: $((TASK_ELAPSED / 60))m $((TASK_ELAPSED % 60))s"

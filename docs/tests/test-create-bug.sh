@@ -24,7 +24,6 @@ setup() {
 **5DAY_VERSION**: 2.2.0
 **5DAY_TASK_ID**: 10
 **5DAY_BUG_ID**: 5
-**SYNC_ALL_TASKS**: false
 EOF
 
     git -C "$TMPDIR" init -q

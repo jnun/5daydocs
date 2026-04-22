@@ -11,12 +11,12 @@
 
 ## Success criteria
 
-- [ ] Running `./setup.sh` on a project with an existing `config.sh` appends any new variables from the distribution `config.sh` that are missing in the user's copy
-- [ ] Existing user values are never overwritten — only missing variables are added
-- [ ] New variables are appended with their comment block so the user understands what they control
-- [ ] If the user's config.sh already has all variables and the function, setup.sh prints "Preserved docs/5day/config.sh (up to date)" and does not modify the file
-- [ ] A fresh install (no existing config.sh) still copies the full file as before — no behavior change on that path
-- [ ] Verification: set up a temp project with setup.sh, then replace its config.sh with the v2.2.0 fixture below. Re-run setup.sh as an update. Confirm: (a) CODE_AUDIT and AUDIT_MAX_PASSES appear at the end with their comments, (b) PLAN still says `sonnet` (user value preserved), (c) function not duplicated, (d) run setup.sh a third time and confirm it prints "up to date" with no file modification
+- [x] Running `./setup.sh` on a project with an existing `config.sh` appends any new variables from the distribution `config.sh` that are missing in the user's copy
+- [x] Existing user values are never overwritten — only missing variables are added
+- [x] New variables are appended with their comment block so the user understands what they control
+- [x] If the user's config.sh already has all variables and the function, setup.sh prints "Preserved docs/5day/config.sh (up to date)" and does not modify the file
+- [x] A fresh install (no existing config.sh) still copies the full file as before — no behavior change on that path
+- [x] Verification: set up a temp project with setup.sh, then replace its config.sh with the v2.2.0 fixture below. Re-run setup.sh as an update. Confirm: (a) CODE_AUDIT and AUDIT_MAX_PASSES appear at the end with their comments, (b) PLAN still says `sonnet` (user value preserved), (c) function not duplicated, (d) run setup.sh a third time and confirm it prints "up to date" with no file modification
 
 **v2.2.0 test fixture** (save as `docs/5day/config.sh` before running the update):
 ```bash
@@ -162,3 +162,33 @@ Place the `merge_config` function definition in the HELPER FUNCTIONS section of 
 - Edge case: user intentionally deleted a variable. Re-appending is mildly annoying but not harmful — they can delete it again. Tracking intentional deletions adds complexity for a rare case.
 - The dated separator (`# ── Added by setup.sh (YYYY-MM-DD)`) makes it obvious what was auto-added vs. what the user wrote. User can move or reorder after.
 - Never touch lines the user already has — even if their value differs from the distribution default. Their value is intentional.
+
+## Completed
+
+**Date**: 2026-04-22
+
+### Summary
+
+Added `merge_config` function to `setup.sh` that detects missing `FIVEDAY_*` variables in a user's existing `config.sh` and appends them (with their comment blocks) from the distribution copy. The `fiveday_resolve_model` function is also appended if missing.
+
+### Files changed
+
+- **`setup.sh`** — Added `merge_config()` function in the HELPER FUNCTIONS section. Modified the USER_TERRITORY block to call `merge_config` for `config.sh` instead of unconditionally preserving.
+
+### Verification results
+
+All six success criteria verified:
+1. Update with v2.2.0 fixture: `FIVEDAY_MODEL_CODE_AUDIT` and `FIVEDAY_AUDIT_MAX_PASSES` appended with comments
+2. User's `FIVEDAY_MODEL_PLAN=sonnet` preserved (not overwritten to `opus`)
+3. `fiveday_resolve_model` function not duplicated
+4. Third run prints "Preserved docs/5day/config.sh (up to date)" with no file modification
+5. Fresh install copies full config.sh as before
+6. Syntax check passes (`bash -n setup.sh`)
+
+## Audit
+
+- **Passes run**: 1
+- **Final verdict**: PASS
+- **Date**: 2026-04-22
+- **Files audited**: 2
+- **Context source**: task ## Completed section

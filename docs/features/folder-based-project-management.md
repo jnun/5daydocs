@@ -22,7 +22,7 @@ Tasks move through exactly five states, each represented by a folder:
 Folder names and feature statuses use identical terminology for consistency:
 - Folder location = Feature status
 - No translation needed between systems
-- Universal across documentation, Jira, and GitHub
+- Universal across documentation and GitHub
 
 ## Git-Based History
 **Status**: LIVE

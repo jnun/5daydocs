@@ -9,11 +9,8 @@ templates/
 ├── project/
 │   └── README.md                     # Template for project README
 ├── workflows/
-│   ├── github/
+│   └── github/
 │   │   └── sync-tasks-to-issues.yml  # GitHub Issues integration workflow
-│   └── bitbucket/
-│       ├── pipelines.yml             # Basic Bitbucket Pipelines config
-│       └── pipelines-jira.yml        # Bitbucket Pipelines with Jira integration
 └── github/
     ├── ISSUE_TEMPLATE/
     │   ├── bug_report.md             # GitHub bug report template
@@ -49,7 +46,6 @@ When users install 5daydocs in their project:
 2. **Template Copying**: Based on selection, copies from `templates/` to user's `.github/`:
    - **GitHub Issues**: Copies `templates/workflows/github/sync-tasks-to-issues.yml` → `.github/workflows/`
    - **GitHub Templates**: Copies all templates from `templates/github/` → `.github/`
-   - **Bitbucket**: Copies `templates/workflows/bitbucket/pipelines.yml` → root directory
 
 ## For 5daydocs Development
 

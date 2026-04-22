@@ -6,6 +6,14 @@
 # This script handles both fresh installations and updates with version migrations.
 # Distribution: src/ mirrors the deployed layout — setup.sh walks it recursively.
 
+# Guard: this script requires bash (arrays, [[ ]], (( )), etc.).
+# Running it with sh/dash/zsh will produce cryptic failures.
+if [ -z "$BASH_VERSION" ]; then
+    echo "Error: setup.sh must be run with bash, not sh." >&2
+    echo "Run it as:  ./setup.sh  or  bash setup.sh" >&2
+    exit 1
+fi
+
 # Note: We don't use set -e to allow graceful error handling
 
 # If stdin is a pipe (e.g. `curl ... | bash setup.sh`), try to rebind it
@@ -252,6 +260,64 @@ ensure_task_folders() {
     safe_mkdir "docs/tasks/live"
 }
 
+# merge_config "$src_config" "$user_config"
+# Appends missing FIVEDAY_* variable blocks and the resolver function.
+# Returns 0 if changes were made, 1 if already up to date.
+merge_config() {
+    local src="$1"
+    local dest="$2"
+
+    # Extract variable names (left of =) from each file
+    local src_vars user_vars missing
+    src_vars=$(grep -o '^FIVEDAY_[A-Z_]*' "$src" | sort -u)
+    user_vars=$(grep -o '^FIVEDAY_[A-Z_]*' "$dest" | sort -u)
+    missing=$(comm -23 <(echo "$src_vars") <(echo "$user_vars"))
+
+    # Check if fiveday_resolve_model function is present
+    local need_function=false
+    if ! grep -q '^fiveday_resolve_model()' "$dest"; then
+        need_function=true
+    fi
+
+    # Nothing to do?
+    if [ -z "$missing" ] && [ "$need_function" = false ]; then
+        return 1
+    fi
+
+    # Append missing variable blocks
+    if [ -n "$missing" ]; then
+        {
+            echo ""
+            echo "# ── Added by setup.sh ($(date +%Y-%m-%d)) ────────────────────"
+            while IFS= read -r var; do
+                [ -z "$var" ] && continue
+                # Extract the variable line + its preceding comment block from src.
+                # Rule ordering matters:
+                #   1. If this line IS the target variable → print buffer + line, done.
+                #   2. If this line is a DIFFERENT variable → reset buffer.
+                #   3. If comment or blank → accumulate in buffer.
+                #   4. Anything else (shebang, function def) → reset buffer.
+                awk -v var="$var" '
+                    index($0, var "=") == 1    { printf "%s%s\n", buf, $0; exit }
+                    index($0, "FIVEDAY_") == 1 && /=/ { buf=""; next }
+                    /^#/ || /^[[:space:]]*$/    { buf = buf $0 "\n"; next }
+                    { buf="" }
+                ' "$src"
+            done <<< "$missing"
+        } >> "$dest"
+    fi
+
+    # Append resolver function if missing
+    if [ "$need_function" = true ]; then
+        {
+            echo ""
+            sed -n '/^# ── Resolution helper/,$ p' "$src"
+        } >> "$dest"
+    fi
+
+    return 0
+}
+
 # ============================================================================
 # VERSION MIGRATIONS (only run in update mode)
 # ============================================================================
@@ -425,32 +491,22 @@ if $UPDATE_MODE; then
 else
     echo "Select your platform configuration:"
 fi
-echo "1) GitHub with GitHub Issues (default)"
-echo "2) GitHub with Jira (coming soon)"
-echo "3) Bitbucket with Jira (coming soon)"
-echo "4) No sync — opt out of GitHub/Jira issue tracking"
+echo "1) GitHub Issues (default)"
+echo "2) No sync — opt out of GitHub issue tracking"
 echo ""
 if $UPDATE_MODE; then
-    echo "Enter your choice (1-4, or press Enter to keep current):"
+    echo "Enter your choice (1-2, or press Enter to keep current):"
 else
-    echo "Enter your choice (1-4, or press Enter for default):"
+    echo "Enter your choice (1-2, or press Enter for default):"
 fi
 read -r PLATFORM_CHOICE
 
 case "$PLATFORM_CHOICE" in
     1)
         PLATFORM="github-issues"
-        echo "Selected: GitHub with GitHub Issues"
+        echo "Selected: GitHub Issues"
         ;;
     2)
-        PLATFORM="github-jira"
-        echo "Selected: GitHub with Jira (Note: Integration not fully implemented yet)"
-        ;;
-    3)
-        PLATFORM="bitbucket-jira"
-        echo "Selected: Bitbucket with Jira (Note: Integration not fully implemented yet)"
-        ;;
-    4)
         PLATFORM="none"
         echo "Selected: No sync — opting out of issue tracker integration"
         ;;
@@ -460,12 +516,12 @@ case "$PLATFORM_CHOICE" in
             echo "Keeping current: $PLATFORM"
         else
             PLATFORM="github-issues"
-            echo "Selected: GitHub with GitHub Issues"
+            echo "Selected: GitHub Issues"
         fi
         ;;
     *)
         PLATFORM="github-issues"
-        echo "Selected: GitHub with GitHub Issues"
+        echo "Selected: GitHub Issues"
         ;;
 esac
 echo ""
@@ -493,7 +549,7 @@ safe_mkdir "docs/tests"
 safe_mkdir "docs/tmp"
 
 # Platform-specific directories
-if [ "$PLATFORM" != "bitbucket-jira" ] && [ "$PLATFORM" != "none" ]; then
+if [ "$PLATFORM" != "none" ]; then
     safe_mkdir ".github/workflows"
     safe_mkdir ".github/ISSUE_TEMPLATE"
 fi
@@ -523,7 +579,6 @@ Fields:
 - \`5DAY_VERSION\`   — installed file-structure version; \`setup.sh\` reads this on upgrade to decide which migrations to run
 - \`5DAY_TASK_ID\`   — highest task ID used; next task = this + 1
 - \`5DAY_BUG_ID\`    — highest bug ID used; next bug = this + 1
-- \`SYNC_ALL_TASKS\` — GitHub Issues sync flag (managed by \`sync.sh\`)
 - \`Last Updated\`   — ISO date; bump when you change a field
 
 ---
@@ -532,7 +587,6 @@ Fields:
 **5DAY_VERSION**: $CURRENT_VERSION
 **5DAY_TASK_ID**: 0
 **5DAY_BUG_ID**: 0
-**SYNC_ALL_TASKS**: false
 STATE_EOF
     then
         msg_step "Created docs/5day/DOC_STATE.md"
@@ -543,12 +597,10 @@ else
     # Reconcile DOC_STATE.md - preserve user data, update version
     EXISTING_TASK_ID=$(grep '^\*\*5DAY_TASK_ID\*\*:' docs/5day/DOC_STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
     EXISTING_BUG_ID=$(grep '^\*\*5DAY_BUG_ID\*\*:' docs/5day/DOC_STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | grep -o '^[0-9]*' | head -1)
-    EXISTING_SYNC_FLAG=$(grep '^\*\*SYNC_ALL_TASKS\*\*:' docs/5day/DOC_STATE.md 2>/dev/null | sed 's/.*:[[:space:]]*//' | head -1)
 
     # Validate and set defaults
     [[ "$EXISTING_TASK_ID" =~ ^[0-9]+$ ]] || EXISTING_TASK_ID=0
     [[ "$EXISTING_BUG_ID" =~ ^[0-9]+$ ]] || EXISTING_BUG_ID=0
-    [[ "$EXISTING_SYNC_FLAG" == "true" || "$EXISTING_SYNC_FLAG" == "false" ]] || EXISTING_SYNC_FLAG="false"
 
     if cat > docs/5day/DOC_STATE.md << STATE_EOF
 # 5DayDocs Documentation State
@@ -561,7 +613,6 @@ Fields:
 - \`5DAY_VERSION\`   — installed file-structure version; \`setup.sh\` reads this on upgrade to decide which migrations to run
 - \`5DAY_TASK_ID\`   — highest task ID used; next task = this + 1
 - \`5DAY_BUG_ID\`    — highest bug ID used; next bug = this + 1
-- \`SYNC_ALL_TASKS\` — GitHub Issues sync flag (managed by \`sync.sh\`)
 - \`Last Updated\`   — ISO date; bump when you change a field
 
 ---
@@ -570,7 +621,6 @@ Fields:
 **5DAY_VERSION**: $CURRENT_VERSION
 **5DAY_TASK_ID**: $EXISTING_TASK_ID
 **5DAY_BUG_ID**: $EXISTING_BUG_ID
-**SYNC_ALL_TASKS**: $EXISTING_SYNC_FLAG
 STATE_EOF
     then
         msg_step "Updated docs/5day/DOC_STATE.md (preserved IDs: task=$EXISTING_TASK_ID, bug=$EXISTING_BUG_ID)"
@@ -684,7 +734,6 @@ fi
 #   PREPEND_FILES    — AI instruction files: prepend-or-create, never overwrite
 #   USER_TERRITORY   — copy only on fresh install; skip if file already exists
 #   .github/**       — only copied when platform is github-based
-#   bitbucket-*      — only copied when platform is bitbucket
 #   Everything else  — standard overwrite via safe_copy
 
 msg_header "Installing distribution files..."
@@ -790,10 +839,14 @@ if [ "$PLATFORM" = "none" ]; then
 fi
 
 # --- Walk src/ and install each file by its relative path ---
-# Uses fd 3 for find output so stdin stays available for interactive prompts
-# inside setup_ai_file.
+# Uses a FIFO on fd 3 for find output so stdin stays available for interactive
+# prompts inside setup_ai_file. (A plain pipe would steal stdin.)
 PENDING_PREPEND=()
 SRC_DIR="$FIVEDAY_SOURCE_DIR/src"
+_find_fifo="$(mktemp -d)/find_fifo"
+mkfifo "$_find_fifo"
+find "$SRC_DIR" -type f -print0 > "$_find_fifo" &
+exec 3< "$_find_fifo"
 while IFS= read -r -d '' src_file <&3; do
     rel_path="${src_file#"$SRC_DIR"/}"
 
@@ -802,14 +855,7 @@ while IFS= read -r -d '' src_file <&3; do
 
     # Platform filter: .github/** only for github-based platforms
     if [[ "$rel_path" == .github/* ]]; then
-        if [ "$PLATFORM" = "bitbucket-jira" ] || [ "$PLATFORM" = "none" ]; then
-            continue
-        fi
-    fi
-
-    # Platform filter: bitbucket-pipelines.yml only for bitbucket
-    if [[ "$rel_path" == bitbucket-* ]]; then
-        if [ "$PLATFORM" != "bitbucket-jira" ]; then
+        if [ "$PLATFORM" = "none" ]; then
             continue
         fi
     fi
@@ -821,10 +867,18 @@ while IFS= read -r -d '' src_file <&3; do
         continue
     fi
 
-    # User territory — preserve existing file on update
+    # User territory — preserve existing file on update, merge new config vars
     if _in_list "$rel_path" "${USER_TERRITORY[@]}"; then
         if [ -f "$rel_path" ]; then
-            msg_step "Preserved $rel_path (user-territory)"
+            if [ "$rel_path" = "docs/5day/config.sh" ]; then
+                if merge_config "$FIVEDAY_SOURCE_DIR/src/docs/5day/config.sh" "docs/5day/config.sh"; then
+                    msg_success "Updated docs/5day/config.sh (added new configuration options)"
+                else
+                    msg_step "Preserved docs/5day/config.sh (up to date)"
+                fi
+            else
+                msg_step "Preserved $rel_path (user-territory)"
+            fi
             continue
         fi
     fi
@@ -837,7 +891,9 @@ while IFS= read -r -d '' src_file <&3; do
         fi
         ((FILES_COPIED++))
     fi
-done 3< <(find "$SRC_DIR" -type f -print0)
+done
+exec 3<&-
+rm -f "$_find_fifo" && rmdir "$(dirname "$_find_fifo")" 2>/dev/null
 
 # --- AI instruction files (deferred from the walk above) ---
 # Grouped here so interactive create/prepend prompts appear together rather

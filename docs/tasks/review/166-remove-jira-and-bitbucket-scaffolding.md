@@ -11,16 +11,16 @@ The codebase has Jira and Bitbucket integration scaffolding that was never compl
 
 ## Success criteria
 
-- [ ] `./setup.sh` platform menu shows only: `1) GitHub Issues (default)` and `2) No sync`. No Jira or Bitbucket options.
-- [ ] `docs/.platform-config` only stores `github-issues` or `none`
-- [ ] `src/bitbucket-pipelines.yml` deleted
-- [ ] All Jira/Bitbucket feature specs deleted: `docs/features/jira-integration.md`, `docs/features/jira-git-sync.md`
-- [ ] All Jira/Bitbucket guides deleted: `docs/guides/jira-integration-setup.md`, `docs/guides/jira-kanban-setup.md`, `docs/guides/jira-github-sync-comparison.md`
-- [ ] Dead backlog tasks deleted: 37, 40, 61, 62, 146 (all Jira/Bitbucket work)
-- [ ] No remaining references to `bitbucket-jira`, `github-jira`, or `bitbucket` as a platform in setup.sh
-- [ ] `DOCUMENTATION.md` line 3 ("Like Jira, but folders") reworded — no Jira name-drop
-- [ ] Fresh install test passes with the simplified platform menu
-- [ ] `grep -ri 'jira\|bitbucket' setup.sh` returns zero results
+- [x] `./setup.sh` platform menu shows only: `1) GitHub Issues (default)` and `2) No sync`. No Jira or Bitbucket options.
+- [x] `docs/.platform-config` only stores `github-issues` or `none`
+- [x] `src/bitbucket-pipelines.yml` deleted
+- [x] All Jira/Bitbucket feature specs deleted: `docs/features/jira-integration.md`, `docs/features/jira-git-sync.md`
+- [x] All Jira/Bitbucket guides deleted: `docs/guides/jira-integration-setup.md`, `docs/guides/jira-kanban-setup.md`, `docs/guides/jira-github-sync-comparison.md`
+- [x] Dead backlog tasks deleted: 37, 40, 61, 62, 146 (all Jira/Bitbucket work)
+- [x] No remaining references to `bitbucket-jira`, `github-jira`, or `bitbucket` as a platform in setup.sh
+- [x] `DOCUMENTATION.md` line 3 ("Like Jira, but folders") reworded — no Jira name-drop
+- [x] Fresh install test passes with the simplified platform menu
+- [x] `grep -ri 'jira\|bitbucket' setup.sh` returns zero results
 
 ## Implementation
 
@@ -85,3 +85,42 @@ Run `grep -ri 'jira\|bitbucket' setup.sh DOCUMENTATION.md src/ docs/5day/ CLAUDE
 - `docs/tasks/audit-log.txt` has historical verdicts for deleted tasks — leave it alone, it's an append-only log.
 - `docs/tasks/next/159-simplify-distribution.md` references Bitbucket in the planning notes — that's historical context in a completed task, leave it.
 - The `docs/.platform-config` file format stays the same, just with fewer valid values. Existing installs with `github-jira` or `bitbucket-jira` will fall through to the default (`github-issues`) on next update — that's fine since those platforms never worked anyway.
+
+## Completed
+
+All items completed on 2026-04-22.
+
+### Files deleted (git rm)
+- `src/bitbucket-pipelines.yml`
+- `docs/features/jira-integration.md`
+- `docs/features/jira-git-sync.md`
+- `docs/guides/jira-integration-setup.md`
+- `docs/guides/jira-kanban-setup.md`
+- `docs/guides/jira-github-sync-comparison.md`
+- `docs/guides/git-source-of-truth-sync.md` (entirely about Jira sync, not just a passing mention)
+- `docs/tasks/backlog/37-create-bitbucket-pipelines-config.md`
+- `docs/tasks/backlog/40-document-jira-webhook-setup.md`
+- `docs/tasks/backlog/61-configure-and-test-jira-integration.md`
+- `docs/tasks/backlog/62-implement-two-way-jira-git-sync.md`
+- `docs/tasks/backlog/146-wire-bitbucket-jira-platform-to-pipelines-jira-yml.md`
+
+### Files modified
+- `setup.sh` — platform menu reduced to 2 options; removed `github-jira`/`bitbucket-jira` cases, `bitbucket-*` walk filter, and `bitbucket-jira` directory-creation guard
+- `DOCUMENTATION.md` (root) — line 3 reworded to remove Jira name-drop
+- `src/DOCUMENTATION.md` — same line 3 change
+- `CLAUDE.md` — removed Bitbucket from "GitHub/Bitbucket templates" section heading and path reference
+- `docs/features/folder-based-project-management.md` — removed "Jira" from "Universal across documentation, Jira, and GitHub"
+- `docs/guides/templates-index.md` — removed Bitbucket directory tree entries and install line
+
+### Verified
+- `grep -ri 'jira\|bitbucket' setup.sh` returns zero results
+- Fresh install test passes with simplified 2-option platform menu
+- Only remaining Jira/Bitbucket references are in task files (159, 166) which are historical context
+
+## Audit
+
+- **Passes run**: 1
+- **Final verdict**: PASS
+- **Date**: 2026-04-22
+- **Files audited**: 6
+- **Context source**: task ## Completed section

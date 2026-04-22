@@ -1,6 +1,6 @@
 # 5DayDocs
 
-Project management in markdown files. Like Jira, but folders and plain text.
+Project management in markdown files. Folders and plain text.
 
 ## Task documents describe outcomes in plain language docs/tasks/*/*
 - Explain WHAT should happen so anyone can understand the goal

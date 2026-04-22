@@ -100,7 +100,15 @@ for dir in "$NEXT_DIR" "$WORKING_DIR" "$REVIEW_DIR" "$BLOCKED_DIR"; do
   fi
 done
 
-TASK_FILES=($(ls -1 "$NEXT_DIR"/*.md 2>/dev/null | sed 's|.*/||' | sort -t- -k1,1n | sed "s|^|$NEXT_DIR/|")) || true
+TASK_FILES=()
+while IFS= read -r f; do
+  TASK_FILES+=("$f")
+done < <(
+  ls -1 "$NEXT_DIR"/*.md 2>/dev/null \
+    | sed 's|.*/||' \
+    | sort -t- -k1,1n \
+    | sed "s|^|$NEXT_DIR/|"
+)
 
 if [ ${#TASK_FILES[@]} -eq 0 ]; then
   echo "No tasks in $NEXT_DIR"
@@ -121,10 +129,15 @@ COMPLETED=0
 FAILED=0
 INCOMPLETE=0
 TOTAL_START=$SECONDS
+AUDIT_SCRIPT="$(dirname "${BASH_SOURCE[0]}")/audit-code.sh"
+_model_args=()
+[ -n "$MODEL" ] && _model_args=(--model "$MODEL")
 
-for i in $(seq 0 $((COUNT - 1))); do
+trap 'echo ""; [ -n "${TASK_NAME:-}" ] && echo "▸ Interrupted — current task left in $WORKING_DIR/$TASK_NAME" || echo "▸ Interrupted"; exit 130' INT TERM
+
+for ((i=0; i<COUNT; i++)); do
   TASK_FILE="${TASK_FILES[$i]}"
-  TASK_NAME=$(basename "$TASK_FILE")
+  TASK_NAME="${TASK_FILE##*/}"
   N=$((i + 1))
   TASK_START=$SECONDS
 
@@ -134,6 +147,8 @@ for i in $(seq 0 $((COUNT - 1))); do
 
   # Move to working
   move_file "$TASK_FILE" "$WORKING_DIR/$TASK_NAME"
+
+  TASK_CONTENT=$(<"$WORKING_DIR/$TASK_NAME")
 
   # ── Pre-work drift check ───────────────────────────────────────────
   # Quick check: has the codebase changed enough that this task is
@@ -216,7 +231,7 @@ Rules:
           *)
             echo "    → Proceeding with updated task"
             # Re-read the updated task content
-            TASK_CONTENT=$(cat "$WORKING_DIR/$TASK_NAME")
+            TASK_CONTENT=$(<"$WORKING_DIR/$TASK_NAME")
             ;;
         esac
         ;;
@@ -234,14 +249,6 @@ Rules:
     esac
   fi
   # ────────────────────────────────────────────────────────────────────
-
-  # Snapshot tree state before Claude runs (for audit manifest)
-  PRE_SNAPSHOT="$LOG_DIR/.pre-snapshot-$$"
-  git diff --name-only > "$PRE_SNAPSHOT" 2>/dev/null || true
-  git diff --cached --name-only >> "$PRE_SNAPSHOT" 2>/dev/null || true
-  git ls-files --others --exclude-standard >> "$PRE_SNAPSHOT" 2>/dev/null || true
-
-  TASK_CONTENT=$(cat "$WORKING_DIR/$TASK_NAME")
 
   PROMPT="You are working on a task from the project task queue.
 
@@ -267,9 +274,6 @@ Instructions:
   TIMESTAMP=$(date +%Y%m%d-%H%M%S)
   LOG_FILE="$LOG_DIR/log-tasks-${TASK_NAME%.md}-$TIMESTAMP.json"
 
-  _model_args=()
-  [ -n "$MODEL" ] && _model_args=(--model "$MODEL")
-
   if "$FIVEDAY_CLI" -p "$PROMPT" \
     "${_model_args[@]}" \
     --allowedTools "$TOOLS" \
@@ -281,42 +285,29 @@ Instructions:
     # Check for ## Completed section before promoting to review
     if grep -q '^## Completed' "$WORKING_DIR/$TASK_NAME"; then
 
-      # ── Code Audit (fresh-context review of changes) ──────
-      # Build manifest: files that changed AFTER Claude ran (subtract pre-snapshot)
-      AUDIT_SCRIPT="$(dirname "${BASH_SOURCE[0]}")/audit-code.sh"
+      # ── Code Audit (fresh-context review via ## Completed section) ──
       if [ -f "$AUDIT_SCRIPT" ]; then
-        POST_SNAPSHOT="$LOG_DIR/.post-snapshot-$$"
-        git diff --name-only > "$POST_SNAPSHOT" 2>/dev/null || true
-        git diff --cached --name-only >> "$POST_SNAPSHOT" 2>/dev/null || true
-        git ls-files --others --exclude-standard >> "$POST_SNAPSHOT" 2>/dev/null || true
-
-        AUDIT_MANIFEST_FILE="$LOG_DIR/.audit-manifest-$$"
-        # New/changed files = in post but not in pre (what THIS task changed)
-        comm -23 <(sort -u "$POST_SNAPSHOT") <(sort -u "$PRE_SNAPSHOT") \
-          > "$AUDIT_MANIFEST_FILE" 2>/dev/null || true
-
-        # If manifest is empty, fall back to full post-snapshot (first task in a clean tree)
-        if [ ! -s "$AUDIT_MANIFEST_FILE" ]; then
-          sort -u "$POST_SNAPSHOT" | grep -v '^$' > "$AUDIT_MANIFEST_FILE" || true
-        fi
-
         echo ""
         echo "▸ Running code audit for $TASK_NAME..."
-        if AUDIT_MANIFEST="$AUDIT_MANIFEST_FILE" bash "$AUDIT_SCRIPT" "$WORKING_DIR/$TASK_NAME"; then
+        if bash "$AUDIT_SCRIPT" "$WORKING_DIR/$TASK_NAME"; then
           echo "  ✓ Audit passed"
         else
           echo "  ⚠ Audit completed with warnings (see task file)"
         fi
-
-        rm -f "$PRE_SNAPSHOT" "$POST_SNAPSHOT" "$AUDIT_MANIFEST_FILE"
+      else
+        echo ""
+        echo "⚠ Audit script not found: $AUDIT_SCRIPT"
+        echo "  Skipping code audit — task will still be promoted"
       fi
       # ──────────────────────────────────────────────────────
 
       move_file "$WORKING_DIR/$TASK_NAME" "$REVIEW_DIR/$TASK_NAME"
+
       COMPLETED=$((COMPLETED + 1))
       echo ""
       echo "✓ Task $N complete → $REVIEW_DIR/$TASK_NAME"
     else
+
       INCOMPLETE=$((INCOMPLETE + 1))
       echo ""
       echo "⚠ Task $N incomplete (no ## Completed section) — left in $WORKING_DIR/$TASK_NAME"

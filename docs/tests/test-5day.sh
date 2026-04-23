@@ -7,7 +7,7 @@ set -e
 
 PASS=0
 FAIL=0
-SCRIPT_UNDER_TEST="$(cd "$(dirname "$0")/../5day/scripts" && pwd)/5day.sh"
+SCRIPT_UNDER_TEST="$(cd "$(dirname "$0")/../.." && pwd)/5day.sh"
 
 setup() {
     TMPDIR=$(mktemp -d)

@@ -66,7 +66,7 @@ show_help() {
     echo "  plan <task-id>            Interactive Q&A to define an incomplete task"
     echo "  sprint [count] [focus]    Plan a sprint from backlog tasks"
     echo "  define [limit]            Review and refine tasks in next/"
-    echo "  tasks [limit]             Execute tasks from next/"
+    echo "  tasks [limit] [--parallel] [--fast] Execute tasks from next/"
     echo "  split <path>              Split a large task into subtasks"
     echo "  audit [folder|file] [limit] [offset]  Audit tasks or a single file"
     echo "  review-code <file> [passes]   Run code audit on a task's changes"

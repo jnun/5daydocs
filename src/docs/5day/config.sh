@@ -43,15 +43,21 @@ FIVEDAY_MODEL_PLAN="${FIVEDAY_MODEL_PLAN-opus}"     # interactive task planning
 FIVEDAY_MODEL_DEFINE="${FIVEDAY_MODEL_DEFINE-opus}" # task definition review
 FIVEDAY_MODEL_SPLIT="${FIVEDAY_MODEL_SPLIT-opus}"   # task splitting
 FIVEDAY_MODEL_SPRINT="${FIVEDAY_MODEL_SPRINT-opus}" # sprint execution
-FIVEDAY_MODEL_TASKS="${FIVEDAY_MODEL_TASKS-opus}"   # batched task review
+FIVEDAY_MODEL_TASKS="${FIVEDAY_MODEL_TASKS-sonnet}" # batched task review
 
 # Code audit — iterative, quality-critical, bounded passes.
-FIVEDAY_MODEL_CODE_AUDIT="${FIVEDAY_MODEL_CODE_AUDIT-opus}"
-FIVEDAY_AUDIT_MAX_PASSES="${FIVEDAY_AUDIT_MAX_PASSES:-3}"
+FIVEDAY_MODEL_CODE_AUDIT="${FIVEDAY_MODEL_CODE_AUDIT-sonnet}"
+FIVEDAY_AUDIT_MAX_PASSES="${FIVEDAY_AUDIT_MAX_PASSES:-2}"
 
 # Bulk / loop operations — runs over many items, token cost matters.
 FIVEDAY_MODEL_AUDIT="${FIVEDAY_MODEL_AUDIT-sonnet}" # backlog audit loop
 FIVEDAY_MODEL_DRIFT="${FIVEDAY_MODEL_DRIFT-sonnet}" # pre-work drift check
+
+# ── Per-invocation budget caps (USD) ─────────────────────────────────
+# Maximum spend per CLI invocation.  Passed as --max-budget-usd to the
+# AI CLI.  Set to "" to disable the cap.
+FIVEDAY_BUDGET_TASKS="${FIVEDAY_BUDGET_TASKS:-5.00}"   # per-task execution
+FIVEDAY_BUDGET_AUDIT="${FIVEDAY_BUDGET_AUDIT:-3.00}"   # per-audit-step
 
 # ── Resolution helper ────────────────────────────────────────────────
 # Usage inside a script:

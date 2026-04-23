@@ -15,9 +15,18 @@
 # Does NOT commit. You review the changes and commit yourself.
 #
 # Usage:
-#   bash docs/5day/scripts/tasks.sh           # run all tasks in next/
-#   bash docs/5day/scripts/tasks.sh 3         # run at most 3 tasks
-#   bash docs/5day/scripts/tasks.sh 1         # run just the next task
+#   bash docs/5day/scripts/tasks.sh                  # run all tasks in next/
+#   bash docs/5day/scripts/tasks.sh 3                # run at most 3 tasks
+#   bash docs/5day/scripts/tasks.sh 1                # run just the next task
+#   bash docs/5day/scripts/tasks.sh --drift          # enable pre-task drift check
+#   bash docs/5day/scripts/tasks.sh --audit          # enable post-task code audit
+#   bash docs/5day/scripts/tasks.sh --parallel       # run all tasks concurrently (2 jobs)
+#   bash docs/5day/scripts/tasks.sh --fast           # shorthand for --parallel with 4 jobs
+#   bash docs/5day/scripts/tasks.sh --default-model  # use CLI's default (latest) model
+#   bash docs/5day/scripts/tasks.sh --cheap          # use sonnet (cheaper than default)
+#   bash docs/5day/scripts/tasks.sh --max            # no turn limit or budget cap
+#   bash docs/5day/scripts/tasks.sh --fast --max     # parallel (4 jobs), no limits
+#   bash docs/5day/scripts/tasks.sh --assist         # interactive mode picker
 #
 # Full workflow:
 #   bash docs/5day/scripts/sprint.sh 5        # 1. plan sprint from backlog
@@ -27,12 +36,91 @@
 
 set -euo pipefail
 
+# ── Argument parsing ────────────────────────────────────────────────
+MAX_TASKS=999
+PARALLEL=0
+MAX_JOBS=2
+FIVEDAY_SKIP_DRIFT_CHECK=1
+RUN_AUDIT=0
+_NO_LIMITS=0
+_USE_DEFAULT_MODEL=0
+_USE_CHEAP_MODEL=0
+_next_is_jobs=0
+for arg in "$@"; do
+  if [ "$_next_is_jobs" -eq 1 ]; then
+    MAX_JOBS="$arg"
+    _next_is_jobs=0
+    continue
+  fi
+  case "$arg" in
+    --drift)    FIVEDAY_SKIP_DRIFT_CHECK=0 ;;
+    --audit)    RUN_AUDIT=1 ;;
+    --parallel) PARALLEL=1 ;;
+    --fast)     PARALLEL=1; MAX_JOBS=4 ;;
+    --max)      _NO_LIMITS=1 ;;
+    --default-model) _USE_DEFAULT_MODEL=1 ;;
+    --cheap) _USE_CHEAP_MODEL=1 ;;
+    --assist) _ASSIST=1 ;;
+    --jobs)     _next_is_jobs=1 ;;
+    [0-9]*)     MAX_TASKS="$arg" ;;
+  esac
+done
+unset _next_is_jobs
+
+# ── Interactive assist mode ─────────────────────────────────────────
+if [ "${_ASSIST:-0}" -eq 1 ]; then
+  echo ""
+  echo "  ┌─────────────────────────────────────────┐"
+  echo "  │         5DayDocs Task Runner             │"
+  echo "  └─────────────────────────────────────────┘"
+  echo ""
+  echo "  Pick a run mode:"
+  echo ""
+  echo "  1) Standard              sequential, config model"
+  echo "  2) Fast parallel         --fast (4 jobs, config model)"
+  echo "  3) Best model            --default-model (CLI default, sequential)"
+  echo "  4) Best model + fast     --default-model --fast"
+  echo "  5) Cheap run             --cheap (sonnet, sequential)"
+  echo "  6) Full quality          --default-model --max --audit"
+  echo "  7) Cheap parallel        --cheap --fast"
+  echo ""
+  printf "  Choice [1-7]: "
+  read -r _choice </dev/tty 2>/dev/null || _choice="1"
+  echo ""
+  case "$_choice" in
+    1) set -- ;;
+    2) set -- --fast ;;
+    3) set -- --default-model ;;
+    4) set -- --default-model --fast ;;
+    5) set -- --cheap ;;
+    6) set -- --default-model --max --audit ;;
+    7) set -- --cheap --fast ;;
+    *) echo "  Invalid choice, running standard."; set -- ;;
+  esac
+
+  # Re-parse the selected flags
+  MAX_TASKS=999; PARALLEL=0; MAX_JOBS=2; RUN_AUDIT=0
+  _NO_LIMITS=0; _USE_DEFAULT_MODEL=0; _USE_CHEAP_MODEL=0
+  FIVEDAY_SKIP_DRIFT_CHECK=1
+  for arg in "$@"; do
+    case "$arg" in
+      --drift)    FIVEDAY_SKIP_DRIFT_CHECK=0 ;;
+      --audit)    RUN_AUDIT=1 ;;
+      --parallel) PARALLEL=1 ;;
+      --fast)     PARALLEL=1; MAX_JOBS=4 ;;
+      --max)      _NO_LIMITS=1 ;;
+      --default-model) _USE_DEFAULT_MODEL=1 ;;
+      --cheap) _USE_CHEAP_MODEL=1 ;;
+    esac
+  done
+fi
+unset _ASSIST
+
 NEXT_DIR="docs/tasks/next"
 WORKING_DIR="docs/tasks/working"
 REVIEW_DIR="docs/tasks/review"
 BLOCKED_DIR="docs/tasks/blocked"
 LOG_DIR="docs/tmp"
-MAX_TASKS="${1:-999}"
 
 # ── Config ───────────────────────────────────────────────────────────
 _CONFIG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/config.sh"
@@ -50,9 +138,26 @@ if ! declare -F fiveday_resolve_model >/dev/null 2>&1; then
 fi
 
 MODEL="$(fiveday_resolve_model FIVEDAY_MODEL_TASKS)"
+
+# --default-model: ignore config, let CLI use its own default (latest model)
+# --cheap: use sonnet for lower cost (good for well-scoped tasks)
+if [ "$_USE_DEFAULT_MODEL" -eq 1 ]; then
+  MODEL=""
+elif [ "$_USE_CHEAP_MODEL" -eq 1 ]; then
+  MODEL="sonnet"
+fi
+unset _USE_DEFAULT_MODEL _USE_CHEAP_MODEL
+
 TOOLS="Read,Edit,Write,Bash,Grep,Glob,Agent"
 PERMISSIONS="auto"
-MAX_TURNS=100
+MAX_TURNS=40
+
+# --max removes all guardrails (turn limit + budget cap)
+if [ "$_NO_LIMITS" -eq 1 ]; then
+  MAX_TURNS=""
+  FIVEDAY_BUDGET_TASKS=""
+fi
+unset _NO_LIMITS
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
@@ -132,8 +237,175 @@ TOTAL_START=$SECONDS
 AUDIT_SCRIPT="$(dirname "${BASH_SOURCE[0]}")/audit-code.sh"
 _model_args=()
 [ -n "$MODEL" ] && _model_args=(--model "$MODEL")
+_turns_args=()
+[ -n "$MAX_TURNS" ] && _turns_args=(--max-turns "$MAX_TURNS")
+_budget_args=()
+[ -n "${FIVEDAY_BUDGET_TASKS:-}" ] && _budget_args=(--max-budget-usd "$FIVEDAY_BUDGET_TASKS")
 
 trap 'echo ""; [ -n "${TASK_NAME:-}" ] && echo "▸ Interrupted — current task left in $WORKING_DIR/$TASK_NAME" || echo "▸ Interrupted"; exit 130' INT TERM
+
+# ── Parallel runner ────────────────────────────────────────────────
+if [ "$PARALLEL" -eq 1 ]; then
+
+  # Move all tasks to working/ upfront
+  TASK_NAMES=()
+  for ((i=0; i<COUNT; i++)); do
+    TASK_FILE="${TASK_FILES[$i]}"
+    TASK_NAME="${TASK_FILE##*/}"
+    TASK_NAMES+=("$TASK_NAME")
+    move_file "$TASK_FILE" "$WORKING_DIR/$TASK_NAME"
+  done
+
+  # Override trap to kill background processes on interrupt
+  PIDS=()
+  trap 'echo ""; echo "▸ Interrupted — killing background tasks..."; for p in "${PIDS[@]}"; do kill "$p" 2>/dev/null; done; wait 2>/dev/null; echo "▸ In-progress tasks left in $WORKING_DIR/"; exit 130' INT TERM
+
+  # Helper: launch a single task by index
+  _launch_task() {
+    local idx=$1
+    local name="${TASK_NAMES[$idx]}"
+    local content
+    content=$(<"$WORKING_DIR/$name")
+
+    local prompt="You are executing ONE task from the project queue.
+CLAUDE.md is auto-loaded. Task file: $WORKING_DIR/$name
+
+TASK:
+---
+$content
+---
+
+Rules:
+- Change ONLY files relevant to this task.
+- Grep/Glob first, read minimal code.
+- Use Edit/Write for changes. Use Agent for research subtasks.
+- Run only relevant tests/linters on files you touched.
+- If blocked, document what remains in the task file.
+- When done, check off items and add ## Completed section with files changed.
+- Do NOT commit."
+
+    local ts
+    ts=$(date +%Y%m%d-%H%M%S)
+    local log_file="$LOG_DIR/log-tasks-${name%.md}-$ts.json"
+    local stderr_file="$LOG_DIR/stderr-tasks-${name%.md}-$ts.txt"
+
+    echo "  ▸ Launching task $((idx + 1))/$COUNT: $name"
+
+    "$FIVEDAY_CLI" -p "$prompt" \
+      "${_model_args[@]}" \
+      "${_turns_args[@]}" \
+      "${_budget_args[@]}" \
+      --allowedTools "$TOOLS" \
+      --permission-mode "$PERMISSIONS" \
+      --output-format json \
+      --no-session-persistence > "$log_file" 2>"$stderr_file" &
+    PIDS[$idx]=$!
+  }
+
+  # Tracking arrays
+  TASK_DONE=()
+  EXIT_CODES=()
+  for ((i=0; i<COUNT; i++)); do TASK_DONE+=(0); EXIT_CODES+=(0); PIDS+=(0); done
+
+  # Launch initial batch
+  NEXT_LAUNCH=0
+  RUNNING=0
+  echo "▸ Running $COUNT task(s) with --jobs $MAX_JOBS..."
+  echo ""
+  while [ "$NEXT_LAUNCH" -lt "$COUNT" ] && [ "$RUNNING" -lt "$MAX_JOBS" ]; do
+    _launch_task "$NEXT_LAUNCH"
+    NEXT_LAUNCH=$((NEXT_LAUNCH + 1))
+    RUNNING=$((RUNNING + 1))
+  done
+  echo ""
+
+  # Poll for completions, launch new tasks as slots open
+  FINISHED=0
+  while [ "$FINISHED" -lt "$COUNT" ]; do
+    for ((i=0; i<COUNT; i++)); do
+      if [ "${TASK_DONE[$i]}" -eq 0 ] && [ "${PIDS[$i]}" -ne 0 ] && ! kill -0 "${PIDS[$i]}" 2>/dev/null; then
+        wait "${PIDS[$i]}" 2>/dev/null && EXIT_CODES[$i]=0 || EXIT_CODES[$i]=$?
+        TASK_DONE[$i]=1
+        FINISHED=$((FINISHED + 1))
+        RUNNING=$((RUNNING - 1))
+        _elapsed=$((SECONDS - TOTAL_START))
+        if [ "${EXIT_CODES[$i]}" -eq 0 ]; then
+          echo "  ✓ $FINISHED/$COUNT done: ${TASK_NAMES[$i]} (${_elapsed}s)"
+        else
+          echo "  ✗ $FINISHED/$COUNT failed: ${TASK_NAMES[$i]} (${_elapsed}s)"
+        fi
+
+        # Launch next task if any remain
+        if [ "$NEXT_LAUNCH" -lt "$COUNT" ]; then
+          _launch_task "$NEXT_LAUNCH"
+          NEXT_LAUNCH=$((NEXT_LAUNCH + 1))
+          RUNNING=$((RUNNING + 1))
+        fi
+      fi
+    done
+    [ "$FINISHED" -lt "$COUNT" ] && sleep 5
+  done
+
+  echo ""
+
+  # Process results sequentially
+  for ((i=0; i<COUNT; i++)); do
+    TASK_NAME="${TASK_NAMES[$i]}"
+    N=$((i + 1))
+    EXIT_CODE="${EXIT_CODES[$i]}"
+
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "▸ Result $N/$COUNT: $TASK_NAME"
+
+    if [ "$EXIT_CODE" -eq 0 ]; then
+      if grep -q '^## Completed' "$WORKING_DIR/$TASK_NAME"; then
+
+        # Run code audit (opt-in via --audit)
+        if [ "$RUN_AUDIT" -eq 1 ] && [ -f "$AUDIT_SCRIPT" ]; then
+          echo "  ▸ Running code audit..."
+          if bash "$AUDIT_SCRIPT" "$WORKING_DIR/$TASK_NAME"; then
+            echo "  ✓ Audit passed"
+          else
+            echo "  ⚠ Audit completed with warnings (see task file)"
+          fi
+        fi
+
+        move_file "$WORKING_DIR/$TASK_NAME" "$REVIEW_DIR/$TASK_NAME"
+        COMPLETED=$((COMPLETED + 1))
+        echo "  ✓ Complete → $REVIEW_DIR/$TASK_NAME"
+      else
+        # No ## Completed — likely hit turn limit
+        if [ -n "$MAX_TURNS" ]; then
+          _task_num=$(echo "$TASK_NAME" | grep -oE '^[0-9]+' || echo "?")
+          move_file "$WORKING_DIR/$TASK_NAME" "$BLOCKED_DIR/$TASK_NAME"
+          FAILED=$((FAILED + 1))
+          echo "  ✗ Task $_task_num exceeded $MAX_TURNS turns — too complex for atomic execution."
+          echo "    → Moved to $BLOCKED_DIR/$TASK_NAME"
+          echo "    Consider: split with ./5day.sh split, or redefine with fewer goals."
+        else
+          INCOMPLETE=$((INCOMPLETE + 1))
+          echo "  ⚠ Incomplete (no ## Completed section) — left in $WORKING_DIR/$TASK_NAME"
+        fi
+      fi
+    else
+      # Non-zero exit — check if turn limit was hit
+      if [ -n "$MAX_TURNS" ] && ! grep -q '^## Completed' "$WORKING_DIR/$TASK_NAME"; then
+        _task_num=$(echo "$TASK_NAME" | grep -oE '^[0-9]+' || echo "?")
+        move_file "$WORKING_DIR/$TASK_NAME" "$BLOCKED_DIR/$TASK_NAME"
+        FAILED=$((FAILED + 1))
+        echo "  ✗ Task $_task_num exceeded $MAX_TURNS turns — too complex for atomic execution."
+        echo "    → Moved to $BLOCKED_DIR/$TASK_NAME"
+        echo "    Consider: split with ./5day.sh split, or redefine with fewer goals."
+      else
+        FAILED=$((FAILED + 1))
+        echo "  ✗ Failed (exit $EXIT_CODE) — left in $WORKING_DIR/$TASK_NAME"
+      fi
+    fi
+    echo ""
+  done
+
+# ── Sequential runner (default) ───────────────────────────────────
+else
 
 for ((i=0; i<COUNT; i++)); do
   TASK_FILE="${TASK_FILES[$i]}"
@@ -209,18 +481,38 @@ Rules:
         continue
         ;;
       FIXED)
-        echo "  ⚠ Drift check: task was outdated — fixes applied:"
+        echo "  ⚠ Drift check: task was outdated — fixes applied."
         echo ""
-        # Show the bullet-pointed fixes from the AI output
-        echo "$DRIFT_VERDICT" | grep '^ *[-•*]' | head -20
-        echo ""
-        echo "  The task file has been updated: $WORKING_DIR/$TASK_NAME"
+
+        # Show what the AI changed using a diff of old vs new task content
+        _updated_content=$(<"$WORKING_DIR/$TASK_NAME")
+        _diff_output=$(diff --unified=2 <(echo "$TASK_CONTENT") <(echo "$_updated_content") || true)
+        if [ -n "$_diff_output" ]; then
+          echo "  Changes made to task file:"
+          echo "$_diff_output" | head -40 | sed 's/^/    /'
+          echo ""
+        fi
+
+        # Show the AI's reasoning (everything before the verdict line)
+        _drift_explanation=$(echo "$DRIFT_VERDICT" | sed '/^[[:space:]]*FIXED[[:space:]]*$/d' | tail -20)
+        if [ -n "$_drift_explanation" ]; then
+          echo "  AI reasoning:"
+          echo "$_drift_explanation" | sed 's/^/    /'
+          echo ""
+        fi
+
+        echo "  Updated task: $WORKING_DIR/$TASK_NAME"
         echo ""
         echo "  1) Looks good, work the task"
         echo "  2) Move to blocked for manual review"
         echo ""
-        printf "  Choice [1/2]: "
-        read -r _drift_choice </dev/tty
+        printf "  Choice [1/2] (auto-proceeds in 15s): "
+        if read -r -t 15 _drift_choice </dev/tty 2>/dev/null; then
+          :
+        else
+          _drift_choice="1"
+          echo "1"
+        fi
         case "$_drift_choice" in
           2)
             echo "    → Moving to $BLOCKED_DIR/$TASK_NAME"
@@ -250,25 +542,22 @@ Rules:
   fi
   # ────────────────────────────────────────────────────────────────────
 
-  PROMPT="You are working on a task from the project task queue.
+  PROMPT="You are executing ONE task from the project queue.
+CLAUDE.md is auto-loaded. Task file: $WORKING_DIR/$TASK_NAME
 
-CLAUDE.md is auto-loaded with project context and conventions.
-For task workflow details, see DOCUMENTATION.md.
-
-The task file is at: $WORKING_DIR/$TASK_NAME
-
-Here is the task:
+TASK:
 ---
 $TASK_CONTENT
 ---
 
-Instructions:
-1. Work through every action item in the task.
-2. Make all necessary code changes. Use the Agent tool for research-heavy subtasks.
-3. After making changes, run any existing tests, linters, or build/compile checks relevant to the files you modified. Fix issues before moving on.
-4. If you cannot complete all action items, document what remains and why in the task file so the next person can pick it up.
-5. After completing the work, update the task file: check off completed items and add a ## Completed section at the bottom summarizing what was done and any files changed.
-6. Do NOT commit — just make the changes."
+Rules:
+- Change ONLY files relevant to this task.
+- Grep/Glob first, read minimal code.
+- Use Edit/Write for changes. Use Agent for research subtasks.
+- Run only relevant tests/linters on files you touched.
+- If blocked, document what remains in the task file.
+- When done, check off items and add ## Completed section with files changed.
+- Do NOT commit."
 
   # Run in fresh context
   TIMESTAMP=$(date +%Y%m%d-%H%M%S)
@@ -276,28 +565,31 @@ Instructions:
 
   if "$FIVEDAY_CLI" -p "$PROMPT" \
     "${_model_args[@]}" \
+    "${_turns_args[@]}" \
+    "${_budget_args[@]}" \
     --allowedTools "$TOOLS" \
     --permission-mode "$PERMISSIONS" \
-    --max-turns "$MAX_TURNS" \
     --output-format json \
     --no-session-persistence > "$LOG_FILE"; then
 
     # Check for ## Completed section before promoting to review
     if grep -q '^## Completed' "$WORKING_DIR/$TASK_NAME"; then
 
-      # ── Code Audit (fresh-context review via ## Completed section) ──
-      if [ -f "$AUDIT_SCRIPT" ]; then
-        echo ""
-        echo "▸ Running code audit for $TASK_NAME..."
-        if bash "$AUDIT_SCRIPT" "$WORKING_DIR/$TASK_NAME"; then
-          echo "  ✓ Audit passed"
+      # ── Code Audit (opt-in via --audit) ──
+      if [ "$RUN_AUDIT" -eq 1 ]; then
+        if [ -f "$AUDIT_SCRIPT" ]; then
+          echo ""
+          echo "▸ Running code audit for $TASK_NAME..."
+          if bash "$AUDIT_SCRIPT" "$WORKING_DIR/$TASK_NAME"; then
+            echo "  ✓ Audit passed"
+          else
+            echo "  ⚠ Audit completed with warnings (see task file)"
+          fi
         else
-          echo "  ⚠ Audit completed with warnings (see task file)"
+          echo ""
+          echo "⚠ Audit script not found: $AUDIT_SCRIPT"
+          echo "  Skipping code audit — task will still be promoted"
         fi
-      else
-        echo ""
-        echo "⚠ Audit script not found: $AUDIT_SCRIPT"
-        echo "  Skipping code audit — task will still be promoted"
       fi
       # ──────────────────────────────────────────────────────
 
@@ -308,14 +600,36 @@ Instructions:
       echo "✓ Task $N complete → $REVIEW_DIR/$TASK_NAME"
     else
 
-      INCOMPLETE=$((INCOMPLETE + 1))
-      echo ""
-      echo "⚠ Task $N incomplete (no ## Completed section) — left in $WORKING_DIR/$TASK_NAME"
+      # No ## Completed — likely hit turn limit
+      if [ -n "$MAX_TURNS" ]; then
+        _task_num=$(echo "$TASK_NAME" | grep -oE '^[0-9]+' || echo "?")
+        move_file "$WORKING_DIR/$TASK_NAME" "$BLOCKED_DIR/$TASK_NAME"
+        FAILED=$((FAILED + 1))
+        echo ""
+        echo "✗ Task $_task_num exceeded $MAX_TURNS turns — too complex for atomic execution."
+        echo "  → Moved to $BLOCKED_DIR/$TASK_NAME"
+        echo "  Consider: split with ./5day.sh split, or redefine with fewer goals."
+      else
+        INCOMPLETE=$((INCOMPLETE + 1))
+        echo ""
+        echo "⚠ Task $N incomplete (no ## Completed section) — left in $WORKING_DIR/$TASK_NAME"
+      fi
     fi
   else
-    echo ""
-    echo "✗ Task $N failed — left in $WORKING_DIR/$TASK_NAME"
-    FAILED=$((FAILED + 1))
+    # Non-zero exit — check if turn limit was hit
+    if [ -n "$MAX_TURNS" ] && ! grep -q '^## Completed' "$WORKING_DIR/$TASK_NAME"; then
+      _task_num=$(echo "$TASK_NAME" | grep -oE '^[0-9]+' || echo "?")
+      move_file "$WORKING_DIR/$TASK_NAME" "$BLOCKED_DIR/$TASK_NAME"
+      FAILED=$((FAILED + 1))
+      echo ""
+      echo "✗ Task $_task_num exceeded $MAX_TURNS turns — too complex for atomic execution."
+      echo "  → Moved to $BLOCKED_DIR/$TASK_NAME"
+      echo "  Consider: split with ./5day.sh split, or redefine with fewer goals."
+    else
+      echo ""
+      echo "✗ Task $N failed — left in $WORKING_DIR/$TASK_NAME"
+      FAILED=$((FAILED + 1))
+    fi
     TASK_ELAPSED=$((SECONDS - TASK_START))
     echo "⏱ Elapsed: $((TASK_ELAPSED / 60))m $((TASK_ELAPSED % 60))s"
     break
@@ -325,6 +639,8 @@ Instructions:
   echo "⏱ Elapsed: $((TASK_ELAPSED / 60))m $((TASK_ELAPSED % 60))s"
   echo ""
 done
+
+fi # end parallel/sequential branch
 
 TOTAL_ELAPSED=$((SECONDS - TOTAL_START))
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

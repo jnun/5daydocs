@@ -23,21 +23,9 @@
 set -euo pipefail
 
 # ── Config ───────────────────────────────────────────────────────────
-_CONFIG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/config.sh"
-# shellcheck source=/dev/null
-[ -f "$_CONFIG" ] && source "$_CONFIG"
-: "${FIVEDAY_CLI:=claude}"
-# Fallback resolver if config.sh is missing (pre-config-era installs).
-# Honors the per-script var if set, else FIVEDAY_MODEL_DEFAULT, else empty.
-if ! declare -F fiveday_resolve_model >/dev/null 2>&1; then
-  fiveday_resolve_model() {
-    local var="$1"
-    if [ "${!var+set}" = "set" ]; then printf '%s' "${!var}"
-    else printf '%s' "${FIVEDAY_MODEL_DEFAULT-}"; fi
-  }
-fi
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
-MODEL="$(fiveday_resolve_model FIVEDAY_MODEL_SPLIT)"
+MODEL="$(fiveday_resolve_model SPLIT)"
 TOOLS="Read,Bash,Grep,Glob,Edit,Write"
 PERMISSIONS="auto"
 MAX_TURNS=60
@@ -47,7 +35,7 @@ LOG_DIR="docs/tmp"
 
 if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
   echo "✗ AI CLI '$FIVEDAY_CLI' not found in PATH"
-  echo "  Edit docs/5day/config.sh to change FIVEDAY_CLI, or install the tool."
+  echo "  Edit docs/5day/config to change CLI, or install the tool."
   echo "  Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview"
   echo "  Required by: split.sh (task splitting)"
   exit 1
@@ -125,13 +113,12 @@ trap 'rm -f "$SPLIT_MARKER"' EXIT
 _model_args=()
 [ -n "$MODEL" ] && _model_args=(--model "$MODEL")
 
-if "$FIVEDAY_CLI" -p "$PROMPT" \
-  "${_model_args[@]}" \
-  --allowedTools "$TOOLS" \
-  --permission-mode "$PERMISSIONS" \
+if fiveday_run -p "$PROMPT" \
+  ${_model_args[@]+"${_model_args[@]}"} \
+  --tools "$TOOLS" \
+  --permissions "$PERMISSIONS" \
   --max-turns "$MAX_TURNS" \
-  --output-format json \
-  --no-session-persistence > "$LOG_FILE"; then
+  --output-format json > "$LOG_FILE"; then
 
   # Verify sub-tasks were actually created before deleting the original
   NEW_TASKS=$(find docs/tasks/backlog -maxdepth 1 -name "*.md" -newer "$SPLIT_MARKER" 2>/dev/null | wc -l | tr -d ' ')

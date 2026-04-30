@@ -22,11 +22,17 @@
 #   bash docs/5day/scripts/tasks.sh --audit          # enable post-task code audit
 #   bash docs/5day/scripts/tasks.sh --parallel       # run all tasks concurrently (2 jobs)
 #   bash docs/5day/scripts/tasks.sh --fast           # shorthand for --parallel with 4 jobs
-#   bash docs/5day/scripts/tasks.sh --default-model  # use CLI's default (latest) model
-#   bash docs/5day/scripts/tasks.sh --cheap          # use sonnet (cheaper than default)
 #   bash docs/5day/scripts/tasks.sh --max            # no turn limit or budget cap
 #   bash docs/5day/scripts/tasks.sh --fast --max     # parallel (4 jobs), no limits
 #   bash docs/5day/scripts/tasks.sh --assist         # interactive mode picker
+#   bash docs/5day/scripts/tasks.sh --claude         # use claude CLI profile
+#   bash docs/5day/scripts/tasks.sh --openai         # use openai CLI profile
+#   bash docs/5day/scripts/tasks.sh --gemini         # use gemini CLI profile
+#   bash docs/5day/scripts/tasks.sh --mistral        # use mistral CLI profile
+#
+# Model selection is handled by docs/5day/config — scripts no longer
+# hardcode model names.  Set FIVEDAY_MODEL_TASKS in your environment or
+# config to override.
 #
 # Full workflow:
 #   bash docs/5day/scripts/sprint.sh 5        # 1. plan sprint from backlog
@@ -43,8 +49,7 @@ MAX_JOBS=2
 FIVEDAY_SKIP_DRIFT_CHECK=1
 RUN_AUDIT=0
 _NO_LIMITS=0
-_USE_DEFAULT_MODEL=0
-_USE_CHEAP_MODEL=0
+_PROVIDER_OVERRIDE=""
 _next_is_jobs=0
 for arg in "$@"; do
   if [ "$_next_is_jobs" -eq 1 ]; then
@@ -58,10 +63,12 @@ for arg in "$@"; do
     --parallel) PARALLEL=1 ;;
     --fast)     PARALLEL=1; MAX_JOBS=4 ;;
     --max)      _NO_LIMITS=1 ;;
-    --default-model) _USE_DEFAULT_MODEL=1 ;;
-    --cheap) _USE_CHEAP_MODEL=1 ;;
-    --assist) _ASSIST=1 ;;
+    --assist)   _ASSIST=1 ;;
     --jobs)     _next_is_jobs=1 ;;
+    --claude)   _PROVIDER_OVERRIDE="claude" ;;
+    --openai)   _PROVIDER_OVERRIDE="openai" ;;
+    --gemini)   _PROVIDER_OVERRIDE="gemini" ;;
+    --mistral)  _PROVIDER_OVERRIDE="mistral" ;;
     [0-9]*)     MAX_TASKS="$arg" ;;
   esac
 done
@@ -76,32 +83,25 @@ if [ "${_ASSIST:-0}" -eq 1 ]; then
   echo ""
   echo "  Pick a run mode:"
   echo ""
-  echo "  1) Standard              sequential, config model"
-  echo "  2) Fast parallel         --fast (4 jobs, config model)"
-  echo "  3) Best model            --default-model (CLI default, sequential)"
-  echo "  4) Best model + fast     --default-model --fast"
-  echo "  5) Cheap run             --cheap (sonnet, sequential)"
-  echo "  6) Full quality          --default-model --max --audit"
-  echo "  7) Cheap parallel        --cheap --fast"
+  echo "  1) Standard              sequential"
+  echo "  2) Fast parallel         --fast (4 concurrent jobs)"
+  echo "  3) Full quality          --max --audit (no limits + audit)"
+  echo "  4) Full quality + fast   --max --audit --fast"
   echo ""
-  printf "  Choice [1-7]: "
+  printf "  Choice [1-4]: "
   read -r _choice </dev/tty 2>/dev/null || _choice="1"
   echo ""
   case "$_choice" in
     1) set -- ;;
     2) set -- --fast ;;
-    3) set -- --default-model ;;
-    4) set -- --default-model --fast ;;
-    5) set -- --cheap ;;
-    6) set -- --default-model --max --audit ;;
-    7) set -- --cheap --fast ;;
+    3) set -- --max --audit ;;
+    4) set -- --max --audit --fast ;;
     *) echo "  Invalid choice, running standard."; set -- ;;
   esac
 
   # Re-parse the selected flags
   MAX_TASKS=999; PARALLEL=0; MAX_JOBS=2; RUN_AUDIT=0
-  _NO_LIMITS=0; _USE_DEFAULT_MODEL=0; _USE_CHEAP_MODEL=0
-  FIVEDAY_SKIP_DRIFT_CHECK=1
+  _NO_LIMITS=0; FIVEDAY_SKIP_DRIFT_CHECK=1
   for arg in "$@"; do
     case "$arg" in
       --drift)    FIVEDAY_SKIP_DRIFT_CHECK=0 ;;
@@ -109,8 +109,6 @@ if [ "${_ASSIST:-0}" -eq 1 ]; then
       --parallel) PARALLEL=1 ;;
       --fast)     PARALLEL=1; MAX_JOBS=4 ;;
       --max)      _NO_LIMITS=1 ;;
-      --default-model) _USE_DEFAULT_MODEL=1 ;;
-      --cheap) _USE_CHEAP_MODEL=1 ;;
     esac
   done
 fi
@@ -123,30 +121,15 @@ BLOCKED_DIR="docs/tasks/blocked"
 LOG_DIR="docs/tmp"
 
 # ── Config ───────────────────────────────────────────────────────────
-_CONFIG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/config.sh"
-# shellcheck source=/dev/null
-[ -f "$_CONFIG" ] && source "$_CONFIG"
-: "${FIVEDAY_CLI:=claude}"
-# Fallback resolver if config.sh is missing (pre-config-era installs).
-# Honors the per-script var if set, else FIVEDAY_MODEL_DEFAULT, else empty.
-if ! declare -F fiveday_resolve_model >/dev/null 2>&1; then
-  fiveday_resolve_model() {
-    local var="$1"
-    if [ "${!var+set}" = "set" ]; then printf '%s' "${!var}"
-    else printf '%s' "${FIVEDAY_MODEL_DEFAULT-}"; fi
-  }
-fi
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
-MODEL="$(fiveday_resolve_model FIVEDAY_MODEL_TASKS)"
+# ── Provider flag override ─────────────────────────────────────────
+# --claude/--openai/--gemini/--mistral override the CLI profile for this
+# run only.  Re-source the matching profile to swap fiveday_run().
+[ -n "${_PROVIDER_OVERRIDE:-}" ] && fiveday_load_profile "$_PROVIDER_OVERRIDE"
+unset _PROVIDER_OVERRIDE
 
-# --default-model: ignore config, let CLI use its own default (latest model)
-# --cheap: use sonnet for lower cost (good for well-scoped tasks)
-if [ "$_USE_DEFAULT_MODEL" -eq 1 ]; then
-  MODEL=""
-elif [ "$_USE_CHEAP_MODEL" -eq 1 ]; then
-  MODEL="sonnet"
-fi
-unset _USE_DEFAULT_MODEL _USE_CHEAP_MODEL
+MODEL="$(fiveday_resolve_model TASKS)"
 
 TOOLS="Read,Edit,Write,Bash,Grep,Glob,Agent"
 PERMISSIONS="auto"
@@ -190,7 +173,7 @@ fi
 
 if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
   echo "✗ AI CLI '$FIVEDAY_CLI' not found in PATH"
-  echo "  Edit docs/5day/config.sh to change FIVEDAY_CLI, or install the tool."
+  echo "  Edit docs/5day/config to change CLI, or install the tool."
   echo "  Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview"
   echo "  Required by: tasks.sh (task execution)"
   exit 1
@@ -240,7 +223,7 @@ _model_args=()
 _turns_args=()
 [ -n "$MAX_TURNS" ] && _turns_args=(--max-turns "$MAX_TURNS")
 _budget_args=()
-[ -n "${FIVEDAY_BUDGET_TASKS:-}" ] && _budget_args=(--max-budget-usd "$FIVEDAY_BUDGET_TASKS")
+[ -n "${FIVEDAY_BUDGET_TASKS:-}" ] && _budget_args=(--budget "$FIVEDAY_BUDGET_TASKS")
 
 trap 'echo ""; [ -n "${TASK_NAME:-}" ] && echo "▸ Interrupted — current task left in $WORKING_DIR/$TASK_NAME" || echo "▸ Interrupted"; exit 130' INT TERM
 
@@ -291,14 +274,13 @@ Rules:
 
     echo "  ▸ Launching task $((idx + 1))/$COUNT: $name"
 
-    "$FIVEDAY_CLI" -p "$prompt" \
-      "${_model_args[@]}" \
-      "${_turns_args[@]}" \
-      "${_budget_args[@]}" \
-      --allowedTools "$TOOLS" \
-      --permission-mode "$PERMISSIONS" \
-      --output-format json \
-      --no-session-persistence > "$log_file" 2>"$stderr_file" &
+    fiveday_run -p "$prompt" \
+      ${_model_args[@]+"${_model_args[@]}"} \
+      ${_turns_args[@]+"${_turns_args[@]}"} \
+      ${_budget_args[@]+"${_budget_args[@]}"} \
+      --tools "$TOOLS" \
+      --permissions "$PERMISSIONS" \
+      --output-format json > "$log_file" 2>"$stderr_file" &
     PIDS[$idx]=$!
   }
 
@@ -428,7 +410,7 @@ for ((i=0; i<COUNT; i++)); do
   if [ "${FIVEDAY_SKIP_DRIFT_CHECK:-}" != "1" ]; then
     echo "  ▸ Drift check..."
 
-    _drift_model="$(fiveday_resolve_model FIVEDAY_MODEL_DRIFT)"
+    _drift_model="$(fiveday_resolve_model DRIFT)"
     _drift_model_args=()
     [ -n "$_drift_model" ] && _drift_model_args=(--model "$_drift_model")
 
@@ -461,10 +443,10 @@ Rules:
 - OUTDATED means the drift is too severe for you to fix — needs human rewrite
 - Before your verdict, list any fixes you made as bullet points (for FIXED)"
 
-    DRIFT_VERDICT=$(run_with_timeout "$FIVEDAY_CLI" -p "$DRIFT_PROMPT" \
+    DRIFT_VERDICT=$(run_with_timeout fiveday_run -p "$DRIFT_PROMPT" \
       "${_drift_model_args[@]}" \
-      --allowedTools "Read,Edit,Write,Grep,Glob,Bash" \
-      --dangerously-skip-permissions \
+      --tools "Read,Edit,Write,Grep,Glob,Bash" \
+      --skip-permissions \
       --max-turns 20 2>/dev/null) || true
 
     _drift_action=$(echo "$DRIFT_VERDICT" | grep -oE '\b(DONE|FIXED|OUTDATED|PROCEED)\b' | tail -1 || true)
@@ -563,14 +545,13 @@ Rules:
   TIMESTAMP=$(date +%Y%m%d-%H%M%S)
   LOG_FILE="$LOG_DIR/log-tasks-${TASK_NAME%.md}-$TIMESTAMP.json"
 
-  if "$FIVEDAY_CLI" -p "$PROMPT" \
-    "${_model_args[@]}" \
-    "${_turns_args[@]}" \
-    "${_budget_args[@]}" \
-    --allowedTools "$TOOLS" \
-    --permission-mode "$PERMISSIONS" \
-    --output-format json \
-    --no-session-persistence > "$LOG_FILE"; then
+  if fiveday_run -p "$PROMPT" \
+    ${_model_args[@]+"${_model_args[@]}"} \
+    ${_turns_args[@]+"${_turns_args[@]}"} \
+    ${_budget_args[@]+"${_budget_args[@]}"} \
+    --tools "$TOOLS" \
+    --permissions "$PERMISSIONS" \
+    --output-format json > "$LOG_FILE"; then
 
     # Check for ## Completed section before promoting to review
     if grep -q '^## Completed' "$WORKING_DIR/$TASK_NAME"; then

@@ -261,61 +261,25 @@ ensure_task_folders() {
 }
 
 # merge_config "$src_config" "$user_config"
-# Appends missing FIVEDAY_* variable blocks and the resolver function.
+# Appends missing KEY=VALUE lines from source to user config.
 # Returns 0 if changes were made, 1 if already up to date.
 merge_config() {
     local src="$1"
     local dest="$2"
+    local changed=false
 
-    # Extract variable names (left of =) from each file
-    local src_vars user_vars missing
-    src_vars=$(grep -o '^FIVEDAY_[A-Z_]*' "$src" | sort -u)
-    user_vars=$(grep -o '^FIVEDAY_[A-Z_]*' "$dest" | sort -u)
-    missing=$(comm -23 <(echo "$src_vars") <(echo "$user_vars"))
+    while IFS='=' read -r key value; do
+        # Skip comments, blank lines
+        [[ "$key" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "$key" ]] && continue
+        # Append key if missing
+        if ! grep -q "^${key}=" "$dest" 2>/dev/null; then
+            echo "${key}=${value}" >> "$dest"
+            changed=true
+        fi
+    done < "$src"
 
-    # Check if fiveday_resolve_model function is present
-    local need_function=false
-    if ! grep -q '^fiveday_resolve_model()' "$dest"; then
-        need_function=true
-    fi
-
-    # Nothing to do?
-    if [ -z "$missing" ] && [ "$need_function" = false ]; then
-        return 1
-    fi
-
-    # Append missing variable blocks
-    if [ -n "$missing" ]; then
-        {
-            echo ""
-            echo "# ── Added by setup.sh ($(date +%Y-%m-%d)) ────────────────────"
-            while IFS= read -r var; do
-                [ -z "$var" ] && continue
-                # Extract the variable line + its preceding comment block from src.
-                # Rule ordering matters:
-                #   1. If this line IS the target variable → print buffer + line, done.
-                #   2. If this line is a DIFFERENT variable → reset buffer.
-                #   3. If comment or blank → accumulate in buffer.
-                #   4. Anything else (shebang, function def) → reset buffer.
-                awk -v var="$var" '
-                    index($0, var "=") == 1    { printf "%s%s\n", buf, $0; exit }
-                    index($0, "FIVEDAY_") == 1 && /=/ { buf=""; next }
-                    /^#/ || /^[[:space:]]*$/    { buf = buf $0 "\n"; next }
-                    { buf="" }
-                ' "$src"
-            done <<< "$missing"
-        } >> "$dest"
-    fi
-
-    # Append resolver function if missing
-    if [ "$need_function" = true ]; then
-        {
-            echo ""
-            sed -n '/^# ── Resolution helper/,$ p' "$src"
-        } >> "$dest"
-    fi
-
-    return 0
+    $changed && return 0 || return 1
 }
 
 # ============================================================================
@@ -469,6 +433,36 @@ if $UPDATE_MODE; then
         fi
 
         INSTALLED_VERSION="2.2.0"
+    fi
+
+    # Migration: config.sh -> flat config file
+    if [ -f "docs/5day/config.sh" ] && [ ! -f "docs/5day/config" ]; then
+        echo ""
+        echo "Migrating config.sh to flat config file..."
+        (
+            # Source old bash config in subshell to extract values
+            source "docs/5day/config.sh" 2>/dev/null
+            cat > "docs/5day/config" <<CONF
+# 5DayDocs Configuration (migrated from config.sh)
+# Edit freely. Changes preserved across updates. Format: KEY=VALUE
+
+CLI=${FIVEDAY_CLI:-claude}
+MODEL_DEFAULT=${FIVEDAY_MODEL_DEFAULT-}
+MODEL_PLAN=${FIVEDAY_MODEL_PLAN-}
+MODEL_DEFINE=${FIVEDAY_MODEL_DEFINE-}
+MODEL_SPLIT=${FIVEDAY_MODEL_SPLIT-}
+MODEL_SPRINT=${FIVEDAY_MODEL_SPRINT-}
+MODEL_TASKS=${FIVEDAY_MODEL_TASKS-}
+MODEL_CODE_AUDIT=${FIVEDAY_MODEL_CODE_AUDIT-}
+MODEL_AUDIT=${FIVEDAY_MODEL_AUDIT-}
+MODEL_DRIFT=${FIVEDAY_MODEL_DRIFT-}
+BUDGET_TASKS=${FIVEDAY_BUDGET_TASKS:-5.00}
+BUDGET_AUDIT=${FIVEDAY_BUDGET_AUDIT:-3.00}
+AUDIT_MAX_PASSES=${FIVEDAY_AUDIT_MAX_PASSES:-2}
+CONF
+        )
+        mv "docs/5day/config.sh" "docs/5day/config.sh.bak"
+        msg_success "Migrated config.sh -> config (backup at config.sh.bak)"
     fi
 
     echo ""
@@ -752,7 +746,7 @@ PREPEND_FILES=(
 )
 
 USER_TERRITORY=(
-    "docs/5day/config.sh"
+    "docs/5day/config"
 )
 
 # Helper: check if a value is in an array
@@ -867,14 +861,14 @@ while IFS= read -r -d '' src_file <&3; do
         continue
     fi
 
-    # User territory — preserve existing file on update, merge new config vars
+    # User territory — preserve existing file on update, merge new config keys
     if _in_list "$rel_path" "${USER_TERRITORY[@]}"; then
         if [ -f "$rel_path" ]; then
-            if [ "$rel_path" = "docs/5day/config.sh" ]; then
-                if merge_config "$FIVEDAY_SOURCE_DIR/src/docs/5day/config.sh" "docs/5day/config.sh"; then
-                    msg_success "Updated docs/5day/config.sh (added new configuration options)"
+            if [ "$rel_path" = "docs/5day/config" ]; then
+                if merge_config "$FIVEDAY_SOURCE_DIR/src/docs/5day/config" "docs/5day/config"; then
+                    msg_success "Updated docs/5day/config (added new configuration options)"
                 else
-                    msg_step "Preserved docs/5day/config.sh (up to date)"
+                    msg_step "Preserved docs/5day/config (up to date)"
                 fi
             else
                 msg_step "Preserved $rel_path (user-territory)"
@@ -1112,6 +1106,93 @@ if [ ${#LEGACY_INDEX_FOUND[@]} -gt 0 ]; then
 fi
 
 # ============================================================================
+# AI CLI PICKER
+# ============================================================================
+
+msg_header "AI CLI configuration..."
+
+CONFIG_FILE="docs/5day/config"
+
+# Source lib.sh if available (provides fiveday_cfg / fiveday_cfg_set)
+_LIB_FILE="docs/5day/lib.sh"
+if [ -f "$_LIB_FILE" ]; then
+    source "$_LIB_FILE"
+fi
+
+# Detect current CLI on upgrade
+CURRENT_CLI=""
+if $UPDATE_MODE && [ -f "$CONFIG_FILE" ]; then
+    if declare -F fiveday_cfg >/dev/null 2>&1; then
+        CURRENT_CLI=$(fiveday_cfg CLI)
+    else
+        CURRENT_CLI=$(awk -F= '/^CLI=/ { print $2 }' "$CONFIG_FILE" | tail -1)
+    fi
+fi
+
+echo ""
+echo "Which AI CLI do you use?"
+if $UPDATE_MODE && [ -n "$CURRENT_CLI" ]; then
+    echo "  Current: $CURRENT_CLI"
+fi
+echo "  1) Claude"
+echo "  2) OpenAI / Codex"
+echo "  3) Gemini"
+echo "  4) Mistral"
+echo "  5) Other"
+echo ""
+if $UPDATE_MODE && [ -n "$CURRENT_CLI" ]; then
+    echo "Enter your choice (1-5, or press Enter to keep current):"
+else
+    echo "Enter your choice (1-5, or press Enter for Claude):"
+fi
+read -r CLI_CHOICE
+
+case "$CLI_CHOICE" in
+    1)  SELECTED_CLI="claude"  ;;
+    2)  SELECTED_CLI="codex"   ;;
+    3)  SELECTED_CLI="gemini"  ;;
+    4)  SELECTED_CLI="mistral" ;;
+    5)
+        echo "Enter the CLI binary name:"
+        read -r CUSTOM_CLI
+        if [ -z "$CUSTOM_CLI" ]; then
+            msg_warning "No binary name entered, defaulting to claude"
+            SELECTED_CLI="claude"
+        else
+            SELECTED_CLI="$CUSTOM_CLI"
+        fi
+        ;;
+    "")
+        if $UPDATE_MODE && [ -n "$CURRENT_CLI" ]; then
+            SELECTED_CLI="$CURRENT_CLI"
+            echo "Keeping current: $SELECTED_CLI"
+        else
+            SELECTED_CLI="claude"
+        fi
+        ;;
+    *)
+        msg_warning "Invalid choice, defaulting to claude"
+        SELECTED_CLI="claude"
+        ;;
+esac
+
+# Write CLI into the config file
+if [ -f "$CONFIG_FILE" ]; then
+    if declare -F fiveday_cfg_set >/dev/null 2>&1; then
+        fiveday_cfg_set CLI "$SELECTED_CLI"
+    elif grep -q "^CLI=" "$CONFIG_FILE"; then
+        sed -i '' "s|^CLI=.*|CLI=${SELECTED_CLI}|" "$CONFIG_FILE"
+    else
+        echo "CLI=${SELECTED_CLI}" >> "$CONFIG_FILE"
+    fi
+    msg_success "AI CLI set to: $SELECTED_CLI"
+else
+    msg_warning "Config file not found: $CONFIG_FILE"
+fi
+
+echo ""
+
+# ============================================================================
 # VALIDATION
 # ============================================================================
 
@@ -1194,7 +1275,7 @@ else
     echo "Directory structure created in docs/"
     echo "Scripts available at docs/5day/scripts/"
     echo "Documentation at DOCUMENTATION.md"
-    echo "AI CLI/model config at docs/5day/config.sh (edit to change CLI or models)"
+    echo "AI CLI/model config at docs/5day/config (edit to change CLI or models)"
     echo ""
     echo "Get started:"
     echo "  ./5day.sh help            # Show all commands"

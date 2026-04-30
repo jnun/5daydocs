@@ -47,19 +47,9 @@
 set -euo pipefail
 
 # ── Config ───────────────────────────────────────────────────────────
-_CONFIG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/config.sh"
-# shellcheck source=/dev/null
-[ -f "$_CONFIG" ] && source "$_CONFIG"
-: "${FIVEDAY_CLI:=claude}"
-if ! declare -F fiveday_resolve_model >/dev/null 2>&1; then
-  fiveday_resolve_model() {
-    local var="$1"
-    if [ "${!var+set}" = "set" ]; then printf '%s' "${!var}"
-    else printf '%s' "${FIVEDAY_MODEL_DEFAULT-}"; fi
-  }
-fi
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
-MODEL="$(fiveday_resolve_model FIVEDAY_MODEL_CODE_AUDIT)"
+MODEL="$(fiveday_resolve_model CODE_AUDIT)"
 TOOLS_FIXER="Read,Edit,Write,Bash,Grep,Glob,Agent"
 TOOLS_VERIFIER="Read,Bash,Grep,Glob,Agent"
 PERMISSIONS="auto"
@@ -112,7 +102,7 @@ fi
 # ── Preflight ───────────────────────────────────────────────────────
 if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
   echo "✗ AI CLI '$FIVEDAY_CLI' not found in PATH" >&2
-  echo "  Edit docs/5day/config.sh to change FIVEDAY_CLI, or install the tool." >&2
+  echo "  Edit docs/5day/config to change CLI, or install the tool." >&2
   exit 1
 fi
 
@@ -315,7 +305,7 @@ TIMESTAMP_BASE=$(date +%Y%m%d-%H%M%S)
 _model_args=()
 [ -n "$MODEL" ] && _model_args=(--model "$MODEL")
 _budget_args=()
-[ -n "${FIVEDAY_BUDGET_AUDIT:-}" ] && _budget_args=(--max-budget-usd "$FIVEDAY_BUDGET_AUDIT")
+[ -n "${FIVEDAY_BUDGET_AUDIT:-}" ] && _budget_args=(--budget "$FIVEDAY_BUDGET_AUDIT")
 _log_name="${TASK_NAME:-adhoc}"
 
 MAX_STEPS=$((MAX_PASSES * 2))
@@ -452,14 +442,13 @@ VERDICT: PASS — no issues | FIXED — fixed all | FAIL — couldn't fix all | 
 
   LOG_FILE="$LOG_DIR/log-audit-code-${_log_name%.md}-step${STEP}-${MODE}-$TIMESTAMP_BASE.json"
 
-  OUTPUT=$("$FIVEDAY_CLI" -p "$PROMPT" \
-    "${_model_args[@]}" \
-    "${_budget_args[@]}" \
-    --allowedTools "$ACTIVE_TOOLS" \
-    --permission-mode "$PERMISSIONS" \
+  OUTPUT=$(fiveday_run -p "$PROMPT" \
+    ${_model_args[@]+"${_model_args[@]}"} \
+    ${_budget_args[@]+"${_budget_args[@]}"} \
+    --tools "$ACTIVE_TOOLS" \
+    --permissions "$PERMISSIONS" \
     --max-turns "$MAX_TURNS" \
-    --output-format json \
-    --no-session-persistence 2>/dev/null | tee "$LOG_FILE") || true
+    --output-format json 2>/dev/null | tee "$LOG_FILE") || true
 
   # Extract verdict
   STEP_VERDICT=$(echo "$OUTPUT" | grep -oE 'VERDICT: (PASS|FIXED|FAIL|BLOCKED)' | tail -1 | awk '{print $2}' || true)

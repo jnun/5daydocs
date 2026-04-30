@@ -1,0 +1,25 @@
+# 5DayDocs Configuration
+# Edit freely. Changes preserved across updates. Format: KEY=VALUE
+
+# AI CLI binary (claude, codex, gemini, mistral, or custom)
+CLI=claude
+
+# Default model. Empty = let the CLI pick its own default.
+MODEL_DEFAULT=
+
+# Per-script models. Empty = fall back to MODEL_DEFAULT.
+MODEL_PLAN=
+MODEL_DEFINE=
+MODEL_SPLIT=
+MODEL_SPRINT=
+MODEL_TASKS=
+MODEL_CODE_AUDIT=
+MODEL_AUDIT=
+MODEL_DRIFT=
+
+# Budget caps per invocation (USD). Empty = no cap.
+BUDGET_TASKS=5.00
+BUDGET_AUDIT=3.00
+
+# Code audit max iterative passes
+AUDIT_MAX_PASSES=2

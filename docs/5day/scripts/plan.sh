@@ -18,19 +18,7 @@
 set -euo pipefail
 
 # ── Config ───────────────────────────────────────────────────────────
-_CONFIG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/config.sh"
-# shellcheck source=/dev/null
-[ -f "$_CONFIG" ] && source "$_CONFIG"
-: "${FIVEDAY_CLI:=claude}"
-# Fallback resolver if config.sh is missing (pre-config-era installs).
-# Honors the per-script var if set, else FIVEDAY_MODEL_DEFAULT, else empty.
-if ! declare -F fiveday_resolve_model >/dev/null 2>&1; then
-  fiveday_resolve_model() {
-    local var="$1"
-    if [ "${!var+set}" = "set" ]; then printf '%s' "${!var}"
-    else printf '%s' "${FIVEDAY_MODEL_DEFAULT-}"; fi
-  }
-fi
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
 # ── Args ─────────────────────────────────────────────────────────────
 
@@ -70,13 +58,13 @@ echo ""
 
 if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
   echo "Error: AI CLI '$FIVEDAY_CLI' not found in PATH"
-  echo "  Edit docs/5day/config.sh to change FIVEDAY_CLI, or install the tool."
+  echo "  Edit docs/5day/config to change CLI, or install the tool."
   echo "  Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview"
   exit 1
 fi
 
 # Resolve model: empty string = let the CLI pick its own default.
-_MODEL="$(fiveday_resolve_model FIVEDAY_MODEL_PLAN)"
+_MODEL="$(fiveday_resolve_model PLAN)"
 _model_args=()
 [ -n "$_MODEL" ] && _model_args=(--model "$_MODEL")
 
@@ -126,10 +114,10 @@ RULES:
 - You may only edit the task file at $TASK_FILE. Do not create or modify any other files.
 - Do not write code or implement the task — only define it."
 
-"$FIVEDAY_CLI" \
+fiveday_run \
   --append-system-prompt "$APPEND_PROMPT" \
-  "${_model_args[@]}" \
-  --allowedTools "Read,Edit,Write,Grep,Glob" \
+  ${_model_args[@]+"${_model_args[@]}"} \
+  --tools "Read,Edit,Write,Grep,Glob" \
   --name "plan-${TASK_ID}" \
   "Read the task file at $TASK_FILE and start the planning Q&A session."
 

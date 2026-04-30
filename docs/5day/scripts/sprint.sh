@@ -38,21 +38,9 @@ SPRINT_SIZE="${1:-5}"
 FOCUS="${2:-}"
 
 # ── Config ───────────────────────────────────────────────────────────
-_CONFIG="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/config.sh"
-# shellcheck source=/dev/null
-[ -f "$_CONFIG" ] && source "$_CONFIG"
-: "${FIVEDAY_CLI:=claude}"
-# Fallback resolver if config.sh is missing (pre-config-era installs).
-# Honors the per-script var if set, else FIVEDAY_MODEL_DEFAULT, else empty.
-if ! declare -F fiveday_resolve_model >/dev/null 2>&1; then
-  fiveday_resolve_model() {
-    local var="$1"
-    if [ "${!var+set}" = "set" ]; then printf '%s' "${!var}"
-    else printf '%s' "${FIVEDAY_MODEL_DEFAULT-}"; fi
-  }
-fi
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
-MODEL="$(fiveday_resolve_model FIVEDAY_MODEL_SPRINT)"
+MODEL="$(fiveday_resolve_model SPRINT)"
 TOOLS="Read,Bash,Grep,Glob,Write"
 PERMISSIONS="auto"
 MAX_TURNS=50
@@ -67,7 +55,7 @@ move_file() {
 
 if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
   echo "✗ AI CLI '$FIVEDAY_CLI' not found in PATH"
-  echo "  Edit docs/5day/config.sh to change FIVEDAY_CLI, or install the tool."
+  echo "  Edit docs/5day/config to change CLI, or install the tool."
   echo "  Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview"
   echo "  Required by: sprint.sh (sprint planning)"
   exit 1
@@ -200,12 +188,11 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 _model_args=()
 [ -n "$MODEL" ] && _model_args=(--model "$MODEL")
 
-if "$FIVEDAY_CLI" -p "$PROMPT" \
-  "${_model_args[@]}" \
-  --allowedTools "$TOOLS" \
-  --permission-mode "$PERMISSIONS" \
-  --max-turns "$MAX_TURNS" \
-  --no-session-persistence; then
+if fiveday_run -p "$PROMPT" \
+  ${_model_args[@]+"${_model_args[@]}"} \
+  --tools "$TOOLS" \
+  --permissions "$PERMISSIONS" \
+  --max-turns "$MAX_TURNS"; then
 
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

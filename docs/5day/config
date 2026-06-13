@@ -15,6 +15,7 @@ MODEL_SPRINT=
 MODEL_TASKS=
 MODEL_CODE_AUDIT=
 MODEL_AUDIT=
+MODEL_REVIEW_SPRINT=
 MODEL_DRIFT=
 
 # Budget caps per invocation (USD). Empty = no cap.

@@ -68,6 +68,7 @@ show_help() {
     echo "  define [limit]            Review and refine tasks in next/"
     echo "  tasks [limit]             Execute tasks from next/"
     echo "  split <path>              Split a large task into subtasks"
+    echo "  review-sprint             Review sprint via dual-persona analysis"
     echo "  audit [folder|file] [limit] [offset]  Audit tasks or a single file"
     echo "  review-code <file> [passes]   Run code audit on a task's changes"
     echo ""
@@ -168,6 +169,10 @@ cmd_split() {
     run_script "split.sh" "$@"
 }
 
+cmd_review_sprint() {
+    run_script "review-sprint.sh" "$@"
+}
+
 cmd_audit() {
     run_script "audit-backlog.sh" "$@"
 }
@@ -209,6 +214,7 @@ case "${1:-}" in
     define)        shift; cmd_define "$@" ;;
     tasks)         shift; cmd_tasks "$@" ;;
     split)         shift; cmd_split "$@" ;;
+    review-sprint) cmd_review_sprint ;;
     audit)         shift; cmd_audit "$@" ;;
     review-code)   shift; cmd_review_code "$@" ;;
     sync)          shift; cmd_sync "$@" ;;

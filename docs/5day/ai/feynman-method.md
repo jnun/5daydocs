@@ -1,6 +1,6 @@
-# Feynman Protocol: AI Execution Guide
+# Feynman Protocol: Idea Refinement
 
-> **Theory:** [docs/5day/theory/feynman-method.md](../theory/feynman-method.md)
+Transform rough ideas into clear, actionable tasks. No jargon. No ambiguity. Plain English that anyone on the team can understand.
 
 ## When to Use
 
@@ -8,34 +8,60 @@ Run this protocol when refining an idea in `docs/ideas/`. Typically triggered by
 
 ## How to Execute
 
-Work inside the idea file. Follow the four phases in order. Never skip a phase.
+Work inside the idea file. Follow the four phases in order. Never skip a phase. Ask questions, wait for answers — don't fill sections without user input.
 
-### Phase 1-2: Interactive Discovery
+### Phase 1: The Problem (What & Why)
 
-1. Read the idea file.
-2. Ask the user the Phase 1 questions (What problem? Who benefits? What does success look like?).
-3. Wait for answers. Do not assume or fill in.
-4. Rewrite answers in plain English (Phase 2). Flag any jargon and replace with analogies or plain definitions.
-5. Confirm with the user: "Does this capture it?"
+Capture the human outcome, not the technical solution.
 
-### Phase 3: Decomposition
+Ask the user:
+- What problem does this solve?
+- Who benefits and how?
+- What does success look like?
 
-1. Break the feature into atomic pieces.
-2. Present each piece to the user with a tag: `[READY]`, `[RESEARCH]`, or `[BLOCKED]`.
-3. Ask the user to validate the tags.
-4. Resolve any `[BLOCKED]` items before proceeding.
+Block implementation details. Words like "React," "Postgres," "microservice" are premature — focus on the job to be done. Test: "If this feature were a person, what job would they be hired to do?"
+
+Confirm with the user: "Does this capture it?"
+
+### Phase 2: Plain English (Clarity Filter)
+
+Rewrite Phase 1 so any team member — regardless of role — can understand it.
+
+Flag technical terms (API, backend, database, interface, endpoint, etc.). When detected:
+- Replace with analogies ("a messenger," "a filing cabinet," "a gatekeeper")
+- Or define in one plain sentence
+
+Test: Could a new hire with no project context understand this?
+
+### Phase 3: Decomposition (Gap Audit)
+
+Break the feature into atomic pieces. For each piece, ask: "Do we have everything needed to build this right now?"
+
+Tag each piece:
+- `[READY]` — Clear path forward. Can become a task.
+- `[RESEARCH]` — Knowledge gap. Needs investigation first.
+- `[BLOCKED]` — Dependency or logical gap.
+
+Present tags to the user for validation. `[BLOCKED]` items halt progress to Phase 4 until resolved.
 
 ### Phase 4: Task Generation
 
-1. Only proceed after the user confirms the Phase 3 breakdown.
-2. Convert `[READY]` items into task files in `docs/tasks/backlog/`.
-3. Each task title: 10 words max.
-4. Each task must be completable independently.
-5. If a task feels too broad, recurse it through Phase 3.
+Only proceed after the user confirms the Phase 3 breakdown.
 
-## Rules
+Convert `[READY]` items into task files in `docs/tasks/backlog/`. Each task title: 10 words max. Each task must be completable independently. If a task feels too broad, recurse it through Phase 3.
 
-- Work within the idea file. Update it as you go.
-- Ask questions, wait for answers. Don't fill sections without user input.
-- One phase at a time. Confirm before advancing.
-- `[BLOCKED]` items halt progress to Phase 4 until resolved.
+## Workflow
+
+```
+docs/ideas/     -> Raw ideas being refined (this protocol)
+docs/features/  -> Fully defined features
+docs/tasks/*/*  -> Actionable work items
+```
+
+## Error States
+
+| Condition | Action |
+|-----------|--------|
+| Jargon detected in Phase 2 | Flag it. Rewrite with analogy. |
+| `[BLOCKED]` item in Phase 3 | Cannot proceed to Phase 4 until resolved. |
+| Task too broad in Phase 4 | Recurse to Phase 3 for that item. |

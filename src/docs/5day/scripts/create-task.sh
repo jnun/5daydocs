@@ -1,25 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
-
-# Escape special characters for sed replacement strings (/, &, \)
-sed_escape() {
-    printf '%s' "$1" | sed 's;[&/\\];\\&;g'
-}
-
-# Portable in-place sed that works on both macOS (BSD) and Linux (GNU)
-sed_inplace() {
-    if sed --version 2>/dev/null | grep -q GNU; then
-        sed -i "$@"
-    else
-        sed -i '' "$@"
-    fi
-}
 
 # Verify DOC_STATE.md exists and is valid
 if [ ! -f "docs/5day/DOC_STATE.md" ]; then
@@ -69,7 +57,13 @@ if [ -f "docs/tasks/backlog/$FILENAME" ]; then
     exit 1
 fi
 
-# Create the task file matching src/docs/tasks/.TEMPLATE-task.md
+# Read template and substitute placeholders
+TEMPLATE_FILE="docs/tasks/.TEMPLATE-task.md"
+if [ ! -f "$TEMPLATE_FILE" ]; then
+    echo -e "${RED}ERROR: Template file not found: $TEMPLATE_FILE${NC}"
+    exit 1
+fi
+
 if [ -n "$FEATURE" ]; then
     FEATURE_LINE="**Feature**: /docs/features/${FEATURE}.md"
 else
@@ -78,66 +72,14 @@ fi
 
 CREATED_DATE=$(date +%Y-%m-%d)
 
-cat << 'TASKEOF' > "docs/tasks/backlog/$FILENAME"
-# Task NEW_ID_PLACEHOLDER: DESCRIPTION_PLACEHOLDER
+cp "$TEMPLATE_FILE" "docs/tasks/backlog/$FILENAME"
 
-FEATURE_LINE_PLACEHOLDER
-**Created**: CREATED_DATE_PLACEHOLDER
-**Depends on**: none
-**Blocks**: none
-
-## Problem
-
-<!-- Write 2-5 sentences explaining what needs solving and why.
-     Describe it as you would to a colleague unfamiliar with this area. -->
-
-
-
-## Success criteria
-
-<!-- Write observable behaviors: "User can [do what]" or "App shows [result]"
-     Each criterion should be verifiable by using the app. -->
-
-- [ ]
-- [ ]
-- [ ]
-
-## Notes
-
-<!-- Include dependencies, related docs, or edge cases worth considering.
-     Leave empty if none, but keep this section. -->
-
-<!--
-AI TASK CREATION GUIDE
-
-Write as you'd explain to a colleague:
-- Problem: describe what needs solving and why
-- Success criteria: "User can [do what]" or "App shows [result]"
-- Notes: dependencies, links, edge cases
-
-Patterns that work well:
-  Filename:    120-add-login-button.md (ID + kebab-case description)
-  Title:       # Task 120: Add login button (matches filename ID)
-  Feature:     **Feature**: /docs/features/auth.md (or "none" or "multiple")
-  Created:     **Created**: 2026-01-28 (YYYY-MM-DD format)
-  Depends on:  **Depends on**: Task 42 (or "none")
-  Blocks:      **Blocks**: Task 101 (or "none")
-
-Success criteria that verify easily:
-  - [ ] User can reset password via email
-  - [ ] Dashboard shows total for selected date range
-  - [ ] Search returns results within 500ms
-
-Get next ID: docs/5day/DOC_STATE.md (5DAY_TASK_ID field + 1)
-Full protocol: docs/5day/ai/task-creation.md
--->
-TASKEOF
-
-# Replace placeholders with actual values (escape user input for sed safety)
-sed_inplace "s/NEW_ID_PLACEHOLDER/$NEW_ID/g" "docs/tasks/backlog/$FILENAME"
-sed_inplace "s/DESCRIPTION_PLACEHOLDER/$(sed_escape "$DESCRIPTION")/g" "docs/tasks/backlog/$FILENAME"
-sed_inplace "s/FEATURE_LINE_PLACEHOLDER/$(sed_escape "$FEATURE_LINE")/g" "docs/tasks/backlog/$FILENAME"
-sed_inplace "s/CREATED_DATE_PLACEHOLDER/$CREATED_DATE/g" "docs/tasks/backlog/$FILENAME"
+sed_inplace "s/\[ID\]/$NEW_ID/g" "docs/tasks/backlog/$FILENAME"
+sed_inplace "s/\[Brief Description\]/$(sed_escape "$DESCRIPTION")/g" "docs/tasks/backlog/$FILENAME"
+sed_inplace "s/YYYY-MM-DD/$CREATED_DATE/g" "docs/tasks/backlog/$FILENAME"
+if [ -n "$FEATURE" ]; then
+    sed_inplace "s/\*\*Feature\*\*: none/$(sed_escape "$FEATURE_LINE")/g" "docs/tasks/backlog/$FILENAME"
+fi
 
 # Update DOC_STATE.md in place — only touch the fields that changed
 LAST_UPDATED=$(date +%F)

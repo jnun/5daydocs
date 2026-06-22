@@ -3,25 +3,13 @@ set -euo pipefail
 
 # Create a new bug report in docs/bugs
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
-
-# Escape special characters for sed replacement strings (/, &, \)
-sed_escape() {
-    printf '%s' "$1" | sed 's;[&/\\];\\&;g'
-}
-
-# Portable in-place sed that works on both macOS (BSD) and Linux (GNU)
-sed_inplace() {
-    if sed --version 2>/dev/null | grep -q GNU; then
-        sed -i "$@"
-    else
-        sed -i '' "$@"
-    fi
-}
 
 # Verify DOC_STATE.md exists and is valid
 if [ ! -f "docs/5day/DOC_STATE.md" ]; then
@@ -72,66 +60,20 @@ if [ -f "docs/bugs/$FILENAME" ]; then
     exit 1
 fi
 
+# Read template and substitute placeholders
+TEMPLATE_FILE="docs/bugs/.TEMPLATE-bug.md"
+if [ ! -f "$TEMPLATE_FILE" ]; then
+    echo -e "${RED}ERROR: Template file not found: $TEMPLATE_FILE${NC}"
+    exit 1
+fi
+
 CREATED_DATE=$(date +%Y-%m-%d)
 
-# Create the bug file
-cat << 'BUGEOF' > "docs/bugs/$FILENAME"
-# Bug BUG_ID_PLACEHOLDER: DESCRIPTION_PLACEHOLDER
+cp "$TEMPLATE_FILE" "docs/bugs/$FILENAME"
 
-**Severity:** [CRITICAL | HIGH | MEDIUM | LOW]
-**Created**: CREATED_DATE_PLACEHOLDER
-
-## Problem
-
-<!-- What is happening, and what should happen instead?
-     Be specific about the unexpected behavior. -->
-
-
-
-## Steps to reproduce
-
-<!-- Numbered steps someone can follow to see the bug. -->
-
-1.
-2.
-3.
-
-## Success criteria
-
-<!-- How do you know this is fixed?
-     Write observable behaviors: "User can [do what]" or "System shows [result]" -->
-
-- [ ]
-
-## Notes
-
-<!-- Environment details, screenshots, error messages, related files, or any other context.
-     Leave empty if none, but keep this section. -->
-
-
-
-<!--
-AI BUG GUIDE
-
-Severity levels:
-  CRITICAL: System down, data loss, security issue
-  HIGH: Major feature broken, blocks users
-  MEDIUM: Feature impaired, workaround exists
-  LOW: Minor issue, cosmetic
-
-Bug file naming: ID-description.md (e.g., 3-login-timeout.md)
-
-After documenting the bug:
-1. Create a task to fix it (./5day.sh newtask "Fix: [bug description]")
-2. Reference this bug file in the task
-3. Move this file to docs/bugs/archived/ when fixed
--->
-BUGEOF
-
-# Replace placeholders with actual values (escape user input for sed safety)
-sed_inplace "s/BUG_ID_PLACEHOLDER/$NEW_ID/g" "docs/bugs/$FILENAME"
-sed_inplace "s/DESCRIPTION_PLACEHOLDER/$(sed_escape "$DESCRIPTION")/g" "docs/bugs/$FILENAME"
-sed_inplace "s/CREATED_DATE_PLACEHOLDER/$CREATED_DATE/g" "docs/bugs/$FILENAME"
+sed_inplace "s/\[ID\]/$NEW_ID/g" "docs/bugs/$FILENAME"
+sed_inplace "s/\[Brief Description\]/$(sed_escape "$DESCRIPTION")/g" "docs/bugs/$FILENAME"
+sed_inplace "s/YYYY-MM-DD/$CREATED_DATE/g" "docs/bugs/$FILENAME"
 
 # Update DOC_STATE.md in place — only touch the fields that changed
 LAST_UPDATED=$(date +%F)

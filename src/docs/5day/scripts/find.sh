@@ -64,12 +64,6 @@ if [ -z "$TASK_ID" ]; then
     exit 1
 fi
 
-# ── Helpers ──────────────────────────────────────────────────────────
-
-move_file() {
-    git mv "$1" "$2" 2>/dev/null || mv "$1" "$2"
-}
-
 # ── 1. Find the task ────────────────────────────────────────────────
 
 TASKS_DIR="$PROJECT_ROOT/docs/tasks"
@@ -200,8 +194,8 @@ Also read docs/5day/project.md for project-specific stack and conventions."
 - docs/tmp/sprint-plan.md (current sprint plan — check theme and inclusion rationale)"
 
     _TASK_RULES_LINE=""
-    [ -f "$PROJECT_ROOT/docs/5day/ai/task-writing-rules.md" ] && _TASK_RULES_LINE="
-- docs/5day/ai/task-writing-rules.md (task quality standards)"
+    [ -f "$PROJECT_ROOT/docs/5day/ai/task-creation.md" ] && _TASK_RULES_LINE="
+- docs/5day/ai/task-creation.md (task creation protocol and quality standards)"
 
     # Collect sibling task filenames (same folder) for overlap detection
     _SIBLING_LIST=""
@@ -432,7 +426,7 @@ if fiveday_run -p "$PROMPT" \
     ${_model_args[@]+"${_model_args[@]}"} \
     --tools "Read,Edit,Write,Bash,Agent,Explore" \
     --permissions "auto" \
-    --output-format json > "$LOG_FILE"; then
+    --output-format stream-json > "$LOG_FILE"; then
     _exit_code=0
 else
     _exit_code=$?

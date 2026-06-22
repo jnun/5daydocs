@@ -73,7 +73,7 @@ show_help() {
     echo "  tasks [limit] [--parallel] [--fast] Execute tasks from next/"
     echo "  split <path>              Split a large task into subtasks"
     echo "  review-sprint             Review sprint via dual-persona analysis"
-    echo "  audit [folder|file] [limit] [offset]  Audit tasks or a single file"
+    echo "  audit [folder|file] [limit] [offset]  Audit tasks in next/ (or specified folder)"
     echo "  review-code <file> [passes]   Run code audit on a task's changes"
     echo ""
     echo -e "${BLUE}Sync:${NC}"
@@ -205,7 +205,7 @@ cmd_review_sprint() {
 }
 
 cmd_audit() {
-    run_script "audit-backlog.sh" "$@"
+    run_script "audit-tasks.sh" "$@"
 }
 
 cmd_review_code() {

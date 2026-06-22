@@ -36,4 +36,4 @@ git mv docs/tasks/review/ID-*.md docs/tasks/done/
 - [ ] Documentation updated if needed
 
 ---
-*Following the 5DayDocs workflow: backlog → next → doing → review → done*
+*Following the 5DayDocs workflow: backlog → next → doing → blocked → review → done*

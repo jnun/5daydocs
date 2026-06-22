@@ -85,11 +85,7 @@ That question forces a choice—pick one thing, then build the smallest test of 
 
 ## Ready to Graduate?
 
-When all sections are filled and open questions are resolved, this idea can become a feature:
-
-```bash
-./5day.sh promote special-sauce
-```
+When all sections are filled and open questions are resolved, create a feature with `./5day.sh newfeature special-sauce` and tasks with `./5day.sh newtask`.
 
 ---
 

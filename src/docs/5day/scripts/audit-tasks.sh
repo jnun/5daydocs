@@ -3,8 +3,8 @@
 set -euo pipefail
 
 # Audit tasks using an AI CLI (default: Claude Code)
-# Usage: ./audit-next.sh [folder] [limit] [offset]
-#   folder: backlog (default), next, doing, blocked — or a full path
+# Usage: ./audit-tasks.sh [folder] [limit] [offset]
+#   folder: next (default), backlog, doing, blocked — or a full path
 #   review and done are not auditable (completed work)
 
 # ── Config ───────────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ case "$folder" in
         ;;
     review|done)
         echo "Error: Cannot audit $folder/ — those are completed tasks." >&2
-        echo "Audit is for finding stale, done, or undefined work in backlog or next." >&2
+        echo "Audit is for finding stale, done, or undefined work in backlog, next, doing, or blocked." >&2
         exit 1
         ;;
     *)
@@ -72,15 +72,6 @@ blocked_dir="docs/tasks/blocked"
 
 mkdir -p "$review_dir" "$blocked_dir"
 
-# Portable in-place sed that works on both macOS (BSD) and Linux (GNU)
-sed_inplace() {
-    if sed --version 2>/dev/null | grep -q GNU; then
-        sed -i "$@"
-    else
-        sed -i '' "$@"
-    fi
-}
-
 # Get sorted list of numbered task files
 if [ -n "$single_file" ]; then
   files=("$single_file")
@@ -98,7 +89,7 @@ fi
 
 total=${#files[@]}
 run_log=""
-echo "=== Backlog Audit: $total tasks (${timeout_sec}s timeout) ==="
+echo "=== Task Audit ($folder): $total tasks (${timeout_sec}s timeout) ==="
 
 for i in "${!files[@]}"; do
   file="${files[$i]}"
@@ -108,7 +99,7 @@ for i in "${!files[@]}"; do
   echo "[$idx/$total] Auditing: $taskname"
 
   # Run claude with timeout
-  _audit_prompt="You are auditing a next task file.
+  _audit_prompt="You are auditing a task file from $folder/.
 
 CLAUDE.md is auto-loaded with project context and conventions.
 Read it first to understand the project's tech stack and structure.
@@ -180,11 +171,11 @@ Rules:
       run_log+="UNDEFINED | $taskname | $reason"$'\n'
       ;;
     KEEP)
-      echo "  -> Keeping in next"
+      echo "  -> Keeping in $folder"
       run_log+="KEEP | $taskname | $reason"$'\n'
       ;;
     *)
-      echo "  -> Timed out, keeping in next (retry later)"
+      echo "  -> Timed out, keeping in $folder (retry later)"
       run_log+="TIMEOUT | $taskname | $reason"$'\n'
       ;;
   esac
@@ -197,5 +188,5 @@ echo "--- Summary (this run) ---"
 echo "  Moved to review:  $(echo "$run_log" | grep -c '^DONE' || true)"
 echo "  Removed (outdated): $(echo "$run_log" | grep -c '^OUTDATED' || true)"
 echo "  Marked undefined: $(echo "$run_log" | grep -c '^UNDEFINED' || true)"
-echo "  Kept in next:  $(echo "$run_log" | grep -c '^KEEP' || true)"
+echo "  Kept in place:    $(echo "$run_log" | grep -c '^KEEP' || true)"
 echo "  Timed out:        $(echo "$run_log" | grep -c '^TIMEOUT' || true)"

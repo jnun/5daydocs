@@ -7,12 +7,33 @@
 #     source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 #
 # Provides:
+#   sed_escape STRING          — escape special chars for sed replacement
+#   sed_inplace ARGS...        — portable in-place sed (macOS + Linux)
+#   move_file SRC DEST         — git mv with plain mv fallback
 #   fiveday_cfg KEY            — read a value from docs/5day/config
 #   fiveday_cfg_set KEY VALUE  — update or append a value in config
 #   fiveday_resolve_model SUFFIX — model resolution: env > config > default
 #   fiveday_load_profile [cli] — source the CLI profile defining fiveday_run()
 
 _FIVEDAY_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# ── Shell utilities ──────────────────────────────────────────────────
+
+sed_escape() {
+    printf '%s' "$1" | sed 's;[&/\\];\\&;g'
+}
+
+sed_inplace() {
+    if sed --version 2>/dev/null | grep -q GNU; then
+        sed -i "$@"
+    else
+        sed -i '' "$@"
+    fi
+}
+
+move_file() {
+    git mv "$1" "$2" 2>/dev/null || mv "$1" "$2"
+}
 FIVEDAY_CONFIG_FILE="${FIVEDAY_CONFIG_FILE:-${_FIVEDAY_LIB_DIR}/config}"
 
 # ── Config reader ────────────────────────────────────────────────────

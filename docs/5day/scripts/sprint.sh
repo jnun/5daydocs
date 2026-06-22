@@ -45,12 +45,6 @@ TOOLS="Read,Bash,Grep,Glob,Write"
 PERMISSIONS="auto"
 MAX_TURNS=50
 
-# ── Helpers ──────────────────────────────────────────────────────────
-
-move_file() {
-  git mv "$1" "$2" 2>/dev/null || mv "$1" "$2"
-}
-
 # ── Preflight ───────────────────────────────────────────────────────
 
 if ! command -v "$FIVEDAY_CLI" &>/dev/null; then

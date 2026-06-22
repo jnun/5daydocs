@@ -144,10 +144,6 @@ unset _NO_LIMITS
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
-move_file() {
-  git mv "$1" "$2" 2>/dev/null || mv "$1" "$2"
-}
-
 # Portable timeout: macOS lacks coreutils timeout
 DRIFT_TIMEOUT=120
 if command -v timeout &>/dev/null; then

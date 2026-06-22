@@ -11,21 +11,30 @@ After rapid changes to scripts, documentation, and the kanban workflow (adding `
 
 ## Success criteria
 
-- [ ] All scripts mirrored correctly: `diff -r docs/5day/scripts/ src/docs/5day/scripts/` shows no differences
-- [ ] `5day.sh` mirrored: `diff 5day.sh src/5day.sh` shows no differences
-- [ ] `DOCUMENTATION.md` mirrored: `diff DOCUMENTATION.md src/DOCUMENTATION.md` shows no differences
-- [ ] Fresh install test passes: `mkdir /tmp/test-5day && ./setup.sh` (enter `/tmp/test-5day`), verify no errors, then `rm -rf /tmp/test-5day`
-- [ ] The six task folders (backlog, next, doing, blocked, review, done) are created during fresh install
-- [ ] No references to `live/` remain in any shipped file under `src/` (migration code in `setup.sh` is exempt)
-- [ ] `blocked/` appears in every script and doc that lists task stages — no script silently skips it
-- [ ] The help text in `5day.sh` accurately describes every command's current behavior
-- [ ] Pipeline descriptions in `DOCUMENTATION.md`, `quick-reference.md`, `.TEMPLATE-task.md`, and `.github/pull_request_template.md` all match: `backlog → next → doing → blocked → review → done`
+- [x] All scripts mirrored correctly: `diff -r docs/5day/scripts/ src/docs/5day/scripts/` shows no differences
+- [x] `5day.sh` mirrored: `diff 5day.sh src/5day.sh` shows no differences
+- [x] `DOCUMENTATION.md` mirrored: `diff DOCUMENTATION.md src/DOCUMENTATION.md` shows no differences
+- [x] Fresh install test passes: `mkdir /tmp/test-5day && ./setup.sh` (enter `/tmp/test-5day`), verify no errors, then `rm -rf /tmp/test-5day`
+- [x] The six task folders (backlog, next, doing, blocked, review, done) are created during fresh install
+- [x] No references to `live/` remain in any shipped file under `src/` (migration code in `setup.sh` is exempt)
+- [x] `blocked/` appears in every script and doc that lists task stages — no script silently skips it
+- [x] The help text in `5day.sh` accurately describes every command's current behavior
+- [x] Pipeline descriptions in `DOCUMENTATION.md`, `quick-reference.md`, `.TEMPLATE-task.md`, and `.github/pull_request_template.md` all match: `backlog → next → doing → blocked → review → done`
 
 ## Notes
 
 - Depends on Task 181 (style cleanup) so that mirroring happens after scripts are finalized.
 - `setup.sh` migration code that references `live/` is correct and should not be changed — it handles upgrades from v2.
 - The dual-tree rule applies: if any fix is needed, edit in `docs/`, test, then mirror to `src/`.
+
+## Completed
+
+All mirroring verified clean. One fix applied:
+
+- `.github/pull_request_template.md` — added missing `blocked` stage to pipeline description
+- `src/.github/pull_request_template.md` — same fix mirrored
+
+Everything else passed: scripts, `5day.sh`, `DOCUMENTATION.md`, AI files, and templates were already in sync. Fresh install creates all six task folders correctly, no stale `live/` references in `src/`, `blocked/` present in all relevant scripts, and help text matches implemented commands.
 
 <!--
 AI TASK CREATION GUIDE

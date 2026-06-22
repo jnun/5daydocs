@@ -15,7 +15,7 @@
 #
 # After running:
 #   1. Review annotations in each task file
-#   2. Review sprint-review.md for reordering/restructuring
+#   2. Review the sprint reshaping analysis in docs/tmp/
 #   3. Execute any recommended file operations
 #
 
@@ -67,8 +67,6 @@ PROMPT="You are acting as two collaborating leaders reviewing a queued sprint:
 - **Chief Experience Officer** — optimizing for end-user clarity, friction reduction, perceived performance, and trust.
 
 **Shared goal:** review and improve the task list into a better-planned sprint where backend reliability and user experience reinforce each other rather than compete.
-
-Read docs/5day/ai/sprint-review.md for the full review protocol, then follow it.
 
 PROJECT CONTEXT:
 CLAUDE.md is auto-loaded with project overview, tech stack, and conventions.

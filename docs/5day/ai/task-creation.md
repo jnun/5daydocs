@@ -2,19 +2,16 @@
 
 ## Core Principle
 
-**Write tasks in plain English, describing what users see and do.**
+**Write tasks in plain English, describing what users see and do.** Tasks define WHAT needs to happen. The implementer chooses HOW.
 
-Tasks define WHAT needs to happen. The implementer chooses HOW. This separation keeps tasks clear for any team member and allows flexibility in implementation.
+## Where Content Belongs
 
-> **See also:** [Task Writing Rules](task-writing-rules.md) for the complete guide on separating task content from technical details.
-
-## Why Plain English Works
-
-When tasks describe observable behaviors:
-- Any team member can understand the goal
-- The implementer can choose the best technical approach
-- Success is easy to verify ("Can the user do X? Yes/No")
-- Tasks remain valid even if technology choices change
+| Content Type | Location |
+|---|---|
+| Problems and outcomes | `docs/tasks/` |
+| How to implement | `docs/guides/` |
+| Code samples and patterns | `docs/examples/` |
+| System specifications | `docs/features/` |
 
 ## The Q&A Process
 
@@ -52,88 +49,43 @@ Before writing anything, summarize back:
 
 Proceed after confirmation.
 
-## Success Criteria Format
+## Task Structure
 
-Write criteria as observable behaviors - things you can see, click, or measure.
+### Problem Section
 
-Use patterns like:
-- "[Who] can [do what]"
-- "[Thing] shows/displays [result]"
+Write 2-5 sentences explaining what needs solving and why. Describe it as you would to a colleague unfamiliar with this area.
+
+### Success Criteria Section
+
+Write observable behaviors that anyone can verify.
+
+Patterns that work:
+- "User can [do what]"
+- "App shows [result]"
 - "[Action] completes within [time]"
 
-### Examples
-
+Example:
 ```markdown
 ## Success criteria
 - [ ] User can log in with email and password
 - [ ] Error message appears when password is wrong
 - [ ] Session persists across browser refresh
-- [ ] Logout button clears session and redirects to home
-- [ ] Dashboard loads within 2 seconds
-- [ ] Search results update as user types
-- [ ] Export downloads a CSV with all visible rows
 ```
 
-Each criterion describes something you can verify by using the app.
+### Notes Section
 
-## Template for AI Responses
+Link to technical context when the implementer needs specifications, procedures, or code samples.
 
-When a user asks to create a task, start with questions:
-
-```
-Before I create a task, let me make sure I understand:
-
-1. **What's happening now?**
-   [Ask about current state]
-
-2. **What should happen instead?**
-   [Ask about desired outcome]
-
-3. **How will we know it's working?**
-   [Ask for testable behaviors]
-```
-
-After the Q&A, summarize and confirm before creating the task file.
-
-## What Goes in Each Section
-
-### ## Problem
-- Plain English description of the situation
-- Context someone unfamiliar would need
-- The "why" behind the request
-- Written as you'd explain it to a colleague
-
-### ## Success criteria
-- Behavioral checkboxes: "User can X" or "App shows Y"
-- Observable outcomes anyone can verify
-- Testable conditions with clear pass/fail
-
-### ## Notes
-- Dependencies or blockers
-- Links to related docs or issues
-- Edge cases worth considering
-- Constraints or context for the implementer
-
-## Example Interaction
-
-**User:** "Create a task for adding user authentication"
-
-**AI Response:**
-"Before I create this task, a few questions:
-
-1. What kind of authentication? (Email/password? Social login? Both?)
-2. What should happen after login? (Redirect somewhere? Show dashboard?)
-3. What about existing users - is there a migration needed?
-4. How should failed logins behave?"
-
-**After Q&A, task includes:**
+Example:
 ```markdown
-## Success criteria
-- [ ] User can create account with email and password
-- [ ] User can log in with valid credentials
-- [ ] Invalid credentials show clear error message
-- [ ] Logged-in state persists across page refresh
-- [ ] User can log out from any page
+## Notes
+Technical specification: docs/features/task-automation.md
+Implementation guide: docs/guides/script-template-sync.md
 ```
 
-Each criterion describes what someone experiences when using the app.
+## Verify Before Saving
+
+1. Someone unfamiliar with the codebase can understand the problem
+2. Success criteria describe observable behaviors
+3. Technical context lives in `docs/guides/`, `docs/examples/`, or `docs/features/`
+4. The Notes section links to any technical documents the implementer needs

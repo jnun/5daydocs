@@ -556,6 +556,28 @@ if $UPDATE_MODE; then
         INSTALLED_VERSION="4.0.0"
     fi
 
+    # Migration from 4.0.0 to 4.1.0 - Remove files consolidated in this release
+    if [[ "$INSTALLED_VERSION" < "4.1.0" ]]; then
+        REMOVED_FILES=(
+            "docs/5day/ai/task-writing-rules.md"
+            "docs/5day/ai/sprint-review.md"
+            "docs/5day/ai/.gitkeep"
+            "docs/5day/theory/feynman-method.md"
+        )
+        for f in "${REMOVED_FILES[@]}"; do
+            if [ -f "$f" ]; then
+                if git rm -f "$f" >/dev/null 2>&1; then
+                    msg_step "Removed $f (consolidated)"
+                elif rm -f "$f" 2>/dev/null; then
+                    msg_step "Removed $f (consolidated)"
+                fi
+            fi
+        done
+        rmdir "docs/5day/theory" 2>/dev/null || true
+
+        INSTALLED_VERSION="4.1.0"
+    fi
+
     # Migration: config.sh -> flat config file
     if [ -f "docs/5day/config.sh" ] && [ ! -f "docs/5day/config" ]; then
         echo ""

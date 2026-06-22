@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ── define.sh ───────────────────────────────────────────────────────
 # STEP 2 of 3 — Task Definition Review
 #
@@ -22,7 +22,7 @@
 # After running:
 #   - READY tasks: run docs/5day/scripts/tasks.sh to execute them
 #   - BLOCKED tasks: answer questions in the file, move back to next/
-#   - DONE tasks: verify in review/, then move to live/
+#   - DONE tasks: verify in review/, then move to done/
 #
 
 set -euo pipefail
@@ -66,7 +66,10 @@ for dir in "$NEXT_DIR" "$BLOCKED_DIR" "$REVIEW_DIR"; do
   fi
 done
 
-TASK_FILES=($(ls -1 "$NEXT_DIR"/*.md 2>/dev/null | sed 's|.*/||' | sort -t- -k1,1n | sed "s|^|$NEXT_DIR/|")) || true
+TASK_FILES=()
+while IFS= read -r f; do
+  [ -n "$f" ] && TASK_FILES+=("$f")
+done < <(ls -1 "$NEXT_DIR"/*.md 2>/dev/null | sed 's|.*/||' | sort -t- -k1,1n | sed "s|^|$NEXT_DIR/|")
 
 if [ ${#TASK_FILES[@]} -eq 0 ]; then
   echo "No tasks in $NEXT_DIR"

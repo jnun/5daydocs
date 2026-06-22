@@ -18,9 +18,9 @@ echo "# Task 1: Task Title" > docs/tasks/backlog/1-task-name.md
 
 # Move tasks through pipeline
 mv docs/tasks/backlog/1-task.md docs/tasks/next/
-mv docs/tasks/next/1-task.md docs/tasks/working/
-mv docs/tasks/working/1-task.md docs/tasks/review/
-mv docs/tasks/review/1-task.md docs/tasks/live/
+mv docs/tasks/next/1-task.md docs/tasks/doing/
+mv docs/tasks/doing/1-task.md docs/tasks/review/
+mv docs/tasks/review/1-task.md docs/tasks/done/
 ```
 
 ### Bug Management
@@ -38,7 +38,7 @@ mv docs/bugs/ID-description.md docs/bugs/archived/
 ### Status Checks
 ```bash
 # What's being worked on
-ls docs/tasks/working/
+ls docs/tasks/doing/
 
 # Sprint queue
 ls docs/tasks/next/
@@ -47,7 +47,7 @@ ls docs/tasks/next/
 ls docs/tasks/backlog/
 
 # Completed
-ls docs/tasks/live/
+ls docs/tasks/done/
 ```
 
 ## File Naming Conventions
@@ -72,7 +72,7 @@ ls docs/tasks/live/
 ## Task Lifecycle
 
 ```
-backlog → next → working → review → live
+backlog → next → doing → review → done
            ↑         ↓
            ← blocked  ←
 ```
@@ -83,7 +83,7 @@ backlog → next → working → review → live
 - **NEXT** - Queued for this sprint
 - **WORKING** - Being worked on now
 - **REVIEW** - Built, awaiting approval
-- **LIVE** - In production or approved for deployment
+- **DONE** - In production or approved for deployment
 
 ## Bug Severity Levels
 
@@ -122,17 +122,17 @@ git commit -m "Task #1: Fix login bug"
 ### Sprint Planning
 1. Review `docs/tasks/backlog/`
 2. Move selected tasks to `docs/tasks/next/`
-3. Limit `docs/tasks/working/` to 1-3 tasks
+3. Limit `docs/tasks/doing/` to 1-3 tasks
 4. Complete before taking more from `next/`
 
 ## Tips
 
 - Always check docs/5day/DOC_STATE.md before creating tasks
 - Always update docs/5day/DOC_STATE.md after creating tasks
-- Keep working tasks minimal (1-3 max)
+- Keep doing tasks minimal (1-3 max)
 - Document blockers when moving backwards
 - Review folder is mandatory (no skipping)
-- Move completed work to live/ for history
+- Move completed work to done/ for history
 
 ---
 *For complete documentation, see DOCUMENTATION.md*

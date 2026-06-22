@@ -22,9 +22,9 @@ assignees: ''
 <!-- Task will move through these stages -->
 - [ ] **backlog** - Planned, not started
 - [ ] **next** - Queued for current sprint
-- [ ] **working** - Actively being worked on
+- [ ] **doing** - Actively being worked on
 - [ ] **review** - Complete, awaiting review
-- [ ] **live** - Approved and deployed
+- [ ] **done** - Approved and deployed
 
 ---
 *Task ID will be assigned based on `docs/5day/DOC_STATE.md` counter*

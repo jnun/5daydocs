@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test: create-feature.sh
 # Tests feature creation and error cases
 
-set -e
+set -euo pipefail
 
 PASS=0
 FAIL=0

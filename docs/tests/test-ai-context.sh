@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test: ai-context.sh
 # Tests AI context summary generation
 
-set -e
+set -euo pipefail
 
 PASS=0
 FAIL=0
@@ -16,7 +16,7 @@ setup() {
     mkdir -p "$TMPDIR/docs/5day/scripts"
     mkdir -p "$TMPDIR/docs/tasks/backlog"
     mkdir -p "$TMPDIR/docs/tasks/next"
-    mkdir -p "$TMPDIR/docs/tasks/working"
+    mkdir -p "$TMPDIR/docs/tasks/doing"
     mkdir -p "$TMPDIR/docs/ideas"
     mkdir -p "$TMPDIR/docs/bugs"
 
@@ -72,11 +72,11 @@ assert_contains "Suggests backlog" "$output" "backlog"
 # Test 5: Working task changes suggestion
 echo "Test 5: Working task focuses on active work"
 setup
-echo "# Task 1: Test" > "$TMPDIR/docs/tasks/working/1-test.md"
+echo "# Task 1: Test" > "$TMPDIR/docs/tasks/doing/1-test.md"
 output=$(bash "$TMPDIR/docs/5day/scripts/ai-context.sh" 2>&1)
 assert_contains "Suggests completing active" "$output" "completing the active task"
 
-# Test 6: Next task (no working) suggests picking from next
+# Test 6: Next task (no doing) suggests picking from next
 echo "Test 6: Next tasks suggest picking from next"
 setup
 echo "# Task 2: Next" > "$TMPDIR/docs/tasks/next/2-next.md"

@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test: create-bug.sh
 # Tests bug creation, DOC_STATE.md updates, error cases
 
-set -e
+set -euo pipefail
 
 PASS=0
 FAIL=0

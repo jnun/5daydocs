@@ -77,12 +77,12 @@ Line 3: `Project management in markdown files. Like Jira, but folders and plain 
 
 ### 5. Check for stragglers
 
-Run `grep -ri 'jira\|bitbucket' setup.sh DOCUMENTATION.md src/ docs/5day/ CLAUDE.md README.md` and fix any remaining references. Ignore hits in `docs/tasks/` (historical task files in review/live are fine to leave).
+Run `grep -ri 'jira\|bitbucket' setup.sh DOCUMENTATION.md src/ docs/5day/ CLAUDE.md README.md` and fix any remaining references. Ignore hits in `docs/tasks/` (historical task files in review/done are fine to leave).
 
 ## Notes
 
 - `docs/guides/git-source-of-truth-sync.md` mentions Jira in passing (as a comparison). Check if it still makes sense after removal — may need a light edit or can be left as-is if the reference is generic.
-- `docs/tasks/audit-log.txt` has historical verdicts for deleted tasks — leave it alone, it's an append-only log.
+- `docs/tasks/audit-log.txt` was removed in Task 179 — it was an append-only log whose only consumer was the script that wrote it.
 - `docs/tasks/next/159-simplify-distribution.md` references Bitbucket in the planning notes — that's historical context in a completed task, leave it.
 - The `docs/.platform-config` file format stays the same, just with fewer valid values. Existing installs with `github-jira` or `bitbucket-jira` will fall through to the default (`github-issues`) on next update — that's fine since those platforms never worked anyway.
 

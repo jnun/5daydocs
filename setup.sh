@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # setup.sh - 5DayDocs unified installer and updater
 # Usage: ./setup.sh
 #   Prompts for target project path and sets up/updates 5DayDocs structure there
@@ -14,7 +14,11 @@ if [ -z "$BASH_VERSION" ]; then
     exit 1
 fi
 
-# Note: We don't use set -e to allow graceful error handling
+# Note: We intentionally omit set -euo pipefail. This is an interactive
+# installer that handles errors via msg_error/msg_warning and ERRORS[].
+# set -e would abort mid-install on expected failures (missing optional files,
+# user declining prompts); -u would break the BASH_VERSION guard above; and
+# -o pipefail would kill grep|wc pipelines that legitimately match zero lines.
 
 # If stdin is a pipe (e.g. `curl ... | bash setup.sh`), try to rebind it
 # to the controlling tty so interactive prompts still work. If no tty is
@@ -183,7 +187,7 @@ echo "Target directory: $TARGET_PATH"
 echo ""
 
 # Change to target directory
-cd "$TARGET_PATH"
+cd "$TARGET_PATH" || exit 1
 
 # Self-targeting detection
 if [ "$TARGET_PATH" = "$FIVEDAY_SOURCE_DIR" ]; then
@@ -254,10 +258,10 @@ fi
 ensure_task_folders() {
     safe_mkdir "docs/tasks/backlog"
     safe_mkdir "docs/tasks/next"
-    safe_mkdir "docs/tasks/working"
+    safe_mkdir "docs/tasks/doing"
     safe_mkdir "docs/tasks/blocked"
     safe_mkdir "docs/tasks/review"
-    safe_mkdir "docs/tasks/live"
+    safe_mkdir "docs/tasks/done"
 }
 
 # merge_config "$src_config" "$user_config"
@@ -433,6 +437,123 @@ if $UPDATE_MODE; then
         fi
 
         INSTALLED_VERSION="2.2.0"
+    fi
+
+    # Migration from 2.x to 3.0.0 - Rename docs/tasks/live/ to docs/tasks/done/
+    if [[ "$INSTALLED_VERSION" < "3.0.0" ]]; then
+        if [ -d "docs/tasks/live" ]; then
+            echo ""
+            echo "================================================"
+            echo "  Migrating to 3.0.0 - Rename live/ to done/"
+            echo "================================================"
+            echo ""
+            echo "5DayDocs now uses standard Kanban terminology:"
+            echo "  backlog → next → doing → review → done"
+            echo ""
+            echo "The 'live' folder has been renamed to 'done' to align with"
+            echo "common project management vocabulary."
+            echo ""
+
+            LIVE_COUNT=$(find "docs/tasks/live" -name "*.md" -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
+
+            if [ "$LIVE_COUNT" -gt 0 ]; then
+                echo "  Found $LIVE_COUNT task file(s) in docs/tasks/live/"
+                echo ""
+            fi
+
+            # Try git mv first (preserves history), fall back to mv
+            if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+                if git mv "docs/tasks/live" "docs/tasks/done" 2>/dev/null; then
+                    msg_success "git mv docs/tasks/live/ -> docs/tasks/done/"
+                else
+                    # git mv can fail if there are unstaged changes; fall back
+                    mkdir -p "docs/tasks/done"
+                    if [ "$LIVE_COUNT" -gt 0 ]; then
+                        mv docs/tasks/live/* "docs/tasks/done/" 2>/dev/null || true
+                    fi
+                    # Move .gitkeep if present
+                    mv docs/tasks/live/.gitkeep "docs/tasks/done/" 2>/dev/null || true
+                    rmdir "docs/tasks/live" 2>/dev/null || rm -rf "docs/tasks/live"
+                    msg_success "mv docs/tasks/live/ -> docs/tasks/done/"
+                fi
+            else
+                mkdir -p "docs/tasks/done"
+                if [ "$LIVE_COUNT" -gt 0 ]; then
+                    mv docs/tasks/live/* "docs/tasks/done/" 2>/dev/null || true
+                fi
+                mv docs/tasks/live/.gitkeep "docs/tasks/done/" 2>/dev/null || true
+                rmdir "docs/tasks/live" 2>/dev/null || rm -rf "docs/tasks/live"
+                msg_success "mv docs/tasks/live/ -> docs/tasks/done/"
+            fi
+
+            # Update any feature files that still reference LIVE status
+            for feature_file in docs/features/*.md; do
+                [ -f "$feature_file" ] || continue
+                if grep -qF '**Status**: LIVE' "$feature_file" 2>/dev/null; then
+                    sed -i '' 's/\*\*Status\*\*: LIVE/**Status**: DONE/g' "$feature_file" 2>/dev/null || \
+                    sed -i 's/\*\*Status\*\*: LIVE/**Status**: DONE/g' "$feature_file" 2>/dev/null || true
+                fi
+                if grep -qF 'Feature Status: LIVE' "$feature_file" 2>/dev/null; then
+                    sed -i '' 's/Feature Status: LIVE/Feature Status: DONE/g' "$feature_file" 2>/dev/null || \
+                    sed -i 's/Feature Status: LIVE/Feature Status: DONE/g' "$feature_file" 2>/dev/null || true
+                fi
+            done
+
+        else
+            # No live/ folder — just ensure done/ exists
+            safe_mkdir "docs/tasks/done"
+        fi
+
+        INSTALLED_VERSION="3.0.0"
+    fi
+
+    # Migration from 3.x to 4.0.0 - Rename docs/tasks/working/ to docs/tasks/doing/
+    if [[ "$INSTALLED_VERSION" < "4.0.0" ]]; then
+        if [ -d "docs/tasks/working" ]; then
+            echo ""
+            echo "================================================"
+            echo "  Migrating to 4.0.0 - Rename working/ to doing/"
+            echo "================================================"
+            echo ""
+            echo "5DayDocs now uses 'doing' instead of 'working' to align with"
+            echo "Kanban and Get Stuff Done terminology:"
+            echo "  backlog → next → doing → review → done"
+            echo ""
+
+            WORKING_COUNT=$(find "docs/tasks/working" -name "*.md" -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
+
+            if [ "$WORKING_COUNT" -gt 0 ]; then
+                echo "  Found $WORKING_COUNT task file(s) in docs/tasks/working/"
+                echo ""
+            fi
+
+            # Try git mv first (preserves history), fall back to mv
+            if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+                if git mv "docs/tasks/working" "docs/tasks/doing" 2>/dev/null; then
+                    msg_success "git mv docs/tasks/working/ -> docs/tasks/doing/"
+                else
+                    mkdir -p "docs/tasks/doing"
+                    if [ "$WORKING_COUNT" -gt 0 ]; then
+                        mv docs/tasks/working/* "docs/tasks/doing/" 2>/dev/null || true
+                    fi
+                    mv docs/tasks/working/.gitkeep "docs/tasks/doing/" 2>/dev/null || true
+                    rmdir "docs/tasks/working" 2>/dev/null || rm -rf "docs/tasks/working"
+                    msg_success "mv docs/tasks/working/ -> docs/tasks/doing/"
+                fi
+            else
+                mkdir -p "docs/tasks/doing"
+                if [ "$WORKING_COUNT" -gt 0 ]; then
+                    mv docs/tasks/working/* "docs/tasks/doing/" 2>/dev/null || true
+                fi
+                mv docs/tasks/working/.gitkeep "docs/tasks/doing/" 2>/dev/null || true
+                rmdir "docs/tasks/working" 2>/dev/null || rm -rf "docs/tasks/working"
+                msg_success "mv docs/tasks/working/ -> docs/tasks/doing/"
+            fi
+        else
+            safe_mkdir "docs/tasks/doing"
+        fi
+
+        INSTALLED_VERSION="4.0.0"
     fi
 
     # Migration: config.sh -> flat config file
@@ -1105,6 +1226,66 @@ if [ ${#LEGACY_INDEX_FOUND[@]} -gt 0 ]; then
     fi
 fi
 
+# Legacy live/ folder cleanup. The 3.0.0 migration handles this during version
+# upgrades, but if a user somehow still has an empty docs/tasks/live/ directory
+# (e.g. partial migration, manual copy), clean it up.
+if [ -d "docs/tasks/live" ]; then
+    STALE_LIVE_COUNT=$(find "docs/tasks/live" -name "*.md" -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$STALE_LIVE_COUNT" -gt 0 ]; then
+        msg_header "Stale docs/tasks/live/ folder detected"
+        echo "5DayDocs 3.0 renamed live/ to done/. Your live/ folder still has"
+        echo "$STALE_LIVE_COUNT task file(s) that should be moved to done/."
+        echo ""
+        echo "Move files from live/ to done/? [Y]es/No"
+        read -r LIVE_CLEANUP_CHOICE
+        if [[ -z "$LIVE_CLEANUP_CHOICE" ]] || [[ "$LIVE_CLEANUP_CHOICE" =~ ^[Yy] ]]; then
+            safe_mkdir "docs/tasks/done"
+            if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+                for f in docs/tasks/live/*.md; do
+                    [ -f "$f" ] || continue
+                    git mv "$f" "docs/tasks/done/" 2>/dev/null || mv "$f" "docs/tasks/done/"
+                done
+            else
+                mv docs/tasks/live/*.md "docs/tasks/done/" 2>/dev/null || true
+            fi
+            rmdir "docs/tasks/live" 2>/dev/null || true
+            msg_success "Moved task files from live/ to done/"
+        fi
+    else
+        rmdir "docs/tasks/live" 2>/dev/null || true
+    fi
+fi
+
+# Legacy working/ folder cleanup. The 4.0.0 migration handles this during
+# version upgrades, but if a user somehow still has a docs/tasks/working/
+# directory (e.g. partial migration, manual copy), clean it up.
+if [ -d "docs/tasks/working" ]; then
+    STALE_WORKING_COUNT=$(find "docs/tasks/working" -name "*.md" -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$STALE_WORKING_COUNT" -gt 0 ]; then
+        msg_header "Stale docs/tasks/working/ folder detected"
+        echo "5DayDocs 4.0 renamed working/ to doing/. Your working/ folder still has"
+        echo "$STALE_WORKING_COUNT task file(s) that should be moved to doing/."
+        echo ""
+        echo "Move files from working/ to doing/? [Y]es/No"
+        read -r WORKING_CLEANUP_CHOICE
+        if [[ -z "$WORKING_CLEANUP_CHOICE" ]] || [[ "$WORKING_CLEANUP_CHOICE" =~ ^[Yy] ]]; then
+            safe_mkdir "docs/tasks/doing"
+            if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+                for f in docs/tasks/working/*.md; do
+                    [ -f "$f" ] || continue
+                    git mv "$f" "docs/tasks/doing/" 2>/dev/null || mv "$f" "docs/tasks/doing/"
+                done
+            else
+                mv docs/tasks/working/*.md "docs/tasks/doing/" 2>/dev/null || true
+            fi
+            rmdir "docs/tasks/working" 2>/dev/null || true
+            msg_success "Moved task files from working/ to doing/"
+        fi
+    else
+        rmdir "docs/tasks/working" 2>/dev/null || true
+    fi
+fi
+
 # ============================================================================
 # AI CLI PICKER
 # ============================================================================
@@ -1116,6 +1297,7 @@ CONFIG_FILE="docs/5day/config"
 # Source lib.sh if available (provides fiveday_cfg / fiveday_cfg_set)
 _LIB_FILE="docs/5day/lib.sh"
 if [ -f "$_LIB_FILE" ]; then
+    # shellcheck source=/dev/null
     source "$_LIB_FILE"
 fi
 
@@ -1200,7 +1382,7 @@ msg_header "Running validation checks..."
 VALIDATION_PASSED=true
 
 # Check required directories
-for dir in docs/tasks/backlog docs/tasks/next docs/tasks/working docs/tasks/blocked docs/tasks/review docs/tasks/live docs/bugs docs/5day/scripts docs/features docs/guides; do
+for dir in docs/tasks/backlog docs/tasks/next docs/tasks/doing docs/tasks/blocked docs/tasks/review docs/tasks/done docs/bugs docs/5day/scripts docs/features docs/guides; do
     if [ ! -d "$dir" ]; then
         VALIDATION_PASSED=false
         msg_error "Missing directory: $dir"

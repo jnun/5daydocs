@@ -9,10 +9,10 @@
 ```
 docs/tasks/backlog/   -->  Planned, not started
 docs/tasks/next/      -->  Queued for current sprint
-docs/tasks/working/   -->  In progress
+docs/tasks/doing/     -->  In progress
 docs/tasks/blocked/   -->  Waiting on a product owner or engineer decision
 docs/tasks/review/    -->  Done, awaiting approval
-docs/tasks/live/      -->  Shipped
+docs/tasks/done/      -->  Shipped
 ```
 
 That's the core idea. Everything else builds on it.
@@ -44,7 +44,7 @@ After install, your project root stays clean — just `5day.sh`, `DOCUMENTATION.
 | `DOCUMENTATION.md` | Complete workflow guide (the real manual) |
 | `CLAUDE.md` | Auto-loaded context for Claude Code / AI agents |
 | `docs/5day/DOC_STATE.md` | Tracks auto-incrementing task and bug IDs |
-| `docs/tasks/` | Task pipeline folders (backlog, next, working, blocked, review, live) |
+| `docs/tasks/` | Task pipeline folders (backlog, next, doing, blocked, review, done) |
 | `docs/bugs/` | Bug reports |
 | `docs/features/` | Feature specifications |
 | `docs/ideas/` | Ideas in refinement |
@@ -76,11 +76,11 @@ Each task and bug gets an auto-incrementing ID from `docs/5day/DOC_STATE.md`. Fi
 
 ```bash
 git mv docs/tasks/backlog/42-fix-login-timeout.md docs/tasks/next/
-git mv docs/tasks/next/42-fix-login-timeout.md docs/tasks/working/
-git mv docs/tasks/working/42-fix-login-timeout.md docs/tasks/blocked/   # Needs decision
+git mv docs/tasks/next/42-fix-login-timeout.md docs/tasks/doing/
+git mv docs/tasks/doing/42-fix-login-timeout.md docs/tasks/blocked/   # Needs decision
 git mv docs/tasks/blocked/42-fix-login-timeout.md docs/tasks/next/      # Unblocked
-git mv docs/tasks/working/42-fix-login-timeout.md docs/tasks/review/
-git mv docs/tasks/review/42-fix-login-timeout.md docs/tasks/live/
+git mv docs/tasks/doing/42-fix-login-timeout.md docs/tasks/review/
+git mv docs/tasks/review/42-fix-login-timeout.md docs/tasks/done/
 ```
 
 ### Run a sprint with AI (optional)
@@ -101,7 +101,7 @@ git mv docs/tasks/review/42-fix-login-timeout.md docs/tasks/live/
 ./5day.sh define 3                   # only review the first 3 in next/
 
 # Step 3 — RUN: execute the queued tasks in a fresh AI context per task.
-# Each task is moved to working/, worked, then promoted to review/ on success
+# Each task is moved to doing/, worked, then promoted to review/ on success
 # (or blocked/ if it exceeds the turn budget). No commits — you review the diff.
 ./5day.sh tasks                      # run every task in next/ (sequential)
 ./5day.sh tasks 3                    # cap to the next 3 tasks
@@ -164,7 +164,7 @@ Bug reports follow a similar structure with severity levels and reproduction ste
 3. Use `./5day.sh` commands to create work items. Do not create task files manually.
 4. Do not edit files under `docs/5day/`. Those are framework files managed by `setup.sh`.
 5. Tasks in `blocked/` need a human decision before work can continue. Do not attempt to unblock them.
-6. Tasks in `review/` and `live/` are completed work. Do not modify them.
+6. Tasks in `review/` and `done/` are completed work. Do not modify them.
 7. Folder = status. Move files between folders to change status.
 
 ## Contributing

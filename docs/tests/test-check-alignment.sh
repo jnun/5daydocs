@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test: check-alignment.sh
 # Tests feature-task alignment checking
 
-set -e
+set -euo pipefail
 
 PASS=0
 FAIL=0
@@ -15,9 +15,9 @@ setup() {
     mkdir -p "$TMPDIR/docs/features"
     mkdir -p "$TMPDIR/docs/tasks/backlog"
     mkdir -p "$TMPDIR/docs/tasks/next"
-    mkdir -p "$TMPDIR/docs/tasks/working"
+    mkdir -p "$TMPDIR/docs/tasks/doing"
     mkdir -p "$TMPDIR/docs/tasks/review"
-    mkdir -p "$TMPDIR/docs/tasks/live"
+    mkdir -p "$TMPDIR/docs/tasks/done"
 
     cp "$SCRIPT_UNDER_TEST" "$TMPDIR/check-alignment.sh"
 }
@@ -64,7 +64,7 @@ cat > "$TMPDIR/docs/features/auth.md" << 'EOF'
 ## Feature Status: WORKING
 Some content.
 EOF
-cat > "$TMPDIR/docs/tasks/working/1-add-login.md" << 'EOF'
+cat > "$TMPDIR/docs/tasks/doing/1-add-login.md" << 'EOF'
 # Task 1: Add login
 **Feature**: /docs/features/auth.md
 EOF

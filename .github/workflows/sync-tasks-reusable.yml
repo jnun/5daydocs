@@ -93,10 +93,10 @@ jobs:
           EXISTING=$(gh label list --json name --jq '.[].name' | sort)
 
           declare -A LABELS=(
-            ["backlog"]="E4E669:Task in backlog"
+            ["next"]="E4E669:Task in backlog"
             ["next"]="FFA500:Task queued"
-            ["working"]="0E8A16:Task in progress"
-            ["blocked"]="D93F0B:Task blocked"
+            ["doing"]="0E8A16:Task in progress"
+            ["blocked"]="D93F0B:Task can't be worked given current state"
             ["review"]="C2E0C6:Task in review"
             ["completed"]="98FB98:Task completed"
             ["unknown"]="CCCCCC:Task issue not found in filesystem"
@@ -195,7 +195,7 @@ jobs:
             echo "::group::$file"
 
             # Validate pattern
-            if [[ ! "$file" =~ ^$TASKS_PATH/(backlog|next|working|blocked|review|live)/[0-9]+-.*\.md$ ]]; then
+            if [[ ! "$file" =~ ^$TASKS_PATH/(backlog|next|doing|blocked|review|done)/[0-9]+-.*\.md$ ]]; then
               echo "::warning::Unexpected pattern: $file"
               echo "::endgroup::"
               continue
@@ -255,12 +255,12 @@ jobs:
             CRITERIA=$(awk '/^## Success criteria$/,/^## |^---/ {if (!/^##/ && !/^---/) print}' "$file" | sed '/^[[:space:]]*$/d' | head -20 || echo "")
 
             case "$file" in
-              */backlog/*) STATUS_LABEL="backlog"; STATUS="Backlog" ;;
+              */next/*) STATUS_LABEL="backlog"; STATUS="Backlog" ;;
               */next/*)    STATUS_LABEL="next"; STATUS="Next" ;;
-              */working/*) STATUS_LABEL="working"; STATUS="Working" ;;
+              */doing/*) STATUS_LABEL="doing"; STATUS="Doing" ;;
               */blocked/*) STATUS_LABEL="blocked"; STATUS="Blocked" ;;
               */review/*)  STATUS_LABEL="review"; STATUS="In Review" ;;
-              */live/*)    STATUS_LABEL="completed"; STATUS="Completed" ;;
+              */done/*)    STATUS_LABEL="completed"; STATUS="Completed" ;;
             esac
 
             # Build body with HTML comment metadata for idempotent lookup
@@ -315,7 +315,7 @@ jobs:
 
               # Update labels — use word-boundary matching to avoid false positives
               LABEL_ARGS=()
-              for l in backlog next working blocked review completed unknown; do
+              for l in backlog next doing blocked review completed unknown; do
                 if echo " $CUR_LABELS " | grep -qw "$l"; then
                   [ "$l" != "$STATUS_LABEL" ] && LABEL_ARGS+=(--remove-label "$l")
                 fi
@@ -361,11 +361,11 @@ jobs:
 
           rinc() { echo "$(($(cat /tmp/reconcile_$1) + 1))" > /tmp/reconcile_$1; }
 
-          STATUS_LABELS="backlog next working blocked review completed unknown"
+          STATUS_LABELS="backlog next doing blocked review completed unknown"
 
           # --- Build filesystem map: task_id -> folder ---
           declare -A FS_MAP
-          for folder in backlog next working blocked review live; do
+          for folder in backlog next doing blocked review done; do
             dir="$TASKS_PATH/$folder"
             [ -d "$dir" ] || continue
             for f in "$dir"/[0-9]*.md; do
@@ -451,12 +451,12 @@ jobs:
               CRITERIA=$(awk '/^## Success criteria$/,/^## |^---/ {if (!/^##/ && !/^---/) print}' "$file" | sed '/^[[:space:]]*$/d' | head -20 || echo "")
 
               case "$folder" in
-                backlog) STATUS_LABEL="backlog"; STATUS="Backlog" ;;
+                next) STATUS_LABEL="backlog"; STATUS="Backlog" ;;
                 next)    STATUS_LABEL="next"; STATUS="Next" ;;
-                working) STATUS_LABEL="working"; STATUS="Working" ;;
+                doing) STATUS_LABEL="doing"; STATUS="Doing" ;;
                 blocked) STATUS_LABEL="blocked"; STATUS="Blocked" ;;
                 review)  STATUS_LABEL="review"; STATUS="In Review" ;;
-                live)    STATUS_LABEL="completed"; STATUS="Completed" ;;
+                done)    STATUS_LABEL="completed"; STATUS="Completed" ;;
               esac
 
               BODY=$(printf '%s\n' \
@@ -495,12 +495,12 @@ jobs:
 
             folder="${FS_MAP[$tid]}"
             case "$folder" in
-              backlog) EXPECTED="backlog" ;;
+              next) EXPECTED="backlog" ;;
               next)    EXPECTED="next" ;;
-              working) EXPECTED="working" ;;
+              doing) EXPECTED="doing" ;;
               blocked) EXPECTED="blocked" ;;
               review)  EXPECTED="review" ;;
-              live)    EXPECTED="completed" ;;
+              done)    EXPECTED="completed" ;;
             esac
 
             cur_labels="${GH_LABELS[$tid]}"
@@ -607,12 +607,12 @@ jobs:
 
             if [ -n "$ITEM_ID" ] && [ -n "$FIELD_ID" ]; then
               case "$file" in
-                */backlog/*) SNAME="Backlog" ;;
+                */next/*) SNAME="Backlog" ;;
                 */next/*)    SNAME="Todo" ;;
-                */working/*) SNAME="Working" ;;
+                */doing/*) SNAME="Doing" ;;
                 */blocked/*) SNAME="Blocked" ;;
                 */review/*)  SNAME="In Review" ;;
-                */live/*)    SNAME="Done" ;;
+                */done/*)    SNAME="Done" ;;
                 *)           SNAME="" ;;
               esac
 

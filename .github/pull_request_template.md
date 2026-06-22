@@ -22,10 +22,10 @@
 <!-- Which tasks are moving through the pipeline? -->
 ```bash
 # Tasks moving to review:
-git mv docs/tasks/working/ID-*.md docs/tasks/review/
+git mv docs/tasks/doing/ID-*.md docs/tasks/review/
 
-# Tasks moving to live:
-git mv docs/tasks/review/ID-*.md docs/tasks/live/
+# Tasks moving to done:
+git mv docs/tasks/review/ID-*.md docs/tasks/done/
 ```
 
 ## Checklist
@@ -36,4 +36,4 @@ git mv docs/tasks/review/ID-*.md docs/tasks/live/
 - [ ] Documentation updated if needed
 
 ---
-*Following the 5DayDocs workflow: backlog → next → working → review → live*
+*Following the 5DayDocs workflow: backlog → next → doing → review → done*

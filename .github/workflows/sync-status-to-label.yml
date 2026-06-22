@@ -3,7 +3,7 @@
 #
 # HOW IT WORKS:
 # When you (or the task sync workflow) apply a label to an issue that matches
-# a folder name in docs/tasks/ (e.g., "backlog", "next", "working"), this
+# a folder name in docs/tasks/ (e.g., "backlog", "next", "doing"), this
 # workflow automatically updates the issue's status column on your GitHub
 # Project board. If the status option doesn't exist on the board yet, it
 # creates one for you.

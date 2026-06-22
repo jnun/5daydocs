@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # validate-tasks.sh - Validates and fixes task files to match template format
 #
 # Usage:
@@ -14,9 +14,10 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 TASK_DIRS=(
     "$PROJECT_ROOT/docs/tasks/backlog"
     "$PROJECT_ROOT/docs/tasks/next"
-    "$PROJECT_ROOT/docs/tasks/working"
+    "$PROJECT_ROOT/docs/tasks/doing"
+    "$PROJECT_ROOT/docs/tasks/blocked"
     "$PROJECT_ROOT/docs/tasks/review"
-    "$PROJECT_ROOT/docs/tasks/live"
+    "$PROJECT_ROOT/docs/tasks/done"
 )
 
 # Options
@@ -99,9 +100,6 @@ validate_and_fix_task() {
         done
         return 1
     fi
-
-    local content
-    content=$(<"$file")
 
     # Check 1: Title format (# Task ID: Title)
     local title_line
@@ -193,13 +191,12 @@ fix_task_file() {
         # Process rest of file (skip first line)
         local line_num=0
         local seen_success_criteria=false
-        local in_desired_outcome=false
 
         while IFS= read -r line; do
             line_num=$((line_num + 1))
 
             # Skip the first line (title) - already handled
-            if [ $line_num -eq 1 ]; then
+            if [ "$line_num" -eq 1 ]; then
                 continue
             fi
 
@@ -210,21 +207,17 @@ fix_task_file() {
                     echo "## Success criteria"
                     seen_success_criteria=true
                 fi
-                in_desired_outcome=false
             elif echo "$line" | grep -qE '^## Desired Outcome$'; then
                 # Rename Desired Outcome to Success criteria
                 if [ "$seen_success_criteria" = false ]; then
                     echo "## Success criteria"
                     seen_success_criteria=true
                 fi
-                in_desired_outcome=true
             elif echo "$line" | grep -qE '^## (Description|What|Overview)$'; then
                 echo "## Problem"
-                in_desired_outcome=false
             elif echo "$line" | grep -qE '^## '; then
                 # Other section - reset flags
                 echo "$line"
-                in_desired_outcome=false
             else
                 # Regular content line
                 echo "$line"

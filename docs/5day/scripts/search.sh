@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -7,7 +7,6 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 BOLD='\033[1m'
@@ -20,7 +19,7 @@ fi
 
 QUERY="$1"
 TASKS_DIR="$PROJECT_ROOT/docs/tasks"
-STAGES=(backlog next working review live blocked)
+STAGES=(backlog next doing blocked review "done")
 FOUND=0
 
 for stage in "${STAGES[@]}"; do

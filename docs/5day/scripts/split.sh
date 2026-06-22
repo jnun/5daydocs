@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ── split.sh ────────────────────────────────────────────────────────
 # Task Splitter — breaks large tasks into small, atomic sub-tasks.
 #

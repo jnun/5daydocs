@@ -1,5 +1,6 @@
-#!/usr/bin/env bash
+# shellcheck shell=bash
 # docs/5day/lib.sh — shared helper library for 5DayDocs scripts
+# Sourced (not executed) — no shebang or set -euo pipefail; the caller provides those.
 #
 # Source this once at the top of any script that needs config or AI access:
 #

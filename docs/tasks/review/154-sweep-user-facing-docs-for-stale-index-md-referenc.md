@@ -39,14 +39,14 @@ Every file a user might read to learn 5DayDocs (root-level docs, guides, AI inst
 - [x] `grep -rn 'INDEX.md' docs/5day/ai/ src/docs/5day/ai/ 2>/dev/null` returns nothing (or each hit is justified)
 - [x] `grep -n 'INDEX.md' src/CLAUDE.md src/AGENTS.md src/.cursorrules src/.windsurfrules src/copilot-instructions.md 2>/dev/null` returns nothing
 - [x] No remaining sentence in user-facing docs implies that INDEX.md files exist in fresh installs, are auto-created, or should be edited
-- [x] Historical task files under `docs/tasks/{review,live,backlog}/` are NOT edited (they are records of past work)
+- [x] Historical task files under `docs/tasks/{review,done,backlog}/` are NOT edited (they are records of past work)
 - [x] After edits, `docs/` and `src/` doc files are mirrored per the workflow in `CLAUDE.md`
 - [x] A fresh test install (`mkdir /tmp/test-5day && ./setup.sh`, target `/tmp/test-5day`) produces a project whose docs do not mention INDEX.md anywhere
 
 ## Notes
 
 - Scope is **user-facing instructional content only**. Do not touch:
-  - Historical task records in `docs/tasks/review/`, `live/`, `backlog/` — those describe past work and should stay accurate to that history
+  - Historical task records in `docs/tasks/review/`, `done/`, `backlog/` — those describe past work and should stay accurate to that history
   - `setup.sh` — its INDEX.md references are the legacy cleanup block, which is correct and intentional
   - `docs/5day/scripts/validate-tasks.sh` — covered by task 153
 - Initial grep (run at task creation time) found 22 files containing `INDEX.md`. The vast majority are historical task files. The shortlist of files likely to need edits: `DOCUMENTATION.md`, `src/DOCUMENTATION.md`, `README.md`, `src/README.md`, plus anything under `docs/guides/` and `src/docs/5day/ai/`.

@@ -11,6 +11,7 @@
 #   Unverified: most flags — Mistral's coding CLI is newer and less documented.
 #   This profile is conservative; unknown flags are silently dropped.
 
+# shellcheck disable=SC2034  # parsed flags are stored for future CLI mapping
 fiveday_run() {
   # ── Parse provider-neutral arguments ──────────────────────────────
   local prompt="" model="" max_turns="" tools="" permissions=""

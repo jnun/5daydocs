@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # migrate-to-submodule.sh
 # Migrates an existing 5daydocs installation to use the submodule distribution
 
-set -e
+set -euo pipefail
 
 echo "================================================"
 echo "  5DayDocs - Migration to Submodule"
@@ -82,7 +82,7 @@ if [ -d "templates" ]; then
     echo "  ✓ Removed templates/"
 fi
 
-if [ $REMOVED_FILES -eq 0 ]; then
+if [ "$REMOVED_FILES" -eq 0 ]; then
     echo "  → No standalone files found to remove"
 fi
 
@@ -117,7 +117,7 @@ echo "Restoring your project content..."
 # Restore task content
 if [ -d "$BACKUP_DIR/tasks" ]; then
     # Copy task files
-    for folder in backlog next working review live; do
+    for folder in backlog next doing blocked review "done"; do
         if [ -d "$BACKUP_DIR/tasks/$folder" ]; then
             cp -n "$BACKUP_DIR/tasks/$folder"/*.md "docs/tasks/$folder/" 2>/dev/null || true
         fi

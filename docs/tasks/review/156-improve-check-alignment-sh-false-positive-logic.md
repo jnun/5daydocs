@@ -9,7 +9,7 @@
 
 *** AUDIT THIS TASK TO ENSURE IT IS COMPLETE AND ACTIONABLE ***
 
-`./5day.sh checkfeatures` (which runs `docs/5day/scripts/check-alignment.sh`) is supposed to flag mismatches between feature status and the tasks that reference each feature, plus orphaned tasks and broken feature references. In practice the orphan-detection and folder-vs-status-mismatch logic produce so many false positives on the current repo that the useful signal — broken feature-file references — is buried in noise. Two specific problems: (1) the script warns on every task missing a `**Feature**:` field, but the task template does not actually require one, so dozens of legitimate tasks get flagged; and (2) the script warns when a task's folder implies a different status than the feature's status (e.g. backlog task under a LIVE feature), even though the script's own "Best Practices" output says this is fine. The goal is to keep the broken-link checking, which is genuinely useful, and either remove or soften the noisy checks so the output is actionable.
+`./5day.sh checkfeatures` (which runs `docs/5day/scripts/check-alignment.sh`) is supposed to flag mismatches between feature status and the tasks that reference each feature, plus orphaned tasks and broken feature references. In practice the orphan-detection and folder-vs-status-mismatch logic produce so many false positives on the current repo that the useful signal — broken feature-file references — is buried in noise. Two specific problems: (1) the script warns on every task missing a `**Feature**:` field, but the task template does not actually require one, so dozens of legitimate tasks get flagged; and (2) the script warns when a task's folder implies a different status than the feature's status (e.g. backlog task under a DONE feature), even though the script's own "Best Practices" output says this is fine. The goal is to keep the broken-link checking, which is genuinely useful, and either remove or soften the noisy checks so the output is actionable.
 
 ## Open questions / decisions
 
@@ -36,7 +36,7 @@ Feature is an optional setting for a task.
 
 - [x] Running `./5day.sh checkfeatures` on the current repo produces zero "no feature reference" warnings for tasks where omitting the field is legitimate per `src/templates/project/TEMPLATE-task.md`
 - [x] Running `./5day.sh checkfeatures` still flags tasks that reference a non-existent feature file (e.g. `/docs/features/core-workflow.md` when no such file exists) — the broken-link check is preserved
-- [x] The folder-vs-status mismatch warning is either removed entirely, or rewritten so that it only fires when the mismatch represents a real inconsistency (not an enhancement task on a LIVE feature)
+- [x] The folder-vs-status mismatch warning is either removed entirely, or rewritten so that it only fires when the mismatch represents a real inconsistency (not an enhancement task on a DONE feature)
 - [x] The script's "Best Practices" output no longer contradicts its own warnings
 - [x] The script exits 0 on a clean repo and non-zero only when a real broken-link or invalid-status issue is present
 - [x] The fix is mirrored from `docs/5day/scripts/check-alignment.sh` to `src/docs/5day/scripts/check-alignment.sh` per the dual-tree workflow
@@ -48,7 +48,7 @@ Feature is an optional setting for a task.
 - The script lives at `docs/5day/scripts/check-alignment.sh` (and its `src/` mirror). The relevant blocks: feature loop starts ~line 46, orphan check starts ~line 138, summary at ~line 173.
 - Two design decisions to make before implementing:
   1. **Should `**Feature**:` be required on tasks?** If yes, fix the template and the orphan check stays. If no, delete the orphan-by-missing-field check and keep only the broken-link check. Recommend the latter — features are an organizing concept, not a hard dependency.
-  2. **Is the folder-vs-status mismatch ever useful?** Probably not given the script itself acknowledges that backlog tasks on LIVE features are normal. Recommend removing the warning entirely; if anyone wants a "feature has no LIVE capability yet" check that's a different (cleaner) tool.
+  2. **Is the folder-vs-status mismatch ever useful?** Probably not given the script itself acknowledges that backlog tasks on DONE features are normal. Recommend removing the warning entirely; if anyone wants a "feature has no DONE capability yet" check that's a different (cleaner) tool.
 - Per `CLAUDE.md`: edit `docs/` first, run the script to confirm, then mirror to `src/`.
 - Related: this script previously also tripped over `docs/features/INDEX.md`. That bug is moot now (the file is gone) but the underlying pattern — globbing `docs/features/*.md` without filtering — could re-bite if anyone drops a non-feature `.md` in there. Consider adding a defensive filename filter (skip `INDEX.md`, `TEMPLATE*`, anything not matching the expected feature naming).
 - Test against the current repo: run `./5day.sh checkfeatures > /tmp/before.txt` first, make changes, run again to `/tmp/after.txt`, diff to confirm only intended warnings disappeared.

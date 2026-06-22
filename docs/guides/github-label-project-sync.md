@@ -9,10 +9,10 @@ Your task folders are the single source of truth:
 ```
 docs/tasks/backlog/   →  "backlog" label  →  "backlog" project status
 docs/tasks/next/      →  "next" label     →  "next" project status
-docs/tasks/working/   →  "working" label  →  "working" project status
+docs/tasks/doing/   →  "doing" label  →  "doing" project status
 docs/tasks/blocked/   →  "blocked" label  →  "blocked" project status
 docs/tasks/review/    →  "review" label   →  "review" project status
-docs/tasks/live/      →  "live" label     →  "live" project status
+docs/tasks/done/      →  "done" label     →  "done" project status
 ```
 
 No hardcoded mapping. Add `docs/tasks/qa/` and `qa` becomes a valid label and project status automatically.

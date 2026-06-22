@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ── review-sprint.sh ───────────────────────────────────────────────
 # Review queued sprint tasks through dual-persona collaboration.
 #

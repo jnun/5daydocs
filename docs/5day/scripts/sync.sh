@@ -1,9 +1,8 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
 # Sync task files to GitHub by committing and pushing to main
 # This triggers the GitHub Actions workflow that creates/updates issues
 
-set -e
+set -euo pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -47,7 +46,7 @@ echo -e "${CYAN}=== 5DayDocs GitHub Sync ===${NC}"
 echo ""
 
 # Stage task files from all pipeline folders
-FOLDERS="backlog next working blocked review live"
+FOLDERS="backlog next doing blocked review done"
 STAGED=0
 
 for folder in $FOLDERS; do

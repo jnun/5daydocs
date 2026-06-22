@@ -1,11 +1,10 @@
-#!/bin/bash
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 # 5day - Five Day Docs CLI
 
 # Colors
 RED='\033[0;31m'
-GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
@@ -65,7 +64,9 @@ show_help() {
     echo -e "${BLUE}Workflow:${NC}"
     echo "  profile                       Create or update project profile"
     echo "  search <keyword>              Search tasks by keyword"
-    echo "  find <task-id> [--work]       Find task, prompt or execute it"
+    echo "  find <task-id>                Find task, analyze state, show prompt"
+    echo "  find <task-id> --think        Stress-test task quality (interactive)"
+    echo "  find <task-id> --work         Analyze → move → work (full lifecycle)"
     echo "  plan <task-id>            Interactive Q&A to define an incomplete task"
     echo "  sprint [count] [focus]    Plan a sprint from backlog tasks"
     echo "  define [limit]            Review and refine tasks in next/"
@@ -110,15 +111,27 @@ cmd_status() {
     echo -e "${BLUE}Tasks:${NC}"
     echo "  Backlog:  $(count_files "docs/tasks/backlog/*.md")"
     echo "  Next:     $(count_files "docs/tasks/next/*.md")"
-    echo "  Working:  $(count_files "docs/tasks/working/*.md")"
+    echo "  Doing:    $(count_files "docs/tasks/doing/*.md")"
+    echo "  Blocked:  $(count_files "docs/tasks/blocked/*.md")"
     echo "  Review:   $(count_files "docs/tasks/review/*.md")"
-    echo "  Live:     $(count_files "docs/tasks/live/*.md")"
+    echo "  Done:     $(count_files "docs/tasks/done/*.md")"
 
-    local working_count=$(count_files "docs/tasks/working/*.md")
-    if [ "$working_count" -gt 0 ]; then
+    local blocked_count
+    blocked_count=$(count_files "docs/tasks/blocked/*.md")
+    if [ "$blocked_count" -gt 0 ]; then
+        echo ""
+        echo -e "${RED}Blocked (needs attention to unblock sprint):${NC}"
+        for task in docs/tasks/blocked/*.md; do
+            [ -f "$task" ] && echo "  $(basename "$task" .md)"
+        done
+    fi
+
+    local doing_count
+    doing_count=$(count_files "docs/tasks/doing/*.md")
+    if [ "$doing_count" -gt 0 ]; then
         echo ""
         echo -e "${YELLOW}In progress:${NC}"
-        for task in docs/tasks/working/*.md; do
+        for task in docs/tasks/doing/*.md; do
             [ -f "$task" ] && echo "  $(basename "$task" .md)"
         done
     fi
@@ -129,7 +142,8 @@ cmd_status() {
     fi
 
     if [ -d "docs/bugs" ]; then
-        local bug_count=$(find docs/bugs -maxdepth 1 -name "[0-9]*.md" 2>/dev/null | wc -l | tr -d ' ')
+        local bug_count
+        bug_count=$(find docs/bugs -maxdepth 1 -name "[0-9]*.md" 2>/dev/null | wc -l | tr -d ' ')
         if [ "$bug_count" -gt 0 ]; then
             echo ""
             echo -e "${BLUE}Bugs:${NC}   $bug_count open"
@@ -141,17 +155,13 @@ cmd_status() {
         echo -e "${BLUE}Features:${NC}"
         echo "  Backlog:  $(grep -l "Status:.*BACKLOG" docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')"
         echo "  Working:  $(grep -l "Status:.*WORKING" docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')"
-        echo "  Live:     $(grep -l "Status:.*LIVE" docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')"
+        echo "  Done:     $(grep -l "Status:.*DONE" docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')"
     fi
 }
 
 cmd_newbug() {
     [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Bug description required${NC}"; exit 1; }
     run_script "create-bug.sh" "$1"
-}
-
-cmd_profile() {
-    run_script "profile.sh" "$@"
 }
 
 cmd_search() {
@@ -162,6 +172,10 @@ cmd_search() {
 cmd_find() {
     [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Task ID required${NC}"; echo "Usage: ./5day.sh find <task-id>"; exit 1; }
     run_script "find.sh" "$@"
+}
+
+cmd_profile() {
+    run_script "profile.sh" "$@"
 }
 
 cmd_plan() {
@@ -226,7 +240,7 @@ case "${1:-}" in
     newfeature)    shift; cmd_newfeature "$@" ;;
     newbug)        shift; cmd_newbug "$@" ;;
     status)        cmd_status ;;
-    profile)       cmd_profile ;;
+    profile)       shift; cmd_profile "$@" ;;
     search)        shift; cmd_search "$@" ;;
     find)          shift; cmd_find "$@" ;;
     plan)          shift; cmd_plan "$@" ;;
@@ -234,7 +248,7 @@ case "${1:-}" in
     define)        shift; cmd_define "$@" ;;
     tasks)         shift; cmd_tasks "$@" ;;
     split)         shift; cmd_split "$@" ;;
-    review-sprint) cmd_review_sprint ;;
+    review-sprint) shift; cmd_review_sprint "$@" ;;
     audit)         shift; cmd_audit "$@" ;;
     review-code)   shift; cmd_review_code "$@" ;;
     sync)          shift; cmd_sync "$@" ;;

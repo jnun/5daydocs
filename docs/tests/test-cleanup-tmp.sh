@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test: cleanup-tmp.sh
 # Tests scratch file cleanup: dry-run, --force, --all, stale detection
 
-set -e
+set -euo pipefail
 
 PASS=0
 FAIL=0

@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test: validate-tasks.sh
 # Tests task file validation and auto-fix
 
-set -e
+set -euo pipefail
 
 PASS=0
 FAIL=0
@@ -16,9 +16,9 @@ setup() {
     mkdir -p "$TMPDIR/docs/5day/scripts"
     mkdir -p "$TMPDIR/docs/tasks/backlog"
     mkdir -p "$TMPDIR/docs/tasks/next"
-    mkdir -p "$TMPDIR/docs/tasks/working"
+    mkdir -p "$TMPDIR/docs/tasks/doing"
     mkdir -p "$TMPDIR/docs/tasks/review"
-    mkdir -p "$TMPDIR/docs/tasks/live"
+    mkdir -p "$TMPDIR/docs/tasks/done"
 
     cp "$SCRIPT_UNDER_TEST" "$TMPDIR/docs/5day/scripts/validate-tasks.sh"
 }

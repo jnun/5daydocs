@@ -28,7 +28,7 @@ This file governs `docs/`. Read it before modifying any task, bug, or feature.
 
 **Rules:**
 1. `docs/` is the active project management system — not source code, not stale
-2. Tasks in `review/` and `live/` are completed work — old dates mean done, not abandoned
+2. Tasks in `review/` and `done/` are completed work — old dates mean done, not abandoned
 3. Always read `docs/5day/DOC_STATE.md` before creating tasks (get next ID)
 4. Use `./5day.sh` commands when available — don't create task files manually
 5. Move tasks by changing folders — folder location = status
@@ -38,12 +38,12 @@ This file governs `docs/`. Read it before modifying any task, bug, or feature.
 |--------|--------|
 | `backlog/` | Planned, not started |
 | `next/` | Queued for current sprint |
-| `working/` | Actively being worked on |
-| `blocked/` | Needs a product owner or engineer decision before work can continue |
+| `doing/` | Actively being worked on |
+| `blocked/` | Can't be worked — docs changed, dependencies shifted, or the task itself is undefined given current conditions |
 | `review/` | Done, awaiting approval |
-| `live/` | Shipped/complete |
+| `done/` | Shipped/complete |
 
-**Do not assume** old file dates mean abandoned. A task from months ago in `live/` is completed history.
+**Do not assume** old file dates mean abandoned. A task from months ago in `done/` is completed history.
 
 ---
 
@@ -60,10 +60,10 @@ docs/
 ├── tasks/              # Your work items
 │   ├── backlog/        # Planned
 │   ├── next/           # Sprint queue
-│   ├── working/        # In progress
-│   ├── blocked/        # Waiting on decisions
+│   ├── doing/          # In progress
+│   ├── blocked/        # Can't be worked given current state
 │   ├── review/         # Awaiting approval
-│   └── live/           # Complete
+│   └── done/           # Complete
 ├── bugs/               # Your bug reports
 ├── guides/             # Your documentation
 ├── tests/              # Your test plans
@@ -96,7 +96,7 @@ Each command creates a file with inline guidance. Fill in the sections, then com
 # Workflow (AI-powered — requires Claude CLI)
 ./5day.sh profile                   # Create or update project profile
 ./5day.sh search <keyword>          # Search tasks by keyword
-./5day.sh find <task-id> [--work]   # Find task, show prompt or execute it
+./5day.sh find <task-id> [--think|--work]  # Find task, analyze quality, or execute
 ./5day.sh plan <task-id>            # Interactive Q&A to define a task
 ./5day.sh sprint [count] [focus]    # Plan a sprint from backlog
 ./5day.sh define [limit]            # Review and refine tasks in next/
@@ -121,11 +121,11 @@ Tasks move through folders. Use `git mv` or `mv` (then commit):
 
 ```bash
 git mv docs/tasks/backlog/ID-name.md docs/tasks/next/      # Queue
-git mv docs/tasks/next/ID-name.md docs/tasks/working/      # Start
-git mv docs/tasks/working/ID-name.md docs/tasks/blocked/   # Blocked on decision
+git mv docs/tasks/next/ID-name.md docs/tasks/doing/      # Start
+git mv docs/tasks/doing/ID-name.md docs/tasks/blocked/   # Can't proceed — context changed
 git mv docs/tasks/blocked/ID-name.md docs/tasks/next/      # Unblocked, re-queue
-git mv docs/tasks/working/ID-name.md docs/tasks/review/    # Submit
-git mv docs/tasks/review/ID-name.md docs/tasks/live/       # Complete
+git mv docs/tasks/doing/ID-name.md docs/tasks/review/    # Submit
+git mv docs/tasks/review/ID-name.md docs/tasks/done/       # Complete
 ```
 
 If `git mv` fails, use `mv` and commit the change.

@@ -40,7 +40,7 @@ Add `"${_budget_args[@]}"` to both CLI invocations (parallel and sequential).
 
 ## Turn limit behavior
 
-When a task exits because it hit MAX_TURNS (exit code non-zero, no `## Completed`), move it to `blocked/` instead of leaving it in `working/`, and print:
+When a task exits because it hit MAX_TURNS (exit code non-zero, no `## Completed`), move it to `blocked/` instead of leaving it in `doing/`, and print:
 
 ```
 ✗ Task N exceeded 40 turns — too complex for atomic execution.

@@ -1,5 +1,5 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 # ai-context.sh - Generate a context summary for AI agents
 # Usage: ./docs/5day/scripts/ai-context.sh
 
@@ -7,6 +7,17 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
 DOCS_DIR="$PROJECT_ROOT/docs"
+
+_list_md() {
+    local dir="$1" fallback="$2" limit="${3:-0}"
+    local files
+    files=$(find "$dir" -maxdepth 1 -name '*.md' -exec basename {} \; 2>/dev/null | sort)
+    if [ -n "$files" ]; then
+        if [ "$limit" -gt 0 ]; then echo "$files" | head -n "$limit"; else echo "$files"; fi
+    else
+        echo "$fallback"
+    fi
+}
 
 echo "# Project Context Summary"
 echo ""
@@ -18,17 +29,34 @@ else
 fi
 echo ""
 
-echo "## Active Tasks (Working)"
-if [ -d "$DOCS_DIR/tasks/working" ]; then
-    ls -1 "$DOCS_DIR/tasks/working" | grep ".md" || echo "No active tasks."
+echo "## Blocked (requires attention to unblock sprint)"
+if [ -d "$DOCS_DIR/tasks/blocked" ]; then
+    blocked_files=$(_list_md "$DOCS_DIR/tasks/blocked" "")
+    if [ -n "$blocked_files" ]; then
+        echo "$blocked_files"
+        echo ""
+        echo "These tasks cannot be worked given current conditions — docs changed,"
+        echo "dependencies shifted, or the task is undefined. They need analysis and"
+        echo "resolution before the sprint can move forward."
+    else
+        echo "No blocked tasks."
+    fi
 else
-    echo "Working directory not found."
+    echo "No blocked tasks."
+fi
+echo ""
+
+echo "## Active Tasks (Doing)"
+if [ -d "$DOCS_DIR/tasks/doing" ]; then
+    _list_md "$DOCS_DIR/tasks/doing" "No active tasks."
+else
+    echo "Doing directory not found."
 fi
 echo ""
 
 echo "## Up Next (Sprint Queue)"
 if [ -d "$DOCS_DIR/tasks/next" ]; then
-    ls -1 "$DOCS_DIR/tasks/next" | grep ".md" || echo "No tasks in queue."
+    _list_md "$DOCS_DIR/tasks/next" "No tasks in queue."
 else
     echo "Next directory not found."
 fi
@@ -36,7 +64,7 @@ echo ""
 
 echo "## Ideas (In Refinement)"
 if [ -d "$DOCS_DIR/ideas" ]; then
-    ls -1 "$DOCS_DIR/ideas" | grep ".md" | head -n 5 || echo "No ideas."
+    _list_md "$DOCS_DIR/ideas" "No ideas." 5
 else
     echo "Ideas directory not found."
 fi
@@ -44,21 +72,25 @@ echo ""
 
 echo "## Recent Bugs"
 if [ -d "$DOCS_DIR/bugs" ]; then
-    ls -1 "$DOCS_DIR/bugs" | grep ".md" | head -n 5 || echo "No active bugs."
+    _list_md "$DOCS_DIR/bugs" "No active bugs." 5
 else
     echo "Bugs directory not found."
 fi
 echo ""
 
 echo "## Suggested Action"
-# Simple heuristic for suggestion
-WORKING_COUNT=$(ls "$DOCS_DIR/tasks/working" 2>/dev/null | grep ".md" | wc -l)
-NEXT_COUNT=$(ls "$DOCS_DIR/tasks/next" 2>/dev/null | grep ".md" | wc -l)
+# Priority: blocked > doing > next > backlog
+blocked_count=$(find "$DOCS_DIR/tasks/blocked" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+doing_count=$(find "$DOCS_DIR/tasks/doing" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+next_count=$(find "$DOCS_DIR/tasks/next" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
 
-if [ "$WORKING_COUNT" -gt 0 ]; then
-    echo "Focus on completing the active task in 'working/'."
-elif [ "$NEXT_COUNT" -gt 0 ]; then
-    echo "Pick a task from 'next/' and move it to 'working/'."
+if [ "$blocked_count" -gt 0 ]; then
+    echo "Blocked tasks need attention first — they are holding up the sprint."
+    echo "Run './5day.sh find <task-id>' on a blocked task to analyze why it's stuck."
+elif [ "$doing_count" -gt 0 ]; then
+    echo "Focus on completing the active task in 'doing/'."
+elif [ "$next_count" -gt 0 ]; then
+    echo "Pick a task from 'next/' and move it to 'doing/'."
 else
     echo "Check 'backlog/' for new tasks or create one."
 fi

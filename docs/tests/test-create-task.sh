@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test: create-task.sh
 # Tests task creation, DOC_STATE.md updates, error cases
 
-set -e
+set -euo pipefail
 
 PASS=0
 FAIL=0

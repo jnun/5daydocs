@@ -1,5 +1,5 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 # cleanup-tmp.sh — Clear scratch files from docs/tmp/
 #

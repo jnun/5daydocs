@@ -35,7 +35,7 @@ fi
 TASK_FILE=""
 TASK_DIR=""
 
-for dir in docs/tasks/blocked docs/tasks/backlog docs/tasks/next docs/tasks/working; do
+for dir in docs/tasks/blocked docs/tasks/backlog docs/tasks/next docs/tasks/doing; do
   match=$(find "$dir" -maxdepth 1 -name "${TASK_ID}-*.md" 2>/dev/null | head -1) || true
   if [ -n "$match" ]; then
     TASK_FILE="$match"
@@ -45,7 +45,7 @@ for dir in docs/tasks/blocked docs/tasks/backlog docs/tasks/next docs/tasks/work
 done
 
 if [ -z "$TASK_FILE" ]; then
-  echo "Error: No task found with ID $TASK_ID in backlog/, blocked/, next/, or working/"
+  echo "Error: No task found with ID $TASK_ID in backlog/, blocked/, next/, or doing/"
   exit 1
 fi
 

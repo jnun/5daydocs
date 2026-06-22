@@ -3,23 +3,23 @@
 set -euo pipefail
 
 # Audit tasks using an AI CLI (default: Claude Code)
-# Usage: ./audit-backlog.sh [folder] [limit] [offset]
-#   folder: backlog (default), next, working, blocked — or a full path
-#   review and live are not auditable (completed work)
+# Usage: ./audit-next.sh [folder] [limit] [offset]
+#   folder: backlog (default), next, doing, blocked — or a full path
+#   review and done are not auditable (completed work)
 
 # ── Config ───────────────────────────────────────────────────────────
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
-folder="${1:-backlog}"
+folder="${1:-next}"
 limit="${2:-0}"       # 0 = no limit
 offset="${3:-0}"      # skip first N tasks
 
 # Resolve folder name to path
 case "$folder" in
-    backlog|next|working|blocked)
+    backlog|next|doing|blocked)
         dir="docs/tasks/$folder"
         ;;
-    review|live)
+    review|done)
         echo "Error: Cannot audit $folder/ — those are completed tasks." >&2
         echo "Audit is for finding stale, done, or undefined work in backlog or next." >&2
         exit 1
@@ -69,10 +69,8 @@ fi
 
 review_dir="docs/tasks/review"
 blocked_dir="docs/tasks/blocked"
-log_file="docs/tasks/audit-log.txt"
 
 mkdir -p "$review_dir" "$blocked_dir"
-touch "$log_file"
 
 # Portable in-place sed that works on both macOS (BSD) and Linux (GNU)
 sed_inplace() {
@@ -99,9 +97,8 @@ else
 fi
 
 total=${#files[@]}
+run_log=""
 echo "=== Backlog Audit: $total tasks (${timeout_sec}s timeout) ==="
-echo "=== Backlog Audit started $(date) ===" >> "$log_file"
-log_start_line=$(wc -l < "$log_file")
 
 for i in "${!files[@]}"; do
   file="${files[$i]}"
@@ -111,7 +108,7 @@ for i in "${!files[@]}"; do
   echo "[$idx/$total] Auditing: $taskname"
 
   # Run claude with timeout
-  _audit_prompt="You are auditing a backlog task file.
+  _audit_prompt="You are auditing a next task file.
 
 CLAUDE.md is auto-loaded with project context and conventions.
 Read it first to understand the project's tech stack and structure.
@@ -157,12 +154,12 @@ Rules:
     DONE)
       echo "  -> Moving to review/"
       git mv "$file" "$review_dir/" 2>/dev/null || mv "$file" "$review_dir/"
-      echo "DONE | $taskname | $reason" >> "$log_file"
+      run_log+="DONE | $taskname | $reason"$'\n'
       ;;
     OUTDATED)
       echo "  -> Removing (outdated)"
       git rm "$file" 2>/dev/null || rm "$file"
-      echo "OUTDATED | $taskname | $reason" >> "$log_file"
+      run_log+="OUTDATED | $taskname | $reason"$'\n'
       ;;
     UNDEFINED)
       echo "  -> Marking as undefined, moving to blocked/"
@@ -180,27 +177,25 @@ Rules:
 }' "$file"
       fi
       git mv "$file" "$blocked_dir/" 2>/dev/null || mv "$file" "$blocked_dir/"
-      echo "UNDEFINED | $taskname | $reason" >> "$log_file"
+      run_log+="UNDEFINED | $taskname | $reason"$'\n'
       ;;
     KEEP)
-      echo "  -> Keeping in backlog"
-      echo "KEEP | $taskname | $reason" >> "$log_file"
+      echo "  -> Keeping in next"
+      run_log+="KEEP | $taskname | $reason"$'\n'
       ;;
     *)
-      echo "  -> Timed out, keeping in backlog (retry later)"
-      echo "TIMEOUT | $taskname | $reason" >> "$log_file"
+      echo "  -> Timed out, keeping in next (retry later)"
+      run_log+="TIMEOUT | $taskname | $reason"$'\n'
       ;;
   esac
 done
 
 echo ""
 echo "=== Audit complete ==="
-echo "Log: $log_file"
 echo ""
 echo "--- Summary (this run) ---"
-run_log=$(tail -n +"$((log_start_line + 1))" "$log_file")
 echo "  Moved to review:  $(echo "$run_log" | grep -c '^DONE' || true)"
 echo "  Removed (outdated): $(echo "$run_log" | grep -c '^OUTDATED' || true)"
 echo "  Marked undefined: $(echo "$run_log" | grep -c '^UNDEFINED' || true)"
-echo "  Kept in backlog:  $(echo "$run_log" | grep -c '^KEEP' || true)"
+echo "  Kept in next:  $(echo "$run_log" | grep -c '^KEEP' || true)"
 echo "  Timed out:        $(echo "$run_log" | grep -c '^TIMEOUT' || true)"

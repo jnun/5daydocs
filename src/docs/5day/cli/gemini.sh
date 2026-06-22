@@ -10,6 +10,7 @@
 #   Assumed: -p for prompt, --model, --sandbox for safe execution.
 #   Unverified: turn limits, budget caps, tool filtering, output format.
 
+# shellcheck disable=SC2034  # parsed flags are stored for future CLI mapping
 fiveday_run() {
   # ── Parse provider-neutral arguments ──────────────────────────────
   local prompt="" model="" max_turns="" tools="" permissions=""

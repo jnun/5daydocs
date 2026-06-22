@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test: create-idea.sh
 # Tests idea creation and error cases
 
-set -e
+set -euo pipefail
 
 PASS=0
 FAIL=0

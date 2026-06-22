@@ -10,6 +10,7 @@
 #   Assumed: -p for prompt, --model, --full-auto, positional prompt fallback.
 #   Unverified: --max-turns equivalent, budget caps, output format control.
 
+# shellcheck disable=SC2034  # parsed flags are stored for future CLI mapping
 fiveday_run() {
   # ── Parse provider-neutral arguments ──────────────────────────────
   local prompt="" model="" max_turns="" tools="" permissions=""

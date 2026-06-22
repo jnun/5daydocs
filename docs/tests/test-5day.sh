@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Test: 5day.sh
 # Tests the CLI router: help, unknown commands, missing args, status output
 # Does NOT test end-to-end dispatch (covered by individual create-script tests)
 
-set -e
+set -euo pipefail
 
 PASS=0
 FAIL=0
@@ -18,9 +18,9 @@ setup() {
     mkdir -p "$TMPDIR/docs/5day/scripts"
     mkdir -p "$TMPDIR/docs/tasks/backlog"
     mkdir -p "$TMPDIR/docs/tasks/next"
-    mkdir -p "$TMPDIR/docs/tasks/working"
+    mkdir -p "$TMPDIR/docs/tasks/doing"
     mkdir -p "$TMPDIR/docs/tasks/review"
-    mkdir -p "$TMPDIR/docs/tasks/live"
+    mkdir -p "$TMPDIR/docs/tasks/done"
 
     cp "$SCRIPT_UNDER_TEST" "$TMPDIR/docs/5day/scripts/5day.sh"
 
@@ -142,10 +142,10 @@ output=$(bash "$TMPDIR/docs/5day/scripts/5day.sh" status 2>&1)
 assert_contains "Shows Project Status header" "$output" "Project Status"
 assert_contains "Shows Backlog count" "$output" "Backlog:"
 
-# Test 11: status with working task shows in-progress
-echo "Test 11: status shows working tasks"
+# Test 11: status with doing task shows in-progress
+echo "Test 11: status shows doing tasks"
 setup
-cat > "$TMPDIR/docs/tasks/working/5-active-task.md" << 'EOF'
+cat > "$TMPDIR/docs/tasks/doing/5-active-task.md" << 'EOF'
 # Task 5: Active task
 EOF
 output=$(bash "$TMPDIR/docs/5day/scripts/5day.sh" status 2>&1)

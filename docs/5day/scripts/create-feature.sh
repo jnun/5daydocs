@@ -1,5 +1,5 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 # Create a new feature document in docs/features
 
@@ -139,7 +139,7 @@ cat > "$FEATURE_FILE" << 'EOL'
 <!--
 AI FEATURE GUIDE
 
-Status values: BACKLOG → WORKING → LIVE
+Status values: BACKLOG → WORKING → DONE
 
 Write in plain English throughout. Focus on what users experience.
 Technical details can wait until implementation begins.

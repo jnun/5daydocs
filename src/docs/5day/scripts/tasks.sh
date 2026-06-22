@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ── tasks.sh ────────────────────────────────────────────────────────
 # STEP 3 of 3 — Task Execution
 #
@@ -6,7 +6,7 @@
 # and works each one in a fresh Claude context window.
 #
 # For each task it:
-#   - Moves the task file to working/
+#   - Moves the task file to doing/
 #   - Reads the task, reads CLAUDE.md, makes all code changes
 #   - Checks off completed items, adds a ## Completed summary
 #   - Moves the task file to review/
@@ -115,7 +115,7 @@ fi
 unset _ASSIST
 
 NEXT_DIR="docs/tasks/next"
-WORKING_DIR="docs/tasks/working"
+WORKING_DIR="docs/tasks/doing"
 REVIEW_DIR="docs/tasks/review"
 BLOCKED_DIR="docs/tasks/blocked"
 LOG_DIR="docs/tmp"
@@ -230,7 +230,7 @@ trap 'echo ""; [ -n "${TASK_NAME:-}" ] && echo "▸ Interrupted — current task
 # ── Parallel runner ────────────────────────────────────────────────
 if [ "$PARALLEL" -eq 1 ]; then
 
-  # Move all tasks to working/ upfront
+  # Move all tasks to doing/ upfront
   TASK_NAMES=()
   for ((i=0; i<COUNT; i++)); do
     TASK_FILE="${TASK_FILES[$i]}"
@@ -241,6 +241,7 @@ if [ "$PARALLEL" -eq 1 ]; then
 
   # Override trap to kill background processes on interrupt
   PIDS=()
+  # shellcheck disable=SC2154
   trap 'echo ""; echo "▸ Interrupted — killing background tasks..."; for p in "${PIDS[@]}"; do kill "$p" 2>/dev/null; done; wait 2>/dev/null; echo "▸ In-progress tasks left in $WORKING_DIR/"; exit 130' INT TERM
 
   # Helper: launch a single task by index
@@ -404,7 +405,7 @@ for ((i=0; i<COUNT; i++)); do
   echo "▸ Task $N/$COUNT: $TASK_NAME"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-  # Move to working
+  # Move to doing
   move_file "$TASK_FILE" "$WORKING_DIR/$TASK_NAME"
 
   TASK_CONTENT=$(<"$WORKING_DIR/$TASK_NAME")

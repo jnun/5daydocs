@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # check-alignment.sh - Check alignment between features and their tasks
 # Usage: ./docs/5day/scripts/check-alignment.sh
 
-set -e
+set -euo pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -23,7 +23,7 @@ ISSUES_FOUND=0
 # Function to check feature status validity
 is_valid_status() {
     case "$1" in
-        BACKLOG|NEXT|WORKING|REVIEW|LIVE) return 0 ;;
+        BACKLOG|NEXT|DOING|BLOCKED|REVIEW|DONE) return 0 ;;
         *) return 1 ;;
     esac
 }
@@ -70,7 +70,7 @@ for feature_file in docs/features/*.md; do
         # Check for capability status
         elif echo "$line" | grep -qF '**Status**:'; then
             cap_status=$(echo "$line" | sed 's/.*\*\*Status\*\*: *//' | cut -d' ' -f1)
-            if [ ! -z "$prev_heading" ] && [ ! -z "$cap_status" ]; then
+            if [ -n "$prev_heading" ] && [ -n "$cap_status" ]; then
                 capability_count=$((capability_count + 1))
                 echo -e "    - $prev_heading: $cap_status"
                 # Clear heading to avoid duplicate output
@@ -79,7 +79,7 @@ for feature_file in docs/features/*.md; do
         fi
     done < "$feature_file"
 
-    if [ $capability_count -eq 0 ]; then
+    if [ "$capability_count" -eq 0 ]; then
         echo -e "    ${YELLOW}(No individual capabilities tracked)${NC}"
     fi
 
@@ -88,7 +88,7 @@ for feature_file in docs/features/*.md; do
     task_found=0
 
     # Search for tasks that reference this feature
-    for task_dir in docs/tasks/{backlog,next,working,review,live}; do
+    for task_dir in docs/tasks/{backlog,next,doing,blocked,review,done}; do
         if [ -d "$task_dir" ]; then
             for task_file in "$task_dir"/*.md; do
                 if [ -f "$task_file" ] && [[ ! "$task_file" == *"TEMPLATE"* ]]; then
@@ -107,7 +107,7 @@ for feature_file in docs/features/*.md; do
         fi
     done
 
-    if [ $task_found -eq 0 ]; then
+    if [ "$task_found" -eq 0 ]; then
         echo -e "    ${YELLOW}(No tasks currently reference this feature)${NC}"
     fi
 
@@ -118,7 +118,7 @@ done
 echo -e "${CYAN}${BOLD}Checking for Broken Feature References:${NC}\n"
 
 broken_found=0
-for task_dir in docs/tasks/{backlog,next,working,review,live}; do
+for task_dir in docs/tasks/{backlog,next,doing,blocked,review,done}; do
     if [ -d "$task_dir" ]; then
         for task_file in "$task_dir"/*.md; do
             if [ -f "$task_file" ] && [[ ! "$task_file" == *"TEMPLATE"* ]]; then
@@ -146,7 +146,7 @@ for task_dir in docs/tasks/{backlog,next,working,review,live}; do
     fi
 done
 
-if [ $broken_found -eq 0 ]; then
+if [ "$broken_found" -eq 0 ]; then
     echo -e "  ${GREEN}✓ All feature references point to existing files${NC}\n"
 fi
 
@@ -155,7 +155,7 @@ echo -e "${BOLD}================================================"
 echo "  Summary & Recommendations"
 echo -e "================================================${NC}\n"
 
-if [ $ISSUES_FOUND -eq 0 ]; then
+if [ "$ISSUES_FOUND" -eq 0 ]; then
     echo -e "${GREEN}✓ No alignment issues found!${NC}\n"
 else
     echo -e "${RED}⚠ Issues found that need attention — see warnings above.${NC}\n"
@@ -164,8 +164,8 @@ fi
 echo -e "${CYAN}Best Practices:${NC}"
 echo "• Feature Status = highest completed capability state"
 echo "• Tasks are temporary work items, features are permanent"
-echo "• A LIVE feature can still have backlog tasks for enhancements"
+echo "• A DONE feature can still have backlog tasks for enhancements"
 echo "• The Feature field on tasks is optional — not every task belongs to a feature"
 
 # Exit with error only when real issues exist (broken links, invalid statuses)
-exit $ISSUES_FOUND
+exit "$ISSUES_FOUND"

@@ -245,7 +245,7 @@ The workflows automatically:
 2. Adds issues to your project board
 3. Sets the status column based on folder location
 4. Updates labels to match status
-5. Closes issues when tasks move to "live"
+5. Closes issues when tasks move to "done"
 6. Syncs project board status when labels are applied
 
 **You just move files. Everything else is automatic.**

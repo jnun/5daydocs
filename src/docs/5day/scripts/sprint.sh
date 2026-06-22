@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ── sprint.sh ───────────────────────────────────────────────────────
 # STEP 1 of 3 — Sprint Planning
 #

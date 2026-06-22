@@ -108,11 +108,15 @@ tightly coupled or are quick wins, but the sprint should primarily advance
 the focus area."
 fi
 
+_PROFILE_LINE=""
+[ -f "docs/5day/project.md" ] && _PROFILE_LINE="
+Also read docs/5day/project.md for project-specific stack and conventions."
+
 PROMPT="You are a technical project manager planning the next sprint.
 
 PROJECT CONTEXT:
 CLAUDE.md is auto-loaded with project overview, tech stack, and conventions.
-For task workflow details, see DOCUMENTATION.md.
+For task workflow details, see DOCUMENTATION.md.${_PROFILE_LINE}
 
 BACKLOG: $TASK_COUNT tasks in $BACKLOG_DIR/
 List the directory to see all task filenames, then read the ones that look promising.

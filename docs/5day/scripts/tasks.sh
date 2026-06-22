@@ -250,8 +250,13 @@ if [ "$PARALLEL" -eq 1 ]; then
     local content
     content=$(<"$WORKING_DIR/$name")
 
+    local _profile_line=""
+    [ -f "docs/5day/project.md" ] && _profile_line="
+Also read docs/5day/project.md for project-specific stack and conventions."
+
     local prompt="You are executing ONE task from the project queue.
-CLAUDE.md is auto-loaded. Task file: $WORKING_DIR/$name
+CLAUDE.md is auto-loaded.${_profile_line}
+Task file: $WORKING_DIR/$name
 
 TASK:
 ---
@@ -524,8 +529,13 @@ Rules:
   fi
   # ────────────────────────────────────────────────────────────────────
 
+  _PROFILE_LINE=""
+  [ -f "docs/5day/project.md" ] && _PROFILE_LINE="
+Also read docs/5day/project.md for project-specific stack and conventions."
+
   PROMPT="You are executing ONE task from the project queue.
-CLAUDE.md is auto-loaded. Task file: $WORKING_DIR/$TASK_NAME
+CLAUDE.md is auto-loaded.${_PROFILE_LINE}
+Task file: $WORKING_DIR/$TASK_NAME
 
 TASK:
 ---

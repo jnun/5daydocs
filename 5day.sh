@@ -63,6 +63,9 @@ show_help() {
     echo "  ai-context                Generate AI context summary"
     echo ""
     echo -e "${BLUE}Workflow:${NC}"
+    echo "  profile                       Create or update project profile"
+    echo "  search <keyword>              Search tasks by keyword"
+    echo "  find <task-id> [--work]       Find task, prompt or execute it"
     echo "  plan <task-id>            Interactive Q&A to define an incomplete task"
     echo "  sprint [count] [focus]    Plan a sprint from backlog tasks"
     echo "  define [limit]            Review and refine tasks in next/"
@@ -147,6 +150,20 @@ cmd_newbug() {
     run_script "create-bug.sh" "$1"
 }
 
+cmd_search() {
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Search term required${NC}"; echo "Usage: ./5day.sh search <keyword>"; exit 1; }
+    run_script "search.sh" "$@"
+}
+
+cmd_find() {
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Task ID required${NC}"; echo "Usage: ./5day.sh find <task-id>"; exit 1; }
+    run_script "find.sh" "$@"
+}
+
+cmd_profile() {
+    run_script "profile.sh" "$@"
+}
+
 cmd_plan() {
     [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Task ID required${NC}"; echo "Usage: ./5day.sh plan <task-id>"; exit 1; }
     run_script "plan.sh" "$@"
@@ -209,6 +226,9 @@ case "${1:-}" in
     newfeature)    shift; cmd_newfeature "$@" ;;
     newbug)        shift; cmd_newbug "$@" ;;
     status)        cmd_status ;;
+    profile)       cmd_profile ;;
+    search)        shift; cmd_search "$@" ;;
+    find)          shift; cmd_find "$@" ;;
     plan)          shift; cmd_plan "$@" ;;
     sprint)        shift; cmd_sprint "$@" ;;
     define)        shift; cmd_define "$@" ;;

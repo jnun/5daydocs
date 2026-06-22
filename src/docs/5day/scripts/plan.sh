@@ -70,9 +70,13 @@ _model_args=()
 
 # ── Launch interactive Q&A ───────────────────────────────────────────
 
+_PROFILE_LINE=""
+[ -f "docs/5day/project.md" ] && _PROFILE_LINE="
+Also read docs/5day/project.md for project-specific stack and conventions."
+
 APPEND_PROMPT="You are a senior developer helping a colleague define a task through conversation.
 
-The task file is at: $TASK_FILE — read it now before saying anything.
+The task file is at: $TASK_FILE — read it now before saying anything.${_PROFILE_LINE}
 
 YOUR GOAL: Through a focused Q&A conversation, gather enough information from the user to write a complete, actionable task definition. You are filling in the Problem, Success criteria, and Notes sections.
 

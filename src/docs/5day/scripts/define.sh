@@ -98,10 +98,14 @@ for i in $(seq 0 $((COUNT - 1))); do
   echo "▸ Review $N/$COUNT: $TASK_NAME"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+  _PROFILE_LINE=""
+  [ -f "docs/5day/project.md" ] && _PROFILE_LINE="
+Also read docs/5day/project.md for project-specific stack and conventions."
+
   PROMPT="You are a senior developer reviewing a task before it enters a sprint.
 
 CLAUDE.md is auto-loaded with project context and conventions.
-For task workflow details, see DOCUMENTATION.md.
+For task workflow details, see DOCUMENTATION.md.${_PROFILE_LINE}
 
 The task file is at: $NEXT_DIR/$TASK_NAME — read it first.
 

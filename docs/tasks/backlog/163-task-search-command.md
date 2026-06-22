@@ -7,24 +7,27 @@
 
 ## Problem
 
-<!-- Write 2-5 sentences explaining what needs solving and why.
-     Describe it as you would to a colleague unfamiliar with this area. -->
-
-
+The CLI has `find` to locate a task by its numeric ID, but no way to search tasks by keyword. When you remember a word from a task title or body but not its ID, you have to manually grep or scan files. A `search` command would let users quickly locate tasks by text across all pipeline stages.
 
 ## Success criteria
 
-<!-- Write observable behaviors: "User can [do what]" or "App shows [result]"
-     Each criterion should be verifiable by using the app. -->
-
-- [ ]
-- [ ]
-- [ ]
+- [x] `./5day.sh search <keyword>` searches task filenames and content across all stages
+- [x] Results show task ID, stage, and title for each match
+- [x] Search is case-insensitive
+- [x] `./5day.sh search` with no argument prints usage and exits non-zero
+- [x] Script is mirrored to `src/docs/5day/scripts/search.sh`
+- [x] `search` command is wired into `5day.sh` help text and case dispatch
 
 ## Notes
 
 <!-- Include dependencies, related docs, or edge cases worth considering.
      Leave empty if none, but keep this section. -->
+
+## Completed
+
+- `docs/5day/scripts/search.sh` — new search script
+- `src/docs/5day/scripts/search.sh` — mirrored to distribution
+- `5day.sh` — added `search` command, help text, and dispatch
 
 <!--
 AI TASK CREATION GUIDE

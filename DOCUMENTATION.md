@@ -94,11 +94,20 @@ Each command creates a file with inline guidance. Fill in the sections, then com
 ./5day.sh ai-context                # Generate AI context summary
 
 # Workflow (AI-powered — requires Claude CLI)
+./5day.sh profile                   # Create or update project profile
+./5day.sh search <keyword>          # Search tasks by keyword
+./5day.sh find <task-id> [--work]   # Find task, show prompt or execute it
+./5day.sh plan <task-id>            # Interactive Q&A to define a task
 ./5day.sh sprint [count] [focus]    # Plan a sprint from backlog
 ./5day.sh define [limit]            # Review and refine tasks in next/
-./5day.sh tasks [limit]             # Execute tasks from next/
+./5day.sh tasks [limit] [--fast]    # Execute tasks from next/
 ./5day.sh split <path>              # Split a large task into subtasks
-./5day.sh audit [folder] [limit] [offset]  # Audit tasks (backlog, next, etc.)
+./5day.sh review-sprint             # Review sprint via dual-persona analysis
+./5day.sh review-code <file>        # Run code audit on a task's changes
+./5day.sh audit [folder] [limit]    # Audit tasks (backlog, next, etc.)
+
+# Sync
+./5day.sh sync [--all]              # Push task changes to GitHub
 
 # Maintenance
 ./5day.sh validate [--fix]          # Validate task files against template

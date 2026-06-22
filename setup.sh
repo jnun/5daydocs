@@ -1482,16 +1482,12 @@ else
     echo "AI CLI/model config at docs/5day/config (edit to change CLI or models)"
     echo ""
     echo "Get started:"
-    echo "  ./5day.sh help            # Show all commands"
-    echo "  ./5day.sh newtask \"...\"   # Create a task"
-    echo "  ./5day.sh newbug \"...\"    # Report a bug"
-    echo "  ./5day.sh status          # Show project status"
-fi
-
-if [ "$VALIDATION_PASSED" = true ] && [ ${#ERRORS[@]} -eq 0 ]; then
+    echo "  ./5day.sh profile                          # Prepare this system for your stack and design choices"
+    echo "  ./5day.sh newtask 'short task descriptor'  # Create a new task"
+    echo "  ./5day.sh idea                             # Outline a new concept"
+    echo "  ./5day.sh feature                          # Explain a feature you'd like to build or explain"
     echo ""
-    msg_info "5DayDocs is ready! Try:"
-    echo "  ./5day.sh newtask \"Build user authentication\""
+    echo "  ./5day.sh help                             # Show all commands"
 fi
 
 echo ""

@@ -105,6 +105,7 @@ Each command creates a file with inline guidance. Fill in the sections, then com
 ./5day.sh review-sprint             # Review sprint via dual-persona analysis
 ./5day.sh review-code <file>        # Run code audit on a task's changes
 ./5day.sh audit [folder] [limit]    # Audit tasks in next/ (or specified folder)
+./5day.sh triage [limit]            # Interactive walk-through of task pipeline
 
 # Sync
 ./5day.sh sync [--all]              # Push task changes to GitHub

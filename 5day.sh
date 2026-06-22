@@ -73,6 +73,7 @@ show_help() {
     echo "  tasks [limit] [--parallel] [--fast] Execute tasks from next/"
     echo "  split <path>              Split a large task into subtasks"
     echo "  review-sprint             Review sprint via dual-persona analysis"
+    echo "  triage [limit]                Interactive walk-through of task pipeline"
     echo "  audit [folder|file] [limit] [offset]  Audit tasks in next/ (or specified folder)"
     echo "  review-code <file> [passes]   Run code audit on a task's changes"
     echo ""
@@ -204,6 +205,10 @@ cmd_review_sprint() {
     run_script "review-sprint.sh" "$@"
 }
 
+cmd_triage() {
+    run_script "triage.sh" "$@"
+}
+
 cmd_audit() {
     run_script "audit-tasks.sh" "$@"
 }
@@ -249,6 +254,7 @@ case "${1:-}" in
     tasks)         shift; cmd_tasks "$@" ;;
     split)         shift; cmd_split "$@" ;;
     review-sprint) shift; cmd_review_sprint "$@" ;;
+    triage)        shift; cmd_triage "$@" ;;
     audit)         shift; cmd_audit "$@" ;;
     review-code)   shift; cmd_review_code "$@" ;;
     sync)          shift; cmd_sync "$@" ;;

@@ -75,7 +75,7 @@ docs/
 | What | When | Command |
 |------|------|---------|
 | **Idea** | Rough concept, needs refinement | `./5day.sh newidea "User notifications"` |
-| **Feature** | Defined capability to build | `./5day.sh newfeature "User auth"` |
+| **Feature** | Defined capability to build | `./5day.sh newfeature "User auth"` or `./5day.sh newfeature` (AI Q&A) |
 | **Task** | Specific work item | `./5day.sh newtask "Add login button"` |
 | **Bug** | Something broken | `./5day.sh newbug "Login fails on mobile"` |
 
@@ -86,7 +86,8 @@ Each command creates a file with inline guidance. Fill in the sections, then com
 ```bash
 # Creating work
 ./5day.sh newidea "My rough idea"   # Create idea to refine
-./5day.sh newfeature "Name"         # Create feature
+./5day.sh newfeature "Name"         # Create feature (quick)
+./5day.sh newfeature                # Create feature (AI Q&A)
 ./5day.sh newtask "Description"     # Create task
 ./5day.sh newbug "Description"      # Report a bug
 ./5day.sh status                    # View project status

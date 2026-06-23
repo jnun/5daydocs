@@ -54,7 +54,7 @@ show_help() {
     echo ""
     echo -e "${BLUE}Commands:${NC}"
     echo "  newidea <name>            Create a new idea to refine"
-    echo "  newfeature <name>         Create a new feature"
+    echo "  newfeature [name]         Create a new feature (no name = AI Q&A)"
     echo "  newtask <description>     Create a new task"
     echo "  newbug <description>      Report a new bug"
     echo "  status                    Show project status"
@@ -99,8 +99,11 @@ cmd_newtask() {
 }
 
 cmd_newfeature() {
-    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Feature name required${NC}"; exit 1; }
-    run_script "create-feature.sh" "$1"
+    if [ -n "${1:-}" ]; then
+        run_script "create-feature.sh" "$1"
+    else
+        run_script "create-feature.sh"
+    fi
 }
 
 cmd_status() {

@@ -2,6 +2,8 @@
 set -euo pipefail
 
 # Create a new feature document in docs/features
+# With a name argument: fast template creation
+# Without arguments: AI-assisted Q&A to build a complete feature definition
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
@@ -11,46 +13,116 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Get feature name
-FEATURE_NAME="$1"
-if [ -z "$FEATURE_NAME" ]; then
-    echo -e "${RED}ERROR: Feature name required${NC}"
-    echo "Usage: $0 <feature-name>"
+# ── Helper: create feature file from template ───────────────────────
+create_feature_file() {
+    local name="$1"
+
+    local kebab
+    kebab=$(echo "$name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9-]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
+
+    local feature_file="docs/features/${kebab}.md"
+
+    if [ -f "$feature_file" ]; then
+        echo -e "${YELLOW}WARNING: Feature '$kebab' already exists at $feature_file${NC}"
+        exit 1
+    fi
+
+    mkdir -p docs/features
+
+    local template_file="docs/features/.TEMPLATE-feature.md"
+    if [ ! -f "$template_file" ]; then
+        echo -e "${RED}ERROR: Template file not found: $template_file${NC}"
+        exit 1
+    fi
+
+    local created_date
+    created_date=$(date +%Y-%m-%d)
+
+    cp "$template_file" "$feature_file"
+
+    sed_inplace "s/\[FEATURE-NAME\]/$(sed_escape "$name")/g" "$feature_file"
+    sed_inplace "s/YYYY-MM-DD/$created_date/g" "$feature_file"
+
+    git add "$feature_file" 2>/dev/null || true
+
+    echo "$feature_file"
+}
+
+# ── With argument: fast template creation ───────────────────────────
+if [ -n "${1:-}" ]; then
+    FEATURE_FILE=$(create_feature_file "$1")
+    echo -e "${GREEN}Created feature: $FEATURE_FILE${NC}"
+    echo ""
+    echo "Next: Edit the file to define requirements and acceptance criteria."
+    exit 0
+fi
+
+# ── Without argument: AI-assisted Q&A ───────────────────────────────
+
+if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
+    echo "Error: AI CLI '$FIVEDAY_CLI' not found in PATH"
+    echo "  Edit docs/5day/config to change CLI, or install the tool."
+    echo "  Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview"
     exit 1
 fi
 
-# Convert to kebab-case
-KEBAB_CASE=$(echo "$FEATURE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9-]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
-
-# Feature file path
-FEATURE_FILE="docs/features/${KEBAB_CASE}.md"
-
-# Check if feature already exists
-if [ -f "$FEATURE_FILE" ]; then
-    echo -e "${YELLOW}WARNING: Feature '$KEBAB_CASE' already exists at $FEATURE_FILE${NC}"
-    exit 1
-fi
-
-# Create feature directory if it doesn't exist
-mkdir -p docs/features
-
-# Read template and substitute placeholders
-TEMPLATE_FILE="docs/features/.TEMPLATE-feature.md"
-if [ ! -f "$TEMPLATE_FILE" ]; then
-    echo -e "${RED}ERROR: Template file not found: $TEMPLATE_FILE${NC}"
-    exit 1
-fi
-
-CREATED_DATE=$(date +%Y-%m-%d)
-
-cp "$TEMPLATE_FILE" "$FEATURE_FILE"
-
-sed_inplace "s/\[FEATURE-NAME\]/$(sed_escape "$FEATURE_NAME")/g" "$FEATURE_FILE"
-sed_inplace "s/YYYY-MM-DD/$CREATED_DATE/g" "$FEATURE_FILE"
-
-# Stage the changes (skip gracefully if not in a git repo)
-git add "$FEATURE_FILE" 2>/dev/null || true
-
-echo -e "${GREEN}Created feature: $FEATURE_FILE${NC}"
+echo "▸ Starting feature definition Q&A..."
 echo ""
-echo "Next: Edit the file to define requirements and acceptance criteria."
+
+_MODEL="$(fiveday_resolve_model FEATURE)"
+_model_args=()
+[ -n "$_MODEL" ] && _model_args=(--model "$_MODEL")
+
+_PROFILE_LINE=""
+[ -f "docs/5day/project.md" ] && _PROFILE_LINE="
+Also read docs/5day/project.md for project-specific stack and conventions."
+
+TEMPLATE_FILE="docs/features/.TEMPLATE-feature.md"
+APPEND_PROMPT="You are a product-minded developer helping a colleague define a new feature through conversation.${_PROFILE_LINE}
+
+YOUR GOAL: Through a focused Q&A, gather enough information to create a well-defined feature document. You will create the file when you have what you need.
+
+HOW TO CONDUCT THE SESSION:
+
+1. START by greeting the user briefly and asking:
+   \"What feature would you like to define? Give me a short name and 1-2 sentences on what it does.\"
+
+2. AFTER their answer, ask follow-up questions ONE AT A TIME. Each question should:
+   - Target a specific gap in the feature definition
+   - Include a best-practice suggestion when relevant, formatted as: \"(Best practice: [recommendation])\"
+   - Be concise — no long preambles
+
+   Ask about these areas in order, skipping any already answered:
+   a. WHO is this for? What's their situation? → User Stories
+   b. What are the specific things it must do? → Functional Requirements
+   c. Any non-functional concerns (performance, security, accessibility)? → Non-Functional Requirements
+   d. How will you know it works? What does success look like? → Acceptance Criteria
+
+3. WHEN YOU HAVE ENOUGH (typically 4-6 questions), tell the user:
+   \"I have enough to write this up. Here's what I'll put in the feature:\"
+   Show them a preview of: Overview, User Stories, Requirements, and Acceptance Criteria.
+
+4. AFTER the user confirms (or adjusts), create the feature file:
+   - Copy the template at $TEMPLATE_FILE to docs/features/<kebab-case-name>.md
+   - Replace [FEATURE-NAME] with the feature name
+   - Replace YYYY-MM-DD with today's date
+   - Fill in Overview, User Stories, Functional Requirements, Non-Functional Requirements, and Acceptance Criteria from the conversation
+   - Remove placeholder content (the blank checkboxes, the \"As a _, I want to _, so that _\" stub)
+   - Leave Technical Design, Implementation Tasks, Testing Strategy, and Documentation sections with their template placeholders — those get filled during implementation
+   - Stage the file with git add
+
+5. TELL the user the feature has been created and show the file path.
+
+RULES:
+- Ask ONE question at a time. Wait for the answer before asking the next.
+- Keep the conversation moving — don't repeat what the user said back to them.
+- Write in plain English throughout. Focus on what users experience, not implementation.
+- You may only create files under docs/features/. Do not modify any other files.
+- Do not write code or design the implementation — only define the feature."
+
+fiveday_run \
+  --append-system-prompt "$APPEND_PROMPT" \
+  ${_model_args[@]+"${_model_args[@]}"} \
+  --tools "Read,Edit,Write,Bash" \
+  --name "newfeature" \
+  "Start the feature definition Q&A session."

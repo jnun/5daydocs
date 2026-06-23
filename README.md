@@ -34,11 +34,11 @@ An AI-guided interview about your stack, conventions, and goals. The answers are
 ### 3. Define your features
 
 ```bash
-./5day.sh newfeature "User authentication"
-./5day.sh newfeature "Payment processing"
+./5day.sh newfeature                       # AI-guided Q&A — builds a complete spec through conversation
+./5day.sh newfeature "User authentication" # quick mode — creates a template you fill in yourself
 ```
 
-Each command creates a feature spec in `docs/features/` with guided sections to fill in. Features describe *what the system does* — they're the big picture that tasks break down into.
+Without a name, `newfeature` starts an interactive session that asks about users, requirements, and success criteria, then writes a complete feature spec to `docs/features/`. With a name, it creates a blank template for you to fill in manually. Features describe *what the system does* — they're the big picture that tasks break down into.
 
 ### 4. Create tasks
 

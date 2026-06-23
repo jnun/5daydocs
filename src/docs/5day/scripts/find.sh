@@ -333,7 +333,7 @@ LOG_DIR="$PROJECT_ROOT/docs/tmp"
 mkdir -p "$LOG_DIR"
 
 _PROFILE_LINE=""
-[ -f "docs/5day/project.md" ] && _PROFILE_LINE="
+[ -f "$PROJECT_ROOT/docs/5day/project.md" ] && _PROFILE_LINE="
 Also read docs/5day/project.md for project-specific stack and conventions."
 
 if [ ! -f "$PROJECT_ROOT/docs/5day/project.md" ]; then
@@ -424,9 +424,9 @@ LOG_FILE="$LOG_DIR/log-find-${TASK_ID}-$TIMESTAMP.json"
 
 if fiveday_run -p "$PROMPT" \
     ${_model_args[@]+"${_model_args[@]}"} \
-    --tools "Read,Edit,Write,Bash,Agent,Explore" \
+    --tools "Read,Edit,Write,Bash,Grep,Glob,Agent" \
     --permissions "auto" \
-    --output-format stream-json > "$LOG_FILE"; then
+    --output-format json > "$LOG_FILE"; then
     _exit_code=0
 else
     _exit_code=$?

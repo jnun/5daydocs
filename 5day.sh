@@ -71,6 +71,7 @@ show_help() {
     echo "  sprint [count] [focus]    Plan a sprint from backlog tasks"
     echo "  define [limit]            Review and refine tasks in next/"
     echo "  tasks [limit] [--parallel] [--fast] Execute tasks from next/"
+    echo "  loop [--hours N] [--refill] [--retry] Continuous task runner"
     echo "  split <path>              Split a large task into subtasks"
     echo "  review-sprint             Review sprint via dual-persona analysis"
     echo "  triage [limit]                Interactive walk-through of task pipeline"
@@ -99,11 +100,7 @@ cmd_newtask() {
 }
 
 cmd_newfeature() {
-    if [ -n "${1:-}" ]; then
-        run_script "create-feature.sh" "$1"
-    else
-        run_script "create-feature.sh"
-    fi
+    run_script "create-feature.sh" "$@"
 }
 
 cmd_status() {
@@ -199,6 +196,10 @@ cmd_tasks() {
     run_script "tasks.sh" "$@"
 }
 
+cmd_loop() {
+    run_script "loop.sh" "$@"
+}
+
 cmd_split() {
     [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Task file path required${NC}"; echo "Usage: ./5day.sh split <path/to/task.md>"; exit 1; }
     run_script "split.sh" "$@"
@@ -255,6 +256,7 @@ case "${1:-}" in
     sprint)        shift; cmd_sprint "$@" ;;
     define)        shift; cmd_define "$@" ;;
     tasks)         shift; cmd_tasks "$@" ;;
+    loop)          shift; cmd_loop "$@" ;;
     split)         shift; cmd_split "$@" ;;
     review-sprint) shift; cmd_review_sprint "$@" ;;
     triage)        shift; cmd_triage "$@" ;;

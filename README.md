@@ -11,6 +11,16 @@ docs/tasks/review/    Done, awaiting approval
 docs/tasks/done/      Shipped
 ```
 
+## Why files?
+
+AI coding tools have their own task tracking — `/goal`, `/plan`, task lists, loops. These are session-scoped: they exist inside one conversation and vanish when it ends. That works for staying focused within a session, but it's not project management. Rename a variable across three files and the context is gone. Come back tomorrow and there's no trail.
+
+Files in your repo survive sessions, tools, and people. A task in `docs/tasks/doing/` is visible to every AI agent, every IDE, every teammate, and every `git log` — without anyone needing to be in the right conversation at the right time. More importantly, it's in the source code. If project state lives in someone's session or loop, the rest of the team can't see it — they can't participate in planning, can't pick up where someone left off, and can't review what's in flight. Agentic loops have the same problem: a loop can poll, retry, and iterate, but it's still anchored to a single session. When the loop ends, the work it tracked disappears unless something was written down.
+
+Files checked into the repo are the one communication layer that every tool, every person, and every agent already knows how to read. As distributed agents become more common, file-based project state becomes a shared coordination surface — multiple agents working on the same codebase can read the board, claim tasks, and leave progress behind without needing to share a session.
+
+Session tools and loops are useful *within* a work session. Files are how the work persists *between* them. 5DayDocs is the second part.
+
 ## Getting Started
 
 ### 1. Install

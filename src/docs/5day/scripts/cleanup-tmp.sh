@@ -12,12 +12,7 @@ fi
 
 TMP_DIR="$PROJECT_ROOT/docs/tmp"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-DIM='\033[2m'
-NC='\033[0m'
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
 MODE="${1:-dry-run}"
 STALE_DAYS=7
@@ -58,8 +53,8 @@ while IFS= read -r file; do
     rel="${file#$TMP_DIR/}"
     age=$(file_age_days "$file")
 
-    # Always stale: AI session logs (log-*.json)
-    if [[ "$rel" == log-*.json ]]; then
+    # Always stale: AI session logs (log-*.json), including nested ones
+    if [[ "${rel##*/}" == log-*.json ]]; then
         stale+=("$file")
         continue
     fi

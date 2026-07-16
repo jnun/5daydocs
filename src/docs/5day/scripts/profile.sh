@@ -10,15 +10,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 PROFILE_FILE="$PROJECT_ROOT/docs/5day/project.md"
 
-# ── Preflight ────────────────────────────────────────────────────────
-
-if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
-  echo "✗ AI CLI '$FIVEDAY_CLI' not found in PATH"
-  echo "  Edit docs/5day/config to change CLI, or install the tool."
-  echo "  Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview"
-  exit 1
-fi
-
 _MODEL="$(fiveday_resolve_model PROFILE)"
 _model_args=()
 [ -n "$_MODEL" ] && _model_args=(--model "$_MODEL")

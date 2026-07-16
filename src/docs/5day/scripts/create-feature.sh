@@ -5,18 +5,12 @@ set -euo pipefail
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
 # ── Helper: create feature file from template ───────────────────────
 create_feature_file() {
     local name="$1"
 
     local kebab
-    kebab=$(echo "$name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9-]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
+    kebab=$(kebab_case "$name")
 
     local feature_file="docs/features/${kebab}.md"
 
@@ -25,18 +19,14 @@ create_feature_file() {
         exit 1
     fi
 
-    mkdir -p docs/features
-
     local template_file="docs/features/.TEMPLATE-feature.md"
-    if [ ! -f "$template_file" ]; then
+    copy_template "$template_file" "$feature_file" || {
         echo -e "${RED}ERROR: Template file not found: $template_file${NC}"
         exit 1
-    fi
+    }
 
     local created_date
     created_date=$(date +%Y-%m-%d)
-
-    cp "$template_file" "$feature_file"
 
     sed_inplace "s/\[FEATURE-NAME\]/$(sed_escape "$name")/g" "$feature_file"
     sed_inplace "s/YYYY-MM-DD/$created_date/g" "$feature_file"
@@ -56,13 +46,6 @@ if [ -n "${1:-}" ]; then
 fi
 
 # ── Without argument: AI-assisted Q&A ───────────────────────────────
-
-if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
-    echo "Error: AI CLI '$FIVEDAY_CLI' not found in PATH"
-    echo "  Edit docs/5day/config to change CLI, or install the tool."
-    echo "  Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview"
-    exit 1
-fi
 
 echo "▸ Starting feature definition Q&A..."
 echo ""

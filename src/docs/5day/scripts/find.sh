@@ -32,6 +32,13 @@ for arg in "$@"; do
     esac
 done
 
+# --think/--work still drive the CLI directly (capture + post-processing).
+# Pin exec so lib.sh's emit/exec router doesn't emit for them yet; converting
+# find.sh to the mode-aware model is tracked as its own task (191).
+if [ "$MODE" = "work" ] || [ "$MODE" = "think" ]; then
+    export FIVEDAY_MODE="${FIVEDAY_MODE:-exec}"
+fi
+
 if [ -z "$TASK_ID" ]; then
     echo -e "${RED}ERROR: Task ID required${NC}"
     echo ""

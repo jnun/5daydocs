@@ -57,6 +57,7 @@ show_help() {
     echo "  newfeature [name]         Create a new feature (no name = AI Q&A)"
     echo "  newtask <description>     Create a new task"
     echo "  newbug <description>      Report a new bug"
+    echo "  newtest <name>            Create a test loop to validate a deployed thing"
     echo "  status                    Show project status"
     echo "  checkfeatures             Analyze feature alignment"
     echo "  ai-context                Generate AI context summary"
@@ -179,6 +180,11 @@ cmd_newbug() {
     run_script "create-bug.sh" "$1"
 }
 
+cmd_newtest() {
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Test name required${NC}"; exit 1; }
+    run_script "create-test.sh" "$1"
+}
+
 cmd_search() {
     [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Search term required${NC}"; echo "Usage: ./5day.sh search <keyword>"; exit 1; }
     run_script "search.sh" "$@"
@@ -273,6 +279,7 @@ case "$CMD" in
     newtask)       shift; cmd_newtask "$@" ;;
     newfeature)    shift; cmd_newfeature "$@" ;;
     newbug)        shift; cmd_newbug "$@" ;;
+    newtest)       shift; cmd_newtest "$@" ;;
     status)        cmd_status ;;
     profile)       shift; cmd_profile "$@" ;;
     search)        shift; cmd_search "$@" ;;

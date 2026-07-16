@@ -878,6 +878,7 @@ msg_header "Installing distribution files..."
 SKIP_FILES=(
     "VERSION"
     ".gitignore.template"
+    "GETSTARTED.md"
 )
 
 PREPEND_FILES=(
@@ -1039,6 +1040,20 @@ while IFS= read -r -d '' src_file <&3; do
 done
 exec 3<&-
 rm -f "$_find_fifo" && rmdir "$(dirname "$_find_fifo")" 2>/dev/null
+
+# --- Optional: GETSTARTED.md quickstart at the project root ---
+# Skipped in the walk above (SKIP_FILES); placed only when the user opts in.
+if [ -f "$SRC_DIR/GETSTARTED.md" ]; then
+    echo ""
+    prompt_yes_no GETSTARTED_CHOICE "Place the GETSTARTED.md in the project to help me get started?"
+    if [ "$GETSTARTED_CHOICE" = "yes" ]; then
+        if safe_copy "$SRC_DIR/GETSTARTED.md" "GETSTARTED.md" "GETSTARTED.md"; then
+            ((FILES_COPIED++))
+        fi
+    else
+        msg_step "Skipped GETSTARTED.md"
+    fi
+fi
 
 # --- AI instruction files (deferred from the walk above) ---
 # Grouped here so interactive create/prepend prompts appear together rather

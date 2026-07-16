@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # docs/5day/cli/claude.sh — Claude Code CLI profile for 5DayDocs
 #
-# Defines fiveday_run(), which maps the provider-neutral interface used by
+# Defines fiveday_provider_exec(), which maps the provider-neutral interface used by
 # 5DayDocs scripts to Claude Code's actual CLI flags.
 #
 # Sourced automatically by config.sh when FIVEDAY_CLI=claude (the default).
 
-fiveday_run() {
+fiveday_provider_exec() {
   # ── Parse provider-neutral arguments ──────────────────────────────
   local prompt="" model="" max_turns="" tools="" permissions=""
   local output_format="" budget="" name="" system_prompt=""

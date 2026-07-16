@@ -78,6 +78,7 @@ docs/
 | **Feature** | Defined capability to build | `./5day.sh newfeature "User auth"` or `./5day.sh newfeature` (AI Q&A) |
 | **Task** | Specific work item | `./5day.sh newtask "Add login button"` |
 | **Bug** | Something broken | `./5day.sh newbug "Login fails on mobile"` |
+| **Test** | Validate a deployed thing, then route what you learn into new work | `./5day.sh newtest "Signup converts visitors"` |
 
 Each command creates a file with inline guidance. Fill in the sections, then commit.
 
@@ -90,6 +91,7 @@ Each command creates a file with inline guidance. Fill in the sections, then com
 ./5day.sh newfeature                # Create feature (AI Q&A)
 ./5day.sh newtask "Description"     # Create task
 ./5day.sh newbug "Description"      # Report a bug
+./5day.sh newtest "Name"            # Create a test loop to validate a deployed thing
 ./5day.sh status                    # View project status
 ./5day.sh checkfeatures             # Analyze feature alignment
 ./5day.sh ai-context                # Generate AI context summary
@@ -172,6 +174,7 @@ Use templates in each folder:
 - `docs/tasks/.TEMPLATE-task.md`
 - `docs/features/.TEMPLATE-feature.md`
 - `docs/bugs/.TEMPLATE-bug.md`
+- `docs/tests/.TEMPLATE-test.md`
 
 ## Updating 5DayDocs
 

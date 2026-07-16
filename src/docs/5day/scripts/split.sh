@@ -14,13 +14,7 @@ LOG_DIR="docs/tmp"
 
 # ── Preflight ───────────────────────────────────────────────────────
 
-if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
-  echo "✗ AI CLI '$FIVEDAY_CLI' not found in PATH"
-  echo "  Edit docs/5day/config to change CLI, or install the tool."
-  echo "  Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview"
-  echo "  Required by: split.sh (task splitting)"
-  exit 1
-fi
+AI_MODE="$(fiveday_ai_mode)"
 
 TASK_FILE="${1:-}"
 
@@ -44,6 +38,15 @@ echo "▸ Splitting: $TASK_NAME"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # ── Run ─────────────────────────────────────────────────────────────
+
+if [ "$AI_MODE" = "emit" ]; then
+  _DELETE_INSTR="
+Once all sub-tasks are created and filled in, delete the original task file:
+  git rm $TASK_FILE   (or: rm $TASK_FILE)"
+else
+  _DELETE_INSTR="
+The original task file will be deleted after you finish. Do NOT edit it."
+fi
 
 PROMPT="You are breaking a large task into small, atomic sub-tasks.
 
@@ -77,22 +80,27 @@ After creating all sub-tasks, read each newly created file and fill in:
 - The ## Success criteria (1-3 checkboxes, specific and verifiable)
 - The ## Notes section (mention the parent task number, list which file(s) to change)
 - Set **Depends on**: to the previous sub-task number if ordering matters, or 'none' if independent
-
-The original task file will be deleted after you finish. Do NOT edit it.
-
+${_DELETE_INSTR}
 After creating all sub-tasks, print a summary of what was created:
   'Created N sub-tasks from [original task title]'
   Then list each: 'Task NNN: description'"
 
-TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-LOG_FILE="$LOG_DIR/log-split-${TASK_NAME%.md}-$TIMESTAMP.json"
+_model_args=()
+[ -n "$MODEL" ] && _model_args=(--model "$MODEL")
+
+# Emit mode: the agent creates the sub-tasks and deletes the original itself.
+if [ "$AI_MODE" = "emit" ]; then
+  fiveday_run -p "$PROMPT" \
+    ${_model_args[@]+"${_model_args[@]}"} \
+    --tools "$TOOLS" --permissions "$PERMISSIONS"
+  exit 0
+fi
+
+LOG_FILE="$(fiveday_log_path split "$TASK_NAME")"
 
 # Timestamp marker created before the run so -newer has no same-second race
 SPLIT_MARKER=$(mktemp)
 trap 'rm -f "$SPLIT_MARKER"' EXIT
-
-_model_args=()
-[ -n "$MODEL" ] && _model_args=(--model "$MODEL")
 
 if fiveday_run -p "$PROMPT" \
   ${_model_args[@]+"${_model_args[@]}"} \

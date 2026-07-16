@@ -40,15 +40,6 @@ echo "▸ Planning: $TASK_NAME"
 echo "  Location: $TASK_DIR/"
 echo ""
 
-# ── Preflight ────────────────────────────────────────────────────────
-
-if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
-  echo "Error: AI CLI '$FIVEDAY_CLI' not found in PATH"
-  echo "  Edit docs/5day/config to change CLI, or install the tool."
-  echo "  Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview"
-  exit 1
-fi
-
 # Resolve model: empty string = let the CLI pick its own default.
 _MODEL="$(fiveday_resolve_model PLAN)"
 _model_args=()
@@ -56,9 +47,16 @@ _model_args=()
 
 # ── Launch interactive Q&A ───────────────────────────────────────────
 
-_PROFILE_LINE=""
-[ -f "docs/5day/project.md" ] && _PROFILE_LINE="
-Also read docs/5day/project.md for project-specific stack and conventions."
+_PROFILE_LINE="$(fiveday_profile_line)"
+
+# In emit mode the surrounding agent performs the blocked→backlog move
+# itself (the shell can't act after an emitted prompt), so fold that step
+# into the instructions.
+_MOVE_LINE=""
+if [ "$(fiveday_ai_mode)" = "emit" ] && [ "$TASK_DIR" = "docs/tasks/blocked" ]; then
+  _MOVE_LINE="
+- Once the task is fully defined, move it out of blocked/: git mv $TASK_FILE docs/tasks/backlog/$TASK_NAME"
+fi
 
 APPEND_PROMPT="You are a senior developer helping a colleague define a task through conversation.
 
@@ -102,7 +100,7 @@ RULES:
 - Keep the conversation moving — don't repeat what the user said back to them.
 - When a question has a widely accepted best practice, lead with it.
 - You may only edit the task file at $TASK_FILE. Do not create or modify any other files.
-- Do not write code or implement the task — only define it."
+- Do not write code or implement the task — only define it.${_MOVE_LINE}"
 
 fiveday_run \
   --append-system-prompt "$APPEND_PROMPT" \
@@ -110,6 +108,9 @@ fiveday_run \
   --tools "Read,Edit,Write,Grep,Glob" \
   --name "plan-${TASK_ID}" \
   "Read the task file at $TASK_FILE and start the planning Q&A session."
+
+# In emit mode the agent runs the session and the move; nothing left to do.
+fiveday_emitted && exit 0
 
 # ── Post-session: move from blocked to backlog if defined ────────────
 

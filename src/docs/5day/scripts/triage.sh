@@ -10,45 +10,13 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 limit="${1:-0}"
 [[ "$limit" =~ ^[0-9]+$ ]] || { echo "Usage: triage [limit]  (limit must be a number)"; exit 1; }
 
-# Colors
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-DIM='\033[2m'
-BOLD='\033[1m'
-NC='\033[0m'
-
+# Colours (RED/YELLOW/BLUE/CYAN/DIM/BOLD/NC) come from lib.sh.
 timeout_sec=120
-command -v "$FIVEDAY_CLI" &>/dev/null || {
-  echo -e "${RED}Error: AI CLI '$FIVEDAY_CLI' not found in PATH.${NC}" >&2
-  echo "Edit docs/5day/config (CLI) or install the tool." >&2
-  exit 1
-}
+AI_MODE="$(fiveday_ai_mode)"
 
 _triage_model="$(fiveday_resolve_model TRIAGE)"
 _model_args=()
 [ -n "$_triage_model" ] && _model_args=(--model "$_triage_model")
-
-# Portable timeout
-if command -v timeout &>/dev/null; then
-  run_with_timeout() { timeout "${timeout_sec}s" "$@"; }
-elif command -v gtimeout &>/dev/null; then
-  run_with_timeout() { gtimeout "${timeout_sec}s" "$@"; }
-else
-  run_with_timeout() {
-    "$@" &
-    local pid=$!
-    ( sleep "$timeout_sec" && kill "$pid" 2>/dev/null ) &
-    local watcher=$!
-    wait "$pid" 2>/dev/null
-    local ret=$?
-    kill "$watcher" 2>/dev/null
-    pkill -P "$watcher" 2>/dev/null
-    wait "$watcher" 2>/dev/null
-    return $ret
-  }
-fi
 
 trap 'echo ""; echo "Triage interrupted."; exit 130' INT TERM
 
@@ -70,7 +38,8 @@ for dir in "${DIRS[@]}"; do
   )) || true
   unset IFS
   counts+=("${#folder_files[@]}")
-  all_files+=("${folder_files[@]}")
+  # Guard empty-array expansion (bash 3.2 + set -u).
+  all_files+=(${folder_files[@]+"${folder_files[@]}"})
 done
 
 # Apply limit
@@ -85,6 +54,34 @@ if [ "$total" -eq 0 ]; then
 fi
 
 echo -e "${CYAN}=== Triage: $total tasks (${counts[0]} blocked, ${counts[1]} next, ${counts[2]} backlog) ===${NC}"
+
+# ── Emit mode: hand the whole triage to the surrounding agent ─────────
+if [ "$AI_MODE" = "emit" ]; then
+  _file_list=$(printf '%s\n' "${all_files[@]}")
+  fiveday_run -p "You are triaging the task backlog with the developer, one task at a time.
+
+CLAUDE.md is auto-loaded with project context and conventions.
+
+Tasks to triage, in priority order:
+$_file_list
+
+For EACH task in order:
+1. Read the task file and do a quick check of the current codebase.
+2. Report: task name, stage folder, a STATUS (DONE/BLOCKED/UNDEFINED/READY/STALE),
+   a one-sentence summary, and a one-sentence recommendation.
+3. Ask the developer what to do:
+   [w] work it   — move next/→doing/, or blocked|backlog→next/ (git mv)
+   [d] define it — refine the task in place (problem, success criteria)
+   [k] kill it   — delete after confirming (git rm)
+   [s] skip      — leave it where it is
+   [q] quit      — stop triaging
+4. Act on the choice (git mv / git rm), then continue to the next task.
+
+Be concise and move briskly through the list." \
+    ${_model_args[@]+"${_model_args[@]}"} \
+    --tools "Read,Edit,Write,Bash,Grep,Glob"
+  exit 0
+fi
 
 # ── Counters ─────────────────────────────────────────────────────────
 worked=0
@@ -134,7 +131,7 @@ Rules:
 - Keep SUMMARY and RECOMMENDATION each to ONE sentence
 - Do not output anything else"
 
-  verdict=$(run_with_timeout fiveday_run -p "$_triage_prompt" \
+  verdict=$(run_with_timeout "$timeout_sec" fiveday_run -p "$_triage_prompt" \
     ${_model_args[@]+"${_model_args[@]}"} --skip-permissions 2>/dev/null) || true
 
   # Parse structured output

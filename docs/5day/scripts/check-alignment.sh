@@ -3,14 +3,7 @@
 
 set -euo pipefail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m' # No Color
-BOLD='\033[1m'
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
 echo -e "${BOLD}================================================"
 echo "  Feature-Task Alignment Analysis"
@@ -87,15 +80,16 @@ for feature_file in docs/features/*.md; do
     task_found=0
 
     # Search for tasks that reference this feature
-    for task_dir in docs/tasks/{backlog,next,doing,blocked,review,done}; do
+    for stage in "${FIVEDAY_STAGES[@]}"; do
+        task_dir="docs/tasks/$stage"
         if [ -d "$task_dir" ]; then
             for task_file in "$task_dir"/*.md; do
                 if [ -f "$task_file" ] && [[ ! "$task_file" == *"TEMPLATE"* ]]; then
                     # Check if task references this feature
                     if grep -q "/docs/features/$feature_name.md" "$task_file" 2>/dev/null; then
                         task_found=1
-                        task_id=$(basename "$task_file" .md | cut -d'-' -f1)
-                        task_title=$(grep "^# Task" "$task_file" 2>/dev/null | sed 's/# Task [0-9]*: //')
+                        task_id=$(task_id "$task_file")
+                        task_title=$(task_title "$task_file")
                         folder=$(basename "$task_dir")
 
                         echo -e "    ${GREEN}✓ Task $task_id in $folder/${NC}"
@@ -117,13 +111,14 @@ done
 echo -e "${CYAN}${BOLD}Checking for Broken Feature References:${NC}\n"
 
 broken_found=0
-for task_dir in docs/tasks/{backlog,next,doing,blocked,review,done}; do
+for stage in "${FIVEDAY_STAGES[@]}"; do
+    task_dir="docs/tasks/$stage"
     if [ -d "$task_dir" ]; then
         for task_file in "$task_dir"/*.md; do
             if [ -f "$task_file" ] && [[ ! "$task_file" == *"TEMPLATE"* ]]; then
-                task_id=$(basename "$task_file" .md | cut -d'-' -f1)
+                task_id=$(task_id "$task_file")
                 # Extract only the first **Feature**: line, ignoring template comments
-                feature_ref=$(grep -m1 -F "**Feature**:" "$task_file" 2>/dev/null | sed 's/.*\*\*Feature\*\*: *//')
+                feature_ref=$(task_feature "$task_file")
 
                 # Skip tasks with no feature field, "none", or "multiple" — feature is optional
                 if [ -z "$feature_ref" ] || [ "$feature_ref" = "none" ] || [ "$feature_ref" = "multiple" ]; then

@@ -19,12 +19,18 @@ MAX_TURNS=40
 
 # ── Preflight ───────────────────────────────────────────────────────
 
-if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
-  echo "✗ AI CLI '$FIVEDAY_CLI' not found in PATH"
-  echo "  Edit docs/5day/config to change CLI, or install the tool."
-  echo "  Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview"
-  echo "  Required by: define.sh (task definition review)"
-  exit 1
+AI_MODE="$(fiveday_ai_mode)"
+
+# In emit mode the agent moves files itself per its verdict; fold the moves
+# into the prompt. In exec mode the shell moves them by reading the verdict.
+_MOVE_INSTR=""
+if [ "$AI_MODE" = "emit" ]; then
+  _MOVE_INSTR="
+
+After writing the verdict, act on it:
+- BLOCKED → git mv the task file to docs/tasks/blocked/
+- DONE    → git mv the task file to docs/tasks/review/
+- READY   → leave the file in $NEXT_DIR/"
 fi
 
 mkdir -p "$LOG_DIR"
@@ -71,9 +77,7 @@ for i in $(seq 0 $((COUNT - 1))); do
   echo "▸ Review $N/$COUNT: $TASK_NAME"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-  _PROFILE_LINE=""
-  [ -f "docs/5day/project.md" ] && _PROFILE_LINE="
-Also read docs/5day/project.md for project-specific stack and conventions."
+  _PROFILE_LINE="$(fiveday_profile_line)"
 
   PROMPT="You are a senior developer reviewing a task before it enters a sprint.
 
@@ -128,13 +132,21 @@ Format: '1. [Question]? (Suggestion: [recommendation and why])'
 
 If there are no questions, write 'None — task is fully defined.' under this heading.
 
-You may only use Edit/Write on the task file at $NEXT_DIR/$TASK_NAME. Do not create or modify any other files."
-
-  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-  LOG_FILE="$LOG_DIR/log-define-${TASK_NAME%.md}-$TIMESTAMP.json"
+You may only use Edit/Write on the task file at $NEXT_DIR/$TASK_NAME.${_MOVE_INSTR}"
 
   _model_args=()
   [ -n "$MODEL" ] && _model_args=(--model "$MODEL")
+
+  # Emit mode: print the review prompt for the current agent to run.
+  if [ "$AI_MODE" = "emit" ]; then
+    fiveday_run -p "$PROMPT" \
+      ${_model_args[@]+"${_model_args[@]}"} \
+      --tools "$TOOLS" --permissions "$PERMISSIONS"
+    echo ""
+    continue
+  fi
+
+  LOG_FILE="$(fiveday_log_path define "$TASK_NAME")"
 
   if fiveday_run -p "$PROMPT" \
     ${_model_args[@]+"${_model_args[@]}"} \

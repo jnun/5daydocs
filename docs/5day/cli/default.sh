@@ -7,7 +7,7 @@
 #
 # Sourced automatically by config.sh when no matching profile is found.
 
-fiveday_run() {
+fiveday_provider_exec() {
   local prompt=""
   local -a extra_args=()
 

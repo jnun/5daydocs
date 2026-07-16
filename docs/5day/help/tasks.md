@@ -23,10 +23,12 @@ Usage:
   ./5day.sh tasks --max            # no turn limit or budget cap
   ./5day.sh tasks --fast --max     # parallel (4 jobs), no limits
   ./5day.sh tasks --assist         # interactive mode picker
-  ./5day.sh tasks --claude         # use claude CLI profile
-  ./5day.sh tasks --openai         # use openai CLI profile
-  ./5day.sh tasks --gemini         # use gemini CLI profile
-  ./5day.sh tasks --mistral        # use mistral CLI profile
+
+Inside an AI session (Claude Code, Cursor, …) tasks are dispatched to fresh
+subagents in the current session. In a plain terminal they run via the CLI in
+docs/5day/config. Override per-run with an env prefix:
+  FIVEDAY_CLI=codex ./5day.sh tasks   # exec a specific CLI standalone
+  FIVEDAY_MODE=emit ./5day.sh tasks   # force prompt emit for any agent
 
 Model selection is handled by docs/5day/config — scripts no longer
 hardcode model names. Set FIVEDAY_MODEL_TASKS in your environment or

@@ -19,14 +19,6 @@ MAX_TURNS=50
 
 # ── Preflight ───────────────────────────────────────────────────────
 
-if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
-  echo "✗ AI CLI '$FIVEDAY_CLI' not found in PATH"
-  echo "  Edit docs/5day/config to change CLI, or install the tool."
-  echo "  Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview"
-  echo "  Required by: sprint.sh (sprint planning)"
-  exit 1
-fi
-
 if [ ! -d "$BACKLOG_DIR" ]; then
   echo "✗ Missing directory: $BACKLOG_DIR"
   exit 1
@@ -74,9 +66,7 @@ tightly coupled or are quick wins, but the sprint should primarily advance
 the focus area."
 fi
 
-_PROFILE_LINE=""
-[ -f "docs/5day/project.md" ] && _PROFILE_LINE="
-Also read docs/5day/project.md for project-specific stack and conventions."
+_PROFILE_LINE="$(fiveday_profile_line)"
 
 PROMPT="You are a technical project manager planning the next sprint.
 
@@ -163,6 +153,9 @@ if fiveday_run -p "$PROMPT" \
   --tools "$TOOLS" \
   --permissions "$PERMISSIONS" \
   --max-turns "$MAX_TURNS"; then
+
+  # In emit mode the agent writes the plan and the developer runs the moves.
+  fiveday_emitted && exit 0
 
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

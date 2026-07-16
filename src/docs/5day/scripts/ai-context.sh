@@ -2,6 +2,8 @@
 set -euo pipefail
 # ai-context.sh — Generate AI context summary. See: ./5day.sh help ai-context
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
+
 # Determine project root
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"

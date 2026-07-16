@@ -3,17 +3,12 @@
 
 set -euo pipefail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-NC='\033[0m'
-
 # Resolve project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 cd "$PROJECT_ROOT"
+
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
 # Check we're in a git repo
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -45,16 +40,18 @@ echo -e "${CYAN}=== 5DayDocs GitHub Sync ===${NC}"
 echo ""
 
 # Stage task files from all pipeline folders
-FOLDERS="backlog next doing blocked review done"
 STAGED=0
 
-for folder in $FOLDERS; do
+for folder in "${FIVEDAY_STAGES[@]}"; do
     DIR="docs/tasks/$folder"
     [ -d "$DIR" ] || continue
-    CHANGES=$(git status --porcelain "$DIR" 2>/dev/null || true)
-    if [ -n "$CHANGES" ]; then
+    if [ -n "$(git status --porcelain "$DIR" 2>/dev/null || true)" ]; then
         git add "$DIR"/*.md 2>/dev/null || true
-        COUNT=$(echo "$CHANGES" | wc -l | tr -d ' ')
+    fi
+    # Count distinct staged task files in this folder (accurate for
+    # renames/deletes, which raw porcelain line-counting miscounts).
+    COUNT=$(git diff --cached --name-only -- "$DIR" 2>/dev/null | grep -c '\.md$' || true)
+    if [ "$COUNT" -gt 0 ]; then
         echo -e "  ${GREEN}+${NC} $folder: $COUNT file(s)"
         STAGED=$((STAGED + COUNT))
     fi

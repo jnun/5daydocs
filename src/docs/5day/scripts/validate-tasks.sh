@@ -6,14 +6,13 @@ set -euo pipefail
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-TASK_DIRS=(
-    "$PROJECT_ROOT/docs/tasks/backlog"
-    "$PROJECT_ROOT/docs/tasks/next"
-    "$PROJECT_ROOT/docs/tasks/doing"
-    "$PROJECT_ROOT/docs/tasks/blocked"
-    "$PROJECT_ROOT/docs/tasks/review"
-    "$PROJECT_ROOT/docs/tasks/done"
-)
+
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
+
+TASK_DIRS=()
+for _stage in "${FIVEDAY_STAGES[@]}"; do
+    TASK_DIRS+=("$PROJECT_ROOT/docs/tasks/$_stage")
+done
 
 # Options
 FIX_MODE=false
@@ -40,13 +39,6 @@ for arg in "$@"; do
     esac
 done
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
 # Counters
 TOTAL_FILES=0
 VALID_FILES=0
@@ -72,7 +64,7 @@ validate_and_fix_task() {
     TOTAL_FILES=$((TOTAL_FILES + 1))
 
     # Extract task ID from filename
-    task_id=$(echo "$filename" | cut -d'-' -f1)
+    task_id=$(task_id "$filename")
 
     # Validate task ID is numeric
     if ! [[ "$task_id" =~ ^[0-9]+$ ]]; then
@@ -162,13 +154,9 @@ fix_task_file() {
         has_success_criteria=true
     fi
 
-    # Get the first line (current title)
-    local first_line
-    first_line=$(head -n1 "$file")
-
-    # Extract title text (remove any existing "# Task X:" prefix or just "# ")
+    # Extract title text (strips "# " and any "Task X: " prefix)
     local title_text
-    title_text=$(echo "$first_line" | sed -E 's/^# (Task [0-9]+: )?//')
+    title_text=$(task_title "$file" || true)
 
     # Start building corrected file
     {
@@ -241,7 +229,7 @@ fix_task_file() {
         rm "$temp_file"
         return 0
     else
-        mv "$temp_file" "$file"
+        move_file "$temp_file" "$file"
         return 0
     fi
 }

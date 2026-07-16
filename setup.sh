@@ -1582,8 +1582,8 @@ else
     echo "Get started:"
     echo "  ./5day.sh profile                          # Prepare this system for your stack and design choices"
     echo "  ./5day.sh newtask 'short task descriptor'  # Create a new task"
-    echo "  ./5day.sh idea                             # Outline a new concept"
-    echo "  ./5day.sh feature                          # Explain a feature you'd like to build or explain"
+    echo "  ./5day.sh newidea 'concept name'           # Outline a new concept"
+    echo "  ./5day.sh newfeature                       # Explain a feature you'd like to build or explain"
     echo ""
     echo "  ./5day.sh help                             # Show all commands"
 fi

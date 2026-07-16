@@ -18,14 +18,19 @@ else
     PROJECT_ROOT="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
 fi
 
-# Utility: count files matching pattern
+# Count files matching $2 (default *.md) directly under directory $1.
+# Robust to empty/missing dirs (returns 0 via nullglob), spaces in the
+# directory path (quoted) and in filenames (glob results are not
+# word-split), and the caller's CWD (pass an absolute $1). nullglob is
+# restored so callers see no global side effect.
 count_files() {
-    local pattern="$1"
-    local count=0
-    for f in $pattern; do
-        [ -f "$f" ] && ((count++)) || true
-    done
-    echo "$count"
+    local dir="$1" pat="${2:-*.md}" restore
+    local -a files
+    restore="$(shopt -p nullglob)"
+    shopt -s nullglob
+    files=( "$dir"/$pat )
+    eval "$restore"
+    echo "${#files[@]}"
 }
 
 # Utility: run helper script
@@ -119,59 +124,59 @@ cmd_newfeature() {
 }
 
 cmd_status() {
+    local root="$PROJECT_ROOT"
+    local tasks="$root/docs/tasks"
+
     echo -e "${CYAN}=== Project Status ===${NC}"
     echo ""
 
-    cd "$PROJECT_ROOT"
-
     echo -e "${BLUE}Tasks:${NC}"
-    echo "  Backlog:  $(count_files "docs/tasks/backlog/*.md")"
-    echo "  Next:     $(count_files "docs/tasks/next/*.md")"
-    echo "  Doing:    $(count_files "docs/tasks/doing/*.md")"
-    echo "  Blocked:  $(count_files "docs/tasks/blocked/*.md")"
-    echo "  Review:   $(count_files "docs/tasks/review/*.md")"
-    echo "  Done:     $(count_files "docs/tasks/done/*.md")"
+    echo "  Backlog:  $(count_files "$tasks/backlog")"
+    echo "  Next:     $(count_files "$tasks/next")"
+    echo "  Doing:    $(count_files "$tasks/doing")"
+    echo "  Blocked:  $(count_files "$tasks/blocked")"
+    echo "  Review:   $(count_files "$tasks/review")"
+    echo "  Done:     $(count_files "$tasks/done")"
 
-    local blocked_count
-    blocked_count=$(count_files "docs/tasks/blocked/*.md")
+    local blocked_count doing_count
+    blocked_count=$(count_files "$tasks/blocked")
     if [ "$blocked_count" -gt 0 ]; then
         echo ""
         echo -e "${RED}Blocked (needs attention to unblock sprint):${NC}"
-        for task in docs/tasks/blocked/*.md; do
+        for task in "$tasks"/blocked/*.md; do
             [ -f "$task" ] && echo "  $(basename "$task" .md)"
         done
     fi
 
-    local doing_count
-    doing_count=$(count_files "docs/tasks/doing/*.md")
+    doing_count=$(count_files "$tasks/doing")
     if [ "$doing_count" -gt 0 ]; then
         echo ""
         echo -e "${YELLOW}In progress:${NC}"
-        for task in docs/tasks/doing/*.md; do
+        for task in "$tasks"/doing/*.md; do
             [ -f "$task" ] && echo "  $(basename "$task" .md)"
         done
     fi
 
-    if [ -d "docs/ideas" ] && ls docs/ideas/*.md >/dev/null 2>&1; then
+    local ideas_count bugs_count features_count
+    ideas_count=$(count_files "$root/docs/ideas")
+    if [ "$ideas_count" -gt 0 ]; then
         echo ""
-        echo -e "${BLUE}Ideas:${NC}  $(count_files "docs/ideas/*.md")"
+        echo -e "${BLUE}Ideas:${NC}  $ideas_count"
     fi
 
-    if [ -d "docs/bugs" ]; then
-        local bug_count
-        bug_count=$(find docs/bugs -maxdepth 1 -name "[0-9]*.md" 2>/dev/null | wc -l | tr -d ' ')
-        if [ "$bug_count" -gt 0 ]; then
-            echo ""
-            echo -e "${BLUE}Bugs:${NC}   $bug_count open"
-        fi
+    bugs_count=$(count_files "$root/docs/bugs" "[0-9]*.md")
+    if [ "$bugs_count" -gt 0 ]; then
+        echo ""
+        echo -e "${BLUE}Bugs:${NC}   $bugs_count open"
     fi
 
-    if [ -d "docs/features" ] && ls docs/features/*.md >/dev/null 2>&1; then
+    features_count=$(count_files "$root/docs/features")
+    if [ "$features_count" -gt 0 ]; then
         echo ""
         echo -e "${BLUE}Features:${NC}"
-        echo "  Backlog:  $(grep -l "Status:.*BACKLOG" docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')"
-        echo "  Working:  $(grep -l "Status:.*WORKING" docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')"
-        echo "  Done:     $(grep -l "Status:.*DONE" docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')"
+        echo "  Backlog:  $(grep -l "Status:.*BACKLOG" "$root"/docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')"
+        echo "  Doing:    $(grep -l "Status:.*DOING" "$root"/docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')"
+        echo "  Done:     $(grep -l "Status:.*DONE" "$root"/docs/features/*.md 2>/dev/null | wc -l | tr -d ' ')"
     fi
 }
 
@@ -302,7 +307,7 @@ case "$CMD" in
     help|--help|-h) shift; if [ -n "${1:-}" ]; then show_command_help "$1"; else show_help; fi ;;
     "") show_help ;;
     *)
-        echo -e "${RED}Unknown command: $1${NC}"
+        echo -e "${RED}Unknown command: $CMD${NC}"
         show_help
         exit 1
         ;;

@@ -904,14 +904,16 @@ _in_list() {
 # Fallback content if source AI templates not found
 AI_FALLBACK='Read `DOCUMENTATION.md` before making any changes. It is the single source of truth for how this project is organized, how tasks are managed, and how to use the 5DayDocs system.'
 
-# setup_ai_file "source_template" "target_path" "display_name"
-# - If target doesn't exist, ask to create it
+# setup_ai_file "source_template" "target_path" "display_name" [create]
+# - If target doesn't exist and create=yes, create it (no prompt)
+# - If target doesn't exist and create is unset, skip
 # - If target exists without DOCUMENTATION.md reference, prepend automatically
 # - If target already references DOCUMENTATION.md, skip
 setup_ai_file() {
     local src="$1"
     local target="$2"
     local name="$3"
+    local create="${4:-}"
 
     local content
     if [ -f "$src" ]; then
@@ -921,11 +923,7 @@ setup_ai_file() {
     fi
 
     if [ ! -f "$target" ]; then
-        echo ""
-        echo "No $name found. Would you like to create one with 5DayDocs instructions? (y/n)"
-        read -r AI_CHOICE
-
-        if [[ "$AI_CHOICE" =~ ^[Yy]$ ]]; then
+        if [ "$create" = "yes" ]; then
             local target_dir
             target_dir="$(dirname "$target")"
             if [ "$target_dir" != "." ]; then
@@ -938,8 +936,6 @@ setup_ai_file() {
             else
                 msg_error "Failed to create $name"
             fi
-        else
-            msg_step "Skipped $name"
         fi
     else
         if grep -q "DOCUMENTATION.md" "$target" 2>/dev/null; then
@@ -960,6 +956,18 @@ setup_ai_file() {
             fi
         fi
     fi
+}
+
+# Human-friendly label for each AI instruction file path
+_ai_label() {
+    case "$1" in
+        CLAUDE.md)                       echo "Claude Code / Claude" ;;
+        .cursorrules)                    echo "Cursor" ;;
+        .github/copilot-instructions.md) echo "GitHub Copilot" ;;
+        AGENTS.md)                       echo "Agents.md (multi-agent)" ;;
+        .windsurfrules)                  echo "Windsurf" ;;
+        *)                               echo "$1" ;;
+    esac
 }
 
 # --- Platform=none cleanup: remove sync workflows from prior installs ---
@@ -1037,11 +1045,84 @@ rm -f "$_find_fifo" && rmdir "$(dirname "$_find_fifo")" 2>/dev/null
 # than scattered between file-copy messages.
 if [ ${#PENDING_PREPEND[@]} -gt 0 ]; then
     msg_header "Setting up AI instruction files..."
+
+    # Separate into files that already exist (handle silently) vs need creating
+    NEED_CREATE=()
     for entry in "${PENDING_PREPEND[@]}"; do
         src_file="${entry%%|*}"
         rel_path="${entry#*|}"
-        setup_ai_file "$src_file" "$rel_path" "$rel_path"
+        if [ -f "$rel_path" ]; then
+            setup_ai_file "$src_file" "$rel_path" "$rel_path"
+        else
+            NEED_CREATE+=("$entry")
+        fi
     done
+
+    # Popularity-ordered list for the menu
+    AI_ORDER=("CLAUDE.md" ".cursorrules" ".github/copilot-instructions.md" "AGENTS.md" ".windsurfrules")
+
+    # Build ordered menu from files that need creating
+    MENU_ENTRIES=()
+    for ordered_path in "${AI_ORDER[@]}"; do
+        for entry in "${NEED_CREATE[@]}"; do
+            rel_path="${entry#*|}"
+            if [ "$rel_path" = "$ordered_path" ]; then
+                MENU_ENTRIES+=("$entry")
+                break
+            fi
+        done
+    done
+    # Catch any entries not in AI_ORDER
+    for entry in "${NEED_CREATE[@]}"; do
+        rel_path="${entry#*|}"
+        _found=false
+        for ordered_path in "${AI_ORDER[@]}"; do
+            if [ "$rel_path" = "$ordered_path" ]; then _found=true; break; fi
+        done
+        if ! $_found; then MENU_ENTRIES+=("$entry"); fi
+    done
+
+    if [ ${#MENU_ENTRIES[@]} -gt 0 ]; then
+        echo ""
+        echo "Which AI instruction files would you like to create?"
+        echo ""
+        for i in "${!MENU_ENTRIES[@]}"; do
+            entry="${MENU_ENTRIES[$i]}"
+            rel_path="${entry#*|}"
+            label=$(_ai_label "$rel_path")
+            printf "  %d) %s  (%s)\n" $((i + 1)) "$label" "$rel_path"
+        done
+        echo ""
+        printf "  A) All of the above\n"
+        echo ""
+        echo "Enter choices (e.g. 1 3, or A for all, Enter to skip):"
+        read -r AI_MENU_CHOICE
+
+        # Parse selection
+        SELECTED=()
+        if [[ "$AI_MENU_CHOICE" =~ ^[Aa]$ ]]; then
+            for i in "${!MENU_ENTRIES[@]}"; do
+                SELECTED+=("$i")
+            done
+        else
+            for token in $AI_MENU_CHOICE; do
+                if [[ "$token" =~ ^[0-9]+$ ]] && [ "$token" -ge 1 ] && [ "$token" -le ${#MENU_ENTRIES[@]} ]; then
+                    SELECTED+=("$((token - 1))")
+                fi
+            done
+        fi
+
+        if [ ${#SELECTED[@]} -eq 0 ]; then
+            msg_step "Skipped AI instruction files"
+        else
+            for idx in "${SELECTED[@]}"; do
+                entry="${MENU_ENTRIES[$idx]}"
+                src_file="${entry%%|*}"
+                rel_path="${entry#*|}"
+                setup_ai_file "$src_file" "$rel_path" "$rel_path" "yes"
+            done
+        fi
+    fi
 fi
 
 # ============================================================================

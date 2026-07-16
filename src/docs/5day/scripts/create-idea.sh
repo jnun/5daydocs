@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Create a new idea document in docs/ideas
+# create-idea.sh — Create an idea. See: ./5day.sh help newidea
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
@@ -11,46 +11,142 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Get idea name
-IDEA_NAME="$1"
-if [ -z "$IDEA_NAME" ]; then
-    echo -e "${RED}ERROR: Idea name required${NC}"
-    echo "Usage: $0 <idea-name>"
+# ── Helper: create idea file from template ─────────────────────────
+create_idea_file() {
+    local name="$1"
+
+    local kebab
+    kebab=$(echo "$name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9-]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
+
+    local idea_file="docs/ideas/${kebab}.md"
+
+    if [ -f "$idea_file" ]; then
+        echo -e "${YELLOW}WARNING: Idea '$kebab' already exists at $idea_file${NC}"
+        exit 1
+    fi
+
+    mkdir -p docs/ideas
+
+    local template_file="docs/ideas/.TEMPLATE-idea.md"
+    if [ ! -f "$template_file" ]; then
+        echo -e "${RED}ERROR: Template file not found: $template_file${NC}"
+        exit 1
+    fi
+
+    local created_date
+    created_date=$(date +%Y-%m-%d)
+
+    cp "$template_file" "$idea_file"
+
+    sed_inplace "s/\[IDEA-NAME\]/$(sed_escape "$name")/g" "$idea_file"
+    sed_inplace "s/YYYY-MM-DD/$created_date/g" "$idea_file"
+
+    git add "$idea_file" 2>/dev/null || true
+
+    echo "$idea_file"
+}
+
+# ── With argument: fast template creation ──────────────────────────
+if [ -n "${1:-}" ]; then
+    IDEA_FILE=$(create_idea_file "$1")
+    echo -e "${GREEN}Created idea: $IDEA_FILE${NC}"
+    echo ""
+    echo "Next: Work through the eight phases — diverge first, converge second."
+    exit 0
+fi
+
+# ── Without argument: AI-assisted Q&A ──────────────────────────────
+
+if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
+    echo "Error: AI CLI '$FIVEDAY_CLI' not found in PATH"
+    echo "  Edit docs/5day/config to change CLI, or install the tool."
+    echo "  Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview"
     exit 1
 fi
 
-# Convert to kebab-case
-KEBAB_CASE=$(echo "$IDEA_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9-]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
-
-# Idea file path
-IDEA_FILE="docs/ideas/${KEBAB_CASE}.md"
-
-# Check if idea already exists
-if [ -f "$IDEA_FILE" ]; then
-    echo -e "${YELLOW}WARNING: Idea '$KEBAB_CASE' already exists at $IDEA_FILE${NC}"
-    exit 1
-fi
-
-# Create ideas directory if it doesn't exist
-mkdir -p docs/ideas
-
-# Read template and substitute placeholders
-TEMPLATE_FILE="docs/ideas/.TEMPLATE-idea.md"
-if [ ! -f "$TEMPLATE_FILE" ]; then
-    echo -e "${RED}ERROR: Template file not found: $TEMPLATE_FILE${NC}"
-    exit 1
-fi
-
-CREATED_DATE=$(date +%Y-%m-%d)
-
-cp "$TEMPLATE_FILE" "$IDEA_FILE"
-
-sed_inplace "s/\[IDEA-NAME\]/$(sed_escape "$IDEA_NAME")/g" "$IDEA_FILE"
-sed_inplace "s/YYYY-MM-DD/$CREATED_DATE/g" "$IDEA_FILE"
-
-# Stage the changes (skip gracefully if not in a git repo)
-git add "$IDEA_FILE" 2>/dev/null || true
-
-echo -e "${GREEN}Created idea: $IDEA_FILE${NC}"
+echo "▸ Starting idea refinement session..."
 echo ""
-echo "Next: Open the file and work through each section."
+
+_MODEL="$(fiveday_resolve_model IDEA)"
+_model_args=()
+[ -n "$_MODEL" ] && _model_args=(--model "$_MODEL")
+
+_PROFILE_LINE=""
+[ -f "docs/5day/project.md" ] && _PROFILE_LINE="
+Also read docs/5day/project.md for project-specific stack and conventions."
+
+TEMPLATE_FILE="docs/ideas/.TEMPLATE-idea.md"
+APPEND_PROMPT="You are a thinking partner helping a colleague develop a raw idea into features ready to build. You guide them through eight phases — divergent first (open up), convergent second (close down).${_PROFILE_LINE}
+
+Read docs/5day/ai/feynman-method.md for the full protocol. Follow it closely.
+
+YOUR GOAL: Through an interactive session, guide the user from a raw spark to a set of features. You will create the idea file when the session is complete.
+
+HOW TO CONDUCT THE SESSION:
+
+You will work through eight phases. Ask at least one question per phase before writing content for that phase. Advance to the next phase when the user's answers satisfy the current phase — don't wait for them to say \"next.\"
+
+PHASE 1 — THE SPARK (Divergent)
+Ask: \"What's the idea? What triggered it — a frustration, a hunch, something you saw?\"
+Capture the raw impulse. One or two exchanges is enough.
+
+PHASE 2 — THE PROBLEM (Divergent)
+Dig into who has this problem, how they know, what it costs.
+If the user describes a solution, redirect: \"That's a solution — what's the problem underneath it?\"
+Challenge vague claims: \"You said everyone — who has it worst?\"
+
+PHASE 3 — THE LANDSCAPE (Divergent)
+Map what exists. Suggest angles the user hasn't mentioned — competitors, adjacent solutions, manual workarounds.
+Ask what's been tried and what's different about their situation.
+
+PHASE 4 — THE BRAINSTORM (Divergent)
+Get at least three different approaches: obvious, lazy, ambitious, weird.
+If the user stalls at two, offer a third yourself.
+Push for range — the goal is genuine options, not confirming what they already wanted.
+
+PHASE 5 — THE BET (Convergent)
+The user picks a direction and states it as: \"We believe [approach] will [solve problem] for [people] because [insight].\"
+Help refine until it's specific. A good bet names the approach, problem, audience, and reasoning.
+
+PHASE 6 — THE STRESS TEST (Convergent)
+Assume the bet fails. YOU must name at least one reason it could fail and ask the user to respond.
+Push back on assumptions: \"You said [X] — how confident are you?\"
+
+PHASE 7 — THE SCOPE (Convergent)
+Cut to the smallest thing that tests the bet.
+Push for less — if v1 feels big, help find the embarrassingly small version.
+
+PHASE 8 — THE HANDOFF (Convergent)
+List features. Each must trace back to the bet. Remove anything that doesn't serve the bet.
+
+AFTER ALL PHASES:
+1. Ask the user for an idea name (short, descriptive, kebab-case-friendly).
+2. Create the idea file:
+   - Copy the template at $TEMPLATE_FILE to docs/ideas/<kebab-case-name>.md
+   - Replace [IDEA-NAME] with the idea name
+   - Replace YYYY-MM-DD with today's date
+   - Fill in all eight phases from the conversation
+   - Stage the file with git add
+3. Evaluate the graduation checklist and flag any gates not met:
+   - Problem validated (Phase 2): names real people with a real cost
+   - Landscape checked (Phase 3): shows awareness of what exists
+   - Bet articulated (Phase 5): clear hypothesis with \"because\"
+   - Stress test completed (Phase 6): at least one failure mode and response
+   - Scope defined (Phase 7): hard v1 / later line
+   - Features listed (Phase 8): at least one feature tracing to the bet
+4. Tell the user the file path and which gates are met vs. not met.
+
+RULES:
+- Ask ONE question at a time. Wait for the answer before the next.
+- In Phases 1–4, suggest options and angles the user hasn't mentioned. Resist convergence.
+- In Phases 5–8, sharpen and pressure-test. Push for specificity and small scope.
+- Keep the conversation moving — don't repeat what the user said back to them.
+- Write in plain English throughout. No jargon.
+- You may only create files under docs/ideas/. Do not modify any other files."
+
+fiveday_run \
+  --append-system-prompt "$APPEND_PROMPT" \
+  ${_model_args[@]+"${_model_args[@]}"} \
+  --tools "Read,Edit,Write,Bash" \
+  --name "newidea" \
+  "Start the idea refinement session."

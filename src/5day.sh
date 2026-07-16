@@ -54,7 +54,7 @@ show_help() {
     echo ""
     echo -e "${BLUE}Commands:${NC}"
     echo "  newidea <name>            Create a new idea to refine"
-    echo "  newfeature <name>         Create a new feature"
+    echo "  newfeature [name]         Create a new feature (no name = AI Q&A)"
     echo "  newtask <description>     Create a new task"
     echo "  newbug <description>      Report a new bug"
     echo "  status                    Show project status"
@@ -71,6 +71,7 @@ show_help() {
     echo "  sprint [count] [focus]    Plan a sprint from backlog tasks"
     echo "  define [limit]            Review and refine tasks in next/"
     echo "  tasks [limit] [--parallel] [--fast] Execute tasks from next/"
+    echo "  loop [--hours N] [--refill] [--retry] Continuous task runner"
     echo "  split <path>              Split a large task into subtasks"
     echo "  review-sprint             Review sprint via dual-persona analysis"
     echo "  triage [limit]                Interactive walk-through of task pipeline"
@@ -85,7 +86,21 @@ show_help() {
     echo "  cleanup [--delete|--all]      Clean stale scratch files"
     echo ""
     echo "  help                      Show this message"
+    echo "  help <command>            Show details for a command (e.g. help tasks)"
     echo ""
+}
+
+show_command_help() {
+    local cmd="$1"
+    local helpfile="$PROJECT_ROOT/docs/5day/help/$cmd.md"
+    if [ ! -f "$helpfile" ]; then
+        echo -e "${RED}Unknown command: $cmd${NC}"
+        echo "Run ./5day.sh help for a list of commands."
+        exit 1
+    fi
+    echo -e "${CYAN}./5day.sh $cmd${NC}"
+    echo ""
+    cat "$helpfile"
 }
 
 cmd_newidea() {
@@ -99,8 +114,7 @@ cmd_newtask() {
 }
 
 cmd_newfeature() {
-    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Feature name required${NC}"; exit 1; }
-    run_script "create-feature.sh" "$1"
+    run_script "create-feature.sh" "$@"
 }
 
 cmd_status() {
@@ -196,6 +210,10 @@ cmd_tasks() {
     run_script "tasks.sh" "$@"
 }
 
+cmd_loop() {
+    run_script "loop.sh" "$@"
+}
+
 cmd_split() {
     [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Task file path required${NC}"; echo "Usage: ./5day.sh split <path/to/task.md>"; exit 1; }
     run_script "split.sh" "$@"
@@ -238,8 +256,19 @@ cmd_ai_context() {
     run_script "ai-context.sh"
 }
 
+# Intercept --help/-h on any command: ./5day.sh tasks --help → help tasks
+CMD="${1:-}"
+if [ -n "$CMD" ] && [ "$CMD" != "help" ] && [ "$CMD" != "--help" ] && [ "$CMD" != "-h" ]; then
+    for arg in "$@"; do
+        if [ "$arg" = "--help" ] || [ "$arg" = "-h" ]; then
+            show_command_help "$CMD"
+            exit 0
+        fi
+    done
+fi
+
 # Main
-case "${1:-}" in
+case "$CMD" in
     newidea)       shift; cmd_newidea "$@" ;;
     newtask)       shift; cmd_newtask "$@" ;;
     newfeature)    shift; cmd_newfeature "$@" ;;
@@ -252,6 +281,7 @@ case "${1:-}" in
     sprint)        shift; cmd_sprint "$@" ;;
     define)        shift; cmd_define "$@" ;;
     tasks)         shift; cmd_tasks "$@" ;;
+    loop)          shift; cmd_loop "$@" ;;
     split)         shift; cmd_split "$@" ;;
     review-sprint) shift; cmd_review_sprint "$@" ;;
     triage)        shift; cmd_triage "$@" ;;
@@ -262,7 +292,8 @@ case "${1:-}" in
     cleanup)       shift; cmd_cleanup "$@" ;;
     checkfeatures) cmd_checkfeatures ;;
     ai-context)    cmd_ai_context ;;
-    help|--help|-h|"") show_help ;;
+    help|--help|-h) shift; if [ -n "${1:-}" ]; then show_command_help "$1"; else show_help; fi ;;
+    "") show_help ;;
     *)
         echo -e "${RED}Unknown command: $1${NC}"
         show_help

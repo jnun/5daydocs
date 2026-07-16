@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# search.sh — Search tasks by keyword. See: ./5day.sh help search
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

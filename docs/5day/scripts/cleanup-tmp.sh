@@ -1,13 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# cleanup-tmp.sh — Clear scratch files from docs/tmp/
-#
-# Usage:
-#   cleanup-tmp.sh              # dry run — show what would be cleaned
-#   cleanup-tmp.sh --delete     # delete stale files (with confirmation)
-#   cleanup-tmp.sh --force      # delete stale files (no confirmation)
-#   cleanup-tmp.sh --all        # delete everything (with confirmation)
+# cleanup-tmp.sh — Clear scratch files. See: ./5day.sh help cleanup
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -d "$SCRIPT_DIR/docs/5day/scripts" ]; then

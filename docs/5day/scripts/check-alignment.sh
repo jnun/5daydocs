@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# check-alignment.sh - Check alignment between features and their tasks
-# Usage: ./docs/5day/scripts/check-alignment.sh
+# check-alignment.sh — Feature/task alignment. See: ./5day.sh help checkfeatures
 
 set -euo pipefail
 

@@ -1,44 +1,5 @@
 #!/usr/bin/env bash
-# ── tasks.sh ────────────────────────────────────────────────────────
-# STEP 3 of 3 — Task Execution
-#
-# Picks up tasks from docs/tasks/next/ in order (by leading number)
-# and works each one in a fresh Claude context window.
-#
-# For each task it:
-#   - Moves the task file to doing/
-#   - Reads the task, reads CLAUDE.md, makes all code changes
-#   - Checks off completed items, adds a ## Completed summary
-#   - Moves the task file to review/
-#   - Stops on failure so you can inspect
-#
-# Does NOT commit. You review the changes and commit yourself.
-#
-# Usage:
-#   bash docs/5day/scripts/tasks.sh                  # run all tasks in next/
-#   bash docs/5day/scripts/tasks.sh 3                # run at most 3 tasks
-#   bash docs/5day/scripts/tasks.sh 1                # run just the next task
-#   bash docs/5day/scripts/tasks.sh --drift          # enable pre-task drift check
-#   bash docs/5day/scripts/tasks.sh --audit          # enable post-task code audit
-#   bash docs/5day/scripts/tasks.sh --parallel       # run all tasks concurrently (2 jobs)
-#   bash docs/5day/scripts/tasks.sh --fast           # shorthand for --parallel with 4 jobs
-#   bash docs/5day/scripts/tasks.sh --max            # no turn limit or budget cap
-#   bash docs/5day/scripts/tasks.sh --fast --max     # parallel (4 jobs), no limits
-#   bash docs/5day/scripts/tasks.sh --assist         # interactive mode picker
-#   bash docs/5day/scripts/tasks.sh --claude         # use claude CLI profile
-#   bash docs/5day/scripts/tasks.sh --openai         # use openai CLI profile
-#   bash docs/5day/scripts/tasks.sh --gemini         # use gemini CLI profile
-#   bash docs/5day/scripts/tasks.sh --mistral        # use mistral CLI profile
-#
-# Model selection is handled by docs/5day/config — scripts no longer
-# hardcode model names.  Set FIVEDAY_MODEL_TASKS in your environment or
-# config to override.
-#
-# Full workflow:
-#   bash docs/5day/scripts/sprint.sh 5        # 1. plan sprint from backlog
-#   bash docs/5day/scripts/define.sh          # 2. review & triage queued tasks
-#   bash docs/5day/scripts/tasks.sh           # 3. execute the sprint
-#
+# tasks.sh — Execute tasks from next/. See: ./5day.sh help tasks
 
 set -euo pipefail
 
@@ -51,6 +12,7 @@ RUN_AUDIT=0
 _NO_LIMITS=0
 _PROVIDER_OVERRIDE=""
 _next_is_jobs=0
+VERBOSE=0
 for arg in "$@"; do
   if [ "$_next_is_jobs" -eq 1 ]; then
     MAX_JOBS="$arg"
@@ -65,6 +27,7 @@ for arg in "$@"; do
     --max)      _NO_LIMITS=1 ;;
     --assist)   _ASSIST=1 ;;
     --jobs)     _next_is_jobs=1 ;;
+    --verbose)  VERBOSE=1 ;;
     --claude)   _PROVIDER_OVERRIDE="claude" ;;
     --openai)   _PROVIDER_OVERRIDE="openai" ;;
     --gemini)   _PROVIDER_OVERRIDE="gemini" ;;
@@ -206,6 +169,20 @@ fi
 
 echo "▸ $COUNT task(s) queued from $NEXT_DIR"
 echo ""
+
+if [ "$VERBOSE" -eq 1 ]; then
+  for ((i=0; i<COUNT; i++)); do
+    _vf="${TASK_FILES[$i]}"
+    _vn="${_vf##*/}"
+    echo "──────────────────────────────────────────────────────────"
+    echo "  $((i + 1))/$COUNT: $_vn"
+    echo "──────────────────────────────────────────────────────────"
+    sed 's/^/  /' "$_vf"
+    echo ""
+  done
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+fi
 
 # ── Runner ──────────────────────────────────────────────────────────
 

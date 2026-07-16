@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# create-task.sh — Create a task. See: ./5day.sh help newtask
 set -euo pipefail
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"

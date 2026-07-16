@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Sync task files to GitHub by committing and pushing to main
-# This triggers the GitHub Actions workflow that creates/updates issues
+# sync.sh — Push task changes to GitHub. See: ./5day.sh help sync
 
 set -euo pipefail
 

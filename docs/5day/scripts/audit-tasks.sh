@@ -2,10 +2,7 @@
 # shellcheck disable=SC2207
 set -euo pipefail
 
-# Audit tasks using an AI CLI (default: Claude Code)
-# Usage: ./audit-tasks.sh [folder] [limit] [offset]
-#   folder: next (default), backlog, doing, blocked — or a full path
-#   review and done are not auditable (completed work)
+# audit-tasks.sh — Audit tasks for quality. See: ./5day.sh help audit
 
 # ── Config ───────────────────────────────────────────────────────────
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"

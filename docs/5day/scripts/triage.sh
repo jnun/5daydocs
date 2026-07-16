@@ -2,9 +2,7 @@
 # shellcheck disable=SC2207
 set -euo pipefail
 
-# Triage tasks interactively: AI assesses each task, human decides what to do.
-# Usage: ./5day.sh triage [limit]
-#   Walks blocked/, next/, backlog/ in priority order.
+# triage.sh — Interactive task triage. See: ./5day.sh help triage
 
 # ── Config ───────────────────────────────────────────────────────────
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"

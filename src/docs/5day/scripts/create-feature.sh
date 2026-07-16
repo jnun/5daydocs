@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Create a new feature document in docs/features
-# With a name argument: fast template creation
-# Without arguments: AI-assisted Q&A to build a complete feature definition
+# create-feature.sh — Create a feature. See: ./5day.sh help newfeature
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 

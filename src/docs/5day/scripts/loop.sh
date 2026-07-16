@@ -1,35 +1,5 @@
 #!/usr/bin/env bash
-# ── loop.sh ─────────────────────────────────────────────────────────
-# Continuous task runner — executes tasks from next/ in a resilient loop.
-#
-# Wraps tasks.sh to run one task at a time, each in a fresh CLI context.
-# Failures don't halt the run — blocked tasks are skipped and the loop
-# continues to the next task.
-#
-# Usage:
-#   bash docs/5day/scripts/loop.sh                       # drain next/
-#   bash docs/5day/scripts/loop.sh --hours 2             # stop after 2 hours
-#   bash docs/5day/scripts/loop.sh --max 10              # stop after 10 tasks
-#   bash docs/5day/scripts/loop.sh --cooldown 30         # 30s pause between tasks
-#   bash docs/5day/scripts/loop.sh --refill              # auto-sprint when next/ empties
-#   bash docs/5day/scripts/loop.sh --refill 3            # refill with 3 tasks at a time
-#   bash docs/5day/scripts/loop.sh --retry               # retry newly-blocked tasks once
-#   bash docs/5day/scripts/loop.sh --refill --retry      # full autopilot
-#
-# Other flags (--audit, --drift, --fast, etc.) are forwarded to tasks.sh.
-#
-# How it improves on tasks.sh:
-#   - Fresh context window per task (no context pollution)
-#   - Failures don't stop the run
-#   - Recovers orphaned tasks from doing/ (interrupted runs)
-#   - Smart retry: re-queues tasks blocked during THIS run (once)
-#   - Auto-refill: sprint + define from backlog when queue empties
-#   - Time-boxed execution with --hours
-#   - Cooldown between tasks to pace API usage
-#
-# Composable with Claude Code's /loop for crash recovery:
-#   /loop ./5day.sh loop --hours 2
-#
+# loop.sh — Continuous task runner. See: ./5day.sh help loop
 
 set -euo pipefail
 

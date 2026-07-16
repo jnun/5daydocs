@@ -86,7 +86,21 @@ show_help() {
     echo "  cleanup [--delete|--all]      Clean stale scratch files"
     echo ""
     echo "  help                      Show this message"
+    echo "  help <command>            Show details for a command (e.g. help tasks)"
     echo ""
+}
+
+show_command_help() {
+    local cmd="$1"
+    local helpfile="$PROJECT_ROOT/docs/5day/help/$cmd.md"
+    if [ ! -f "$helpfile" ]; then
+        echo -e "${RED}Unknown command: $cmd${NC}"
+        echo "Run ./5day.sh help for a list of commands."
+        exit 1
+    fi
+    echo -e "${CYAN}./5day.sh $cmd${NC}"
+    echo ""
+    cat "$helpfile"
 }
 
 cmd_newidea() {
@@ -242,8 +256,19 @@ cmd_ai_context() {
     run_script "ai-context.sh"
 }
 
+# Intercept --help/-h on any command: ./5day.sh tasks --help → help tasks
+CMD="${1:-}"
+if [ -n "$CMD" ] && [ "$CMD" != "help" ] && [ "$CMD" != "--help" ] && [ "$CMD" != "-h" ]; then
+    for arg in "$@"; do
+        if [ "$arg" = "--help" ] || [ "$arg" = "-h" ]; then
+            show_command_help "$CMD"
+            exit 0
+        fi
+    done
+fi
+
 # Main
-case "${1:-}" in
+case "$CMD" in
     newidea)       shift; cmd_newidea "$@" ;;
     newtask)       shift; cmd_newtask "$@" ;;
     newfeature)    shift; cmd_newfeature "$@" ;;
@@ -267,7 +292,8 @@ case "${1:-}" in
     cleanup)       shift; cmd_cleanup "$@" ;;
     checkfeatures) cmd_checkfeatures ;;
     ai-context)    cmd_ai_context ;;
-    help|--help|-h|"") show_help ;;
+    help|--help|-h) shift; if [ -n "${1:-}" ]; then show_command_help "$1"; else show_help; fi ;;
+    "") show_help ;;
     *)
         echo -e "${RED}Unknown command: $1${NC}"
         show_help

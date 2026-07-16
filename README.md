@@ -119,6 +119,16 @@ Once you have tasks in your backlog, AI can help plan, validate, and execute the
 
 Flags combine: `./5day.sh tasks --max --audit --fast`
 
+### Loop runner
+
+Run tasks continuously with crash recovery. Each task gets a fresh context.
+
+```bash
+./5day.sh loop                         # drain next/
+./5day.sh loop --hours 2 --refill      # run for 2h, refill from backlog when empty
+./5day.sh loop --refill --retry        # full autopilot
+```
+
 ### Useful commands
 
 ```bash

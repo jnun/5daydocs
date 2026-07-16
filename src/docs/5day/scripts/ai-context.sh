@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# ai-context.sh - Generate a context summary for AI agents
-# Usage: ./docs/5day/scripts/ai-context.sh
+# ai-context.sh — Generate AI context summary. See: ./5day.sh help ai-context
 
 # Determine project root
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

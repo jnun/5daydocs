@@ -1,19 +1,5 @@
 #!/usr/bin/env bash
-# ── plan.sh ──────────────────────────────────────────────────────────
-# Interactive Q&A session to define an incomplete or complex task.
-#
-# Finds a task by ID, reads it, then launches a conversational session
-# that asks the user probing questions to fill in the Problem,
-# Success criteria, and Notes sections — producing an actionable task.
-#
-# Usage:
-#   bash docs/5day/scripts/plan.sh <task-id>
-#   ./5day.sh plan 141
-#
-# After running:
-#   - The task file is updated in place with a complete definition
-#   - If the task was in blocked/, it moves to backlog/
-#
+# plan.sh — Interactive Q&A to define a task. See: ./5day.sh help plan
 
 set -euo pipefail
 

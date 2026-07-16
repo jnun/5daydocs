@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
-# validate-tasks.sh - Validates and fixes task files to match template format
-#
-# Usage:
-#   ./validate-tasks.sh              # Check all tasks, report issues
-#   ./validate-tasks.sh --fix        # Check and auto-fix tasks
-#   ./validate-tasks.sh --fix --dry-run  # Show what would be fixed without changing files
+# validate-tasks.sh — Validate task files. See: ./5day.sh help validate
 
 set -euo pipefail
 

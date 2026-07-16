@@ -1,48 +1,5 @@
 #!/usr/bin/env bash
-# ── audit-code.sh ───────────────────────────────────────────────────
-# Fixer/verifier code quality audit for completed tasks.
-#
-# Runs an iterative audit loop with two modes:
-#   - FIXER: full tools, can read and edit code, fixes issues
-#   - VERIFIER: read-only tools, confirms fixes are correct
-#
-# The fixer/verifier pattern prevents self-grading bias — the code
-# that fixes issues is never the same context that judges them.
-#
-# Context modes (how the audit knows what changed):
-#
-#   1. MANIFEST FILE (from tasks.sh)
-#      tasks.sh snapshots the tree before/after and writes a manifest
-#      file listing exactly which files the task changed. Passed via
-#      AUDIT_MANIFEST env var.
-#
-#   2. TASK FILE with ## Completed section (standalone)
-#      The task's ## Completed section lists files changed. The auditor
-#      parses this and traces impact through the codebase.
-#
-#   3. EXPLICIT FILE LIST (standalone, no task)
-#      Pass file paths directly:  ./5day.sh review-code file1.py file2.ts
-#
-# In all modes the auditor also traces the IMPACT GRAPH — what other
-# code imports, calls, or references the changed files — so it can
-# check for regressions beyond the immediate changes.
-#
-# State machine:
-#   fixer/PASS    -> DONE (exit 0)    clean, no issues
-#   fixer/FIXED   -> verifier          fixed issues, needs verification
-#   fixer/FAIL    -> fixer             couldn't fix all, retry
-#   fixer/BLOCKED -> DONE (exit 1)    needs human
-#   fixer/FAIL+no-op -> BLOCKED       said FAIL but changed nothing
-#   verifier/PASS -> DONE (exit 0)    verified, real green light
-#   verifier/FAIL -> fixer             verification failed, go fix
-#
-# Usage:
-#   bash docs/5day/scripts/audit-code.sh <task-file> [max-passes]
-#   bash docs/5day/scripts/audit-code.sh <file1> <file2> ... [-- max-passes]
-#   AUDIT_MANIFEST=/path/to/manifest bash audit-code.sh <task-file>
-#
-# The audit never blocks task promotion — it fixes what it can,
-# documents what it cannot, and exits 0 (clean) or 1 (warnings).
+# audit-code.sh — Code quality audit. See: ./5day.sh help review-code
 
 set -euo pipefail
 

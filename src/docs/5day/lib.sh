@@ -18,11 +18,16 @@
 #   fiveday_resolve_model SFX  — model resolution: env > config > default
 #   fiveday_profile_line       — one-line pointer to project.md (empty if absent)
 #   fiveday_find_task ID [dirs…] — resolve a task file by numeric ID
+#   fiveday_review_verdict FILE — READY/BLOCKED/DONE stamp from a define review
 #   fiveday_log_path KIND NAME — timestamped log path under docs/tmp
 #   fiveday_load_profile [cli] — source the provider profile (fiveday_provider_exec)
+#   fiveday_ai_tier            — capability tier: claude-code|cursor|openai|generic
 #   fiveday_ai_mode            — "emit" or "exec" for the current environment
 #   fiveday_emitted            — true if the last fiveday_run only emitted a prompt
 #   fiveday_run ARGS…          — run AI: emit prompt to stdout, or exec the CLI
+#   fiveday_change_manifest TASK_FILE [FILE…] — build audit change manifest;
+#       sets FIVEDAY_CHANGED_FILES and FIVEDAY_CONTEXT_SOURCE
+#   fiveday_extract_summary JSON — print the summary text from a CLI JSON log
 
 _FIVEDAY_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -198,6 +203,18 @@ task_feature() {
     { grep -m1 '\*\*Feature\*\*:' "$1" 2>/dev/null || true; } | sed 's/.*\*\*Feature\*\*: *//'
 }
 
+# fiveday_review_verdict FILE -> READY | BLOCKED | DONE | "" (no verdict).
+# Reads only the LAST "## Questions" section and requires the line-anchored
+# bold stamp define.sh's review writes. A loose grep for "Status: BLOCKED"
+# anywhere in the file once mis-routed a READY task to blocked/ because its
+# body *quoted* the verdict vocabulary — this helper exists so no script
+# ever parses the stamp loosely again.
+fiveday_review_verdict() {
+    awk '/^## Questions[[:space:]]*$/{s=""; f=1} f{s=s $0 "\n"} END{printf "%s", s}' "$1" 2>/dev/null \
+        | { grep -m1 -oE '^\*\*Status: (READY|BLOCKED|DONE)\*\*' || true; } \
+        | sed 's/\*//g; s/Status: //'
+}
+
 # ── DOC_STATE (ID allocation) and templates ──────────────────────────
 
 FIVEDAY_DOC_STATE="${FIVEDAY_DOC_STATE:-docs/5day/DOC_STATE.md}"
@@ -247,6 +264,28 @@ fiveday_load_profile() {
         # shellcheck source=/dev/null
         source "${cli_dir}/default.sh"
     fi
+}
+
+# ── AI capability tier ───────────────────────────────────────────────
+# Prints the provider capability tier this install runs at:
+#   claude-code | cursor | openai | generic
+# Precedence: config/env PROVIDER (written by setup.sh) > inference from
+# the CLI binary name. The inference mirrors setup.sh's picker so an install
+# that upgrades without re-running the picker still resolves a sane tier.
+# Later scripts branch on this: full orchestration (subagents, JSON output,
+# budget caps) on claude-code; graceful degradation elsewhere. See the
+# capability matrix in docs/5day/ai/provider-capabilities.md.
+fiveday_ai_tier() {
+    if [ -n "${FIVEDAY_PROVIDER:-}" ]; then
+        printf '%s' "$FIVEDAY_PROVIDER"
+        return
+    fi
+    case "$FIVEDAY_CLI" in
+        claude)              printf 'claude-code' ;;
+        cursor-agent|cursor) printf 'cursor' ;;
+        codex)               printf 'openai' ;;
+        *)                   printf 'generic' ;;
+    esac
 }
 
 # ── AI execution mode ────────────────────────────────────────────────
@@ -312,10 +351,96 @@ fiveday_run() {
     fiveday_provider_exec "$@"
 }
 
+# ── Audit helpers ────────────────────────────────────────────────────
+# Shared by the audit-code and audit-excellence scripts. Extracted so a fix
+# to the manifest priority chain or the summary parser lands in both.
+
+# fiveday_change_manifest TASK_FILE [EXPLICIT_FILE…]
+# Build the change manifest an audit runs against. Priority:
+#   AUDIT_MANIFEST env > explicit file list > task ## Completed > git diff.
+# Pass TASK_FILE ("" if none) as the first arg and any explicit files after
+# it; callers must keep the bash-3.2 empty-array guard when forwarding an
+# array (fiveday_change_manifest "$TASK_FILE" ${FILES[@]+"${FILES[@]}"}).
+# Sets two output variables rather than printing (the result is multi-line
+# and $(...) runs in a subshell):
+#   FIVEDAY_CHANGED_FILES  — newline-separated changed-file list (may be empty)
+#   FIVEDAY_CONTEXT_SOURCE — human label of where the list came from
+# shellcheck disable=SC2034  # output vars, read by callers
+fiveday_change_manifest() {
+    local task_file="$1"; shift
+    local -a explicit=("$@")
+    FIVEDAY_CHANGED_FILES=""
+    FIVEDAY_CONTEXT_SOURCE=""
+
+    # 1. Manifest file from tasks.sh (most reliable — exact before/after snapshot)
+    if [ -n "${AUDIT_MANIFEST:-}" ] && [ -f "${AUDIT_MANIFEST}" ]; then
+        FIVEDAY_CHANGED_FILES=$(grep -v '^$' "$AUDIT_MANIFEST" || true)
+        FIVEDAY_CONTEXT_SOURCE="manifest from tasks.sh"
+
+    # 2. Explicit file list from CLI args
+    elif [ ${#explicit[@]} -gt 0 ]; then
+        FIVEDAY_CHANGED_FILES=$(printf '%s\n' "${explicit[@]}")
+        FIVEDAY_CONTEXT_SOURCE="explicit file list"
+
+    # 3. Task file's ## Completed section
+    elif [ -n "$task_file" ] && grep -q '^## Completed' "$task_file"; then
+        FIVEDAY_CHANGED_FILES=$(sed -n '/^## Completed/,/^## /{ /^## /d; p; }' "$task_file" \
+            | grep -oE '[a-zA-Z0-9_/./-]+\.[a-zA-Z]{1,5}' \
+            | sort -u \
+            | while read -r f; do [ -f "$f" ] && echo "$f"; done || true)
+        FIVEDAY_CONTEXT_SOURCE="task ## Completed section"
+
+    # 4. Fallback: git working tree diff
+    else
+        local staged
+        FIVEDAY_CHANGED_FILES=$(git diff --name-only 2>/dev/null || true)
+        staged=$(git diff --cached --name-only 2>/dev/null || true)
+        FIVEDAY_CHANGED_FILES=$(printf '%s\n%s' "$FIVEDAY_CHANGED_FILES" "$staged" | sort -u | grep -v '^$' || true)
+        FIVEDAY_CONTEXT_SOURCE="git working tree diff"
+    fi
+}
+
+# fiveday_extract_summary JSON_LOG_FILE -> print the audit summary text.
+# Prefers a "## Summary" section; else the 30 lines before a VERDICT: line
+# (a strict superset that only fires when ## Summary is absent — the normal
+# path is byte-identical for both audits); else the tail of the result.
+# Always prints something so callers under set -e never trip.
+fiveday_extract_summary() {
+    local json_file="$1"
+    python3 -c "
+import json, sys, re
+try:
+    data = json.load(open(sys.argv[1]))
+    text = data.get('result', '')
+    # Try ## Summary section first
+    m = re.search(r'## Summary\n(.*?)(?=\nVERDICT:|\Z)', text, re.DOTALL)
+    if m:
+        print(m.group(1).strip())
+    else:
+        lines = text.strip().split('\n')
+        verdict_idx = None
+        for i, l in enumerate(lines):
+            if 'VERDICT:' in l:
+                verdict_idx = i
+        if verdict_idx is not None and verdict_idx > 0:
+            start = max(0, verdict_idx - 30)
+            print('\n'.join(lines[start:verdict_idx]).strip())
+        elif text:
+            print(text[-2000:] if len(text) > 2000 else text)
+        else:
+            print('(no output captured)')
+except Exception as e:
+    print(f'(Could not extract summary: {e})')
+" "$json_file" 2>/dev/null || echo "(Could not extract summary)"
+}
+
 # ── Auto-load on source ─────────────────────────────────────────────
 # Populate shell variables from config, with env overrides and defaults.
 FIVEDAY_CLI="${FIVEDAY_CLI:-$(fiveday_cfg CLI)}"
 : "${FIVEDAY_CLI:=claude}"
+
+# Capability tier. Empty is fine — fiveday_ai_tier infers it from the CLI.
+FIVEDAY_PROVIDER="${FIVEDAY_PROVIDER:-$(fiveday_cfg PROVIDER)}"
 
 FIVEDAY_BUDGET_TASKS="${FIVEDAY_BUDGET_TASKS:-$(fiveday_cfg BUDGET_TASKS)}"
 : "${FIVEDAY_BUDGET_TASKS:=5.00}"

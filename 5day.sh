@@ -3,12 +3,16 @@ set -euo pipefail
 
 # 5day - Five Day Docs CLI
 
-# Colors
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+# Colors — blanked when NO_COLOR is set (matches docs/5day/lib.sh).
+if [ -n "${NO_COLOR:-}" ]; then
+    RED='' YELLOW='' BLUE='' CYAN='' NC=''
+else
+    RED='\033[0;31m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    CYAN='\033[0;36m'
+    NC='\033[0m'
+fi
 
 # Resolve project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -28,6 +32,7 @@ count_files() {
     local -a files
     restore="$(shopt -p nullglob)"
     shopt -s nullglob
+    # shellcheck disable=SC2206  # $pat is an intentional glob, not a split risk
     files=( "$dir"/$pat )
     eval "$restore"
     echo "${#files[@]}"
@@ -67,22 +72,25 @@ show_help() {
     echo "  checkfeatures             Analyze feature alignment"
     echo "  ai-context                Generate AI context summary"
     echo ""
+    echo -e "${BLUE}Sprint pipeline:${NC}  (a sprint = the tasks currently in docs/tasks/next/)"
+    echo "  sprint [count] [focus]        1. Plan    — pull tasks from backlog/ into next/"
+    echo "  define [limit]                2. Define  — vet tasks in next/, mark them READY"
+    echo "  tasks [limit] [--fast] [--force]  3. Execute — work READY tasks in next/ → review/"
+    echo "  loop [--refill] [--retry]     Autopilot  — chain all three, drain the queue"
+    echo "  review-sprint                 Review a queued sprint via dual-persona analysis"
+    echo ""
     echo -e "${BLUE}Workflow:${NC}"
     echo "  profile                       Create or update project profile"
     echo "  search <keyword>              Search tasks by keyword"
     echo "  find <task-id>                Find task, analyze state, show prompt"
     echo "  find <task-id> --think        Stress-test task quality (interactive)"
     echo "  find <task-id> --work         Analyze → move → work (full lifecycle)"
-    echo "  plan <task-id>            Interactive Q&A to define an incomplete task"
-    echo "  sprint [count] [focus]    Plan a sprint from backlog tasks"
-    echo "  define [limit]            Review and refine tasks in next/"
-    echo "  tasks [limit] [--parallel] [--fast] Execute tasks from next/"
-    echo "  loop [--hours N] [--refill] [--retry] Continuous task runner"
-    echo "  split <path>              Split a large task into subtasks"
-    echo "  review-sprint             Review sprint via dual-persona analysis"
+    echo "  plan <task-id>                Interactive Q&A to define an incomplete task"
+    echo "  split <path>                  Split a large task into subtasks"
     echo "  triage [limit]                Interactive walk-through of task pipeline"
     echo "  audit [folder|file] [limit] [offset]  Audit tasks in next/ (or specified folder)"
     echo "  review-code <file> [passes]   Run code audit on a task's changes"
+    echo "  excellence <file>             Judge finished work against a higher bar; file enhancements"
     echo ""
     echo -e "${BLUE}Sync:${NC}"
     echo "  sync [--all]                  Push task changes to GitHub"
@@ -247,6 +255,11 @@ cmd_review_code() {
     run_script "audit-code.sh" "$@"
 }
 
+cmd_excellence() {
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: File path(s) required${NC}"; echo "Usage: ./5day.sh excellence <task.md>"; echo "       ./5day.sh excellence <file1> <file2> ..."; exit 1; }
+    run_script "audit-excellence.sh" "$@"
+}
+
 cmd_validate() {
     run_script "validate-tasks.sh" "$@"
 }
@@ -299,6 +312,7 @@ case "$CMD" in
     triage)        shift; cmd_triage "$@" ;;
     audit)         shift; cmd_audit "$@" ;;
     review-code)   shift; cmd_review_code "$@" ;;
+    excellence)    shift; cmd_excellence "$@" ;;
     sync)          shift; cmd_sync "$@" ;;
     validate)      shift; cmd_validate "$@" ;;
     cleanup)       shift; cmd_cleanup "$@" ;;

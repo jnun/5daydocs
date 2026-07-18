@@ -102,11 +102,12 @@ Each command creates a file with inline guidance. Fill in the sections, then com
 ./5day.sh find <task-id> [--think|--work]  # Find task, analyze quality, or execute
 ./5day.sh plan <task-id>            # Interactive Q&A to define a task
 ./5day.sh sprint [count] [focus]    # Plan a sprint from backlog
-./5day.sh define [limit]            # Review and refine tasks in next/
-./5day.sh tasks [limit] [--fast]    # Execute tasks from next/
+./5day.sh define [limit]            # Review and refine tasks in next/ (stamps Status: READY)
+./5day.sh tasks [limit] [--fast]    # Execute READY tasks from next/ (--force to skip the gate; --audit --excellence to chain quality audits)
 ./5day.sh split <path>              # Split a large task into subtasks
 ./5day.sh review-sprint             # Review sprint via dual-persona analysis
 ./5day.sh review-code <file>        # Run code audit on a task's changes
+./5day.sh excellence <file>         # Judge finished work against a higher bar; file enhancements
 ./5day.sh audit [folder] [limit]    # Audit tasks in next/ (or specified folder)
 ./5day.sh triage [limit]            # Interactive walk-through of task pipeline
 

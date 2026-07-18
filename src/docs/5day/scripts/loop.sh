@@ -205,6 +205,16 @@ while true; do
 
   AFTER_REVIEW=$(count_tasks "$REVIEW_DIR")
   AFTER_BLOCKED=$(count_tasks "$BLOCKED_DIR")
+  AFTER_NEXT=$(count_tasks "$NEXT_DIR")
+
+  # Nothing moved at all → the runner's readiness gate declined every task.
+  # Iterating again would spin forever on the same undefined queue.
+  if [ "$AFTER_NEXT" -eq "$NEXT_COUNT" ] && [ "$AFTER_REVIEW" -eq "$BEFORE_REVIEW" ] \
+     && [ "$AFTER_BLOCKED" -eq "$BEFORE_BLOCKED" ]; then
+    echo "▸ No progress — $AFTER_NEXT task(s) in next/ but none are ready to execute."
+    echo "  Vet them with ./5day.sh define, or loop with --force."
+    break
+  fi
 
   if [ "$AFTER_REVIEW" -gt "$BEFORE_REVIEW" ]; then
     COMPLETED=$((COMPLETED + 1))

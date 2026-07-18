@@ -9,6 +9,8 @@ PARALLEL=0
 MAX_JOBS=2
 FIVEDAY_SKIP_DRIFT_CHECK=1
 RUN_AUDIT=0
+RUN_EXCELLENCE=0
+FORCE=0
 _NO_LIMITS=0
 _next_is_jobs=0
 VERBOSE=0
@@ -19,11 +21,13 @@ for arg in "$@"; do
     continue
   fi
   case "$arg" in
-    --drift)    FIVEDAY_SKIP_DRIFT_CHECK=0 ;;
-    --audit)    RUN_AUDIT=1 ;;
+    --drift)      FIVEDAY_SKIP_DRIFT_CHECK=0 ;;
+    --audit)      RUN_AUDIT=1 ;;
+    --excellence) RUN_EXCELLENCE=1 ;;
     --parallel) PARALLEL=1 ;;
     --fast)     PARALLEL=1; MAX_JOBS=4 ;;
     --max)      _NO_LIMITS=1 ;;
+    --force)    FORCE=1 ;;
     --assist)   _ASSIST=1 ;;
     --jobs)     _next_is_jobs=1 ;;
     --verbose)  VERBOSE=1 ;;
@@ -43,8 +47,8 @@ if [ "${_ASSIST:-0}" -eq 1 ]; then
   echo ""
   echo "  1) Standard              sequential"
   echo "  2) Fast parallel         --fast (4 concurrent jobs)"
-  echo "  3) Full quality          --max --audit (no limits + audit)"
-  echo "  4) Full quality + fast   --max --audit --fast"
+  echo "  3) Full quality          --max --audit --excellence (correctness + excellence)"
+  echo "  4) Full quality + fast   --max --audit --excellence --fast"
   echo ""
   printf "  Choice [1-4]: "
   read -r _choice </dev/tty 2>/dev/null || _choice="1"
@@ -52,18 +56,19 @@ if [ "${_ASSIST:-0}" -eq 1 ]; then
   case "$_choice" in
     1) set -- ;;
     2) set -- --fast ;;
-    3) set -- --max --audit ;;
-    4) set -- --max --audit --fast ;;
+    3) set -- --max --audit --excellence ;;
+    4) set -- --max --audit --excellence --fast ;;
     *) echo "  Invalid choice, running standard."; set -- ;;
   esac
 
   # Re-parse the selected flags
-  MAX_TASKS=999; PARALLEL=0; MAX_JOBS=2; RUN_AUDIT=0
+  MAX_TASKS=999; PARALLEL=0; MAX_JOBS=2; RUN_AUDIT=0; RUN_EXCELLENCE=0
   _NO_LIMITS=0; FIVEDAY_SKIP_DRIFT_CHECK=1
   for arg in "$@"; do
     case "$arg" in
-      --drift)    FIVEDAY_SKIP_DRIFT_CHECK=0 ;;
-      --audit)    RUN_AUDIT=1 ;;
+      --drift)      FIVEDAY_SKIP_DRIFT_CHECK=0 ;;
+      --audit)      RUN_AUDIT=1 ;;
+      --excellence) RUN_EXCELLENCE=1 ;;
       --parallel) PARALLEL=1 ;;
       --fast)     PARALLEL=1; MAX_JOBS=4 ;;
       --max)      _NO_LIMITS=1 ;;
@@ -89,11 +94,12 @@ MODEL="$(fiveday_resolve_model TASKS)"
 
 TOOLS="Read,Edit,Write,Bash,Grep,Glob,Agent"
 PERMISSIONS="auto"
-MAX_TURNS=40
 
-# --max removes all guardrails (turn limit + budget cap)
+# No turn cap: readiness (define) gates entry and the budget cap below is the
+# backstop. A turn cap decapitates normal runs mid-work and mislabels them
+# "too complex" — a healthy task run is ~25-30 turns.
+# --max removes the budget cap (the only per-run guardrail)
 if [ "$_NO_LIMITS" -eq 1 ]; then
-  MAX_TURNS=""
   FIVEDAY_BUDGET_TASKS=""
 fi
 unset _NO_LIMITS
@@ -128,6 +134,36 @@ if [ ${#TASK_FILES[@]} -eq 0 ]; then
   exit 0
 fi
 
+# ── Readiness gate ──────────────────────────────────────────────────
+# define.sh stamps '**Status: READY**' into tasks it has vetted. A task
+# without that verdict hasn't been checked for clarity — and a headless
+# run can't ask clarifying questions, so ambiguity turns into wandering
+# and failure. Undefined tasks are skipped, not executed. --force overrides.
+if [ "$FORCE" -ne 1 ]; then
+  _ready=()
+  _skipped=()
+  for _f in "${TASK_FILES[@]}"; do
+    if [ "$(fiveday_review_verdict "$_f")" = "READY" ]; then
+      _ready+=("$_f")
+    else
+      _skipped+=("$_f")
+    fi
+  done
+  if [ ${#_skipped[@]} -gt 0 ]; then
+    echo "⊘ Skipping ${#_skipped[@]} task(s) not yet defined (no 'Status: READY' verdict):"
+    for _f in "${_skipped[@]}"; do echo "    ${_f##*/}"; done
+    echo "  Vet them first:  ./5day.sh define"
+    echo "  Or run anyway:   ./5day.sh tasks --force"
+    echo ""
+  fi
+  TASK_FILES=(${_ready[@]+"${_ready[@]}"})
+  if [ ${#TASK_FILES[@]} -eq 0 ]; then
+    echo "No ready tasks in $NEXT_DIR"
+    exit 0
+  fi
+  unset _ready _skipped _f
+fi
+
 COUNT=${#TASK_FILES[@]}
 if [ "$COUNT" -gt "$MAX_TASKS" ]; then
   COUNT=$MAX_TASKS
@@ -155,12 +191,13 @@ fi
 COMPLETED=0
 FAILED=0
 INCOMPLETE=0
+BLOCKERS=0
 HARD_FAIL=0
 TOTAL_START=$SECONDS
 AUDIT_SCRIPT="$(dirname "${BASH_SOURCE[0]}")/audit-code.sh"
+EXCELLENCE_SCRIPT="$(dirname "${BASH_SOURCE[0]}")/audit-excellence.sh"
 
 _model_args=();  [ -n "$MODEL" ] && _model_args=(--model "$MODEL")
-_turns_args=();  [ -n "$MAX_TURNS" ] && _turns_args=(--max-turns "$MAX_TURNS")
 _budget_args=(); [ -n "${FIVEDAY_BUDGET_TASKS:-}" ] && _budget_args=(--budget "$FIVEDAY_BUDGET_TASKS")
 
 # Shared execution rules — used by both the exec prompt and the emit
@@ -214,6 +251,13 @@ if [ "$AI_MODE" = "emit" ]; then
   [ "$RUN_AUDIT" -eq 1 ] && _audit_step="
    c. If it landed in review/, run: ./5day.sh review-code docs/tasks/review/<name>"
 
+  # Excellence presumes correctness, so it runs AFTER the code audit. A
+  # BLOCKER verdict does not halt the queue — the file stays in review/.
+  _excellence_step=""
+  [ "$RUN_EXCELLENCE" -eq 1 ] && _excellence_step="
+   d. If it landed in review/, run: ./5day.sh excellence docs/tasks/review/<name>
+      (leave it in review/ even if the verdict is BLOCKER)"
+
   fiveday_run -p "You are running the 5DayDocs task queue: $COUNT task(s) to execute.
 CLAUDE.md is auto-loaded.${_profile_line}
 
@@ -228,7 +272,7 @@ For EACH task file listed below:
 $_TASK_RULES\"
 3. When the subagent returns, read docs/tasks/doing/<name> and route it:
    a. contains a '## Completed' section → git mv it to docs/tasks/review/
-   b. otherwise → git mv it to docs/tasks/blocked/ and note what remains${_audit_step}
+   b. otherwise → git mv it to docs/tasks/blocked/ and note what remains${_audit_step}${_excellence_step}
 
 Tasks (in order):$_task_list
 
@@ -239,23 +283,73 @@ fi
 
 # ── exec helpers (shared by sequential and parallel) ─────────────────
 
-# Run the AI on a task already in doing/. Writes a JSON log. Returns exit code.
+# Render stream-json events as one line per step so a live run is visible.
+# Non-JSON lines (CLI errors on stderr) pass through prefixed with '!'.
+_stream_filter() {
+  if command -v python3 >/dev/null 2>&1; then
+    python3 -u -c '
+import json, sys
+def hint(inp):
+    for k in ("file_path", "command", "pattern", "description", "path"):
+        if inp.get(k):
+            return " ".join(str(inp[k]).split())[:100]
+    return ""
+for line in sys.stdin:
+    line = line.rstrip("\n")
+    if not line:
+        continue
+    try:
+        e = json.loads(line)
+    except ValueError:
+        print("  ! " + line)
+        continue
+    t = e.get("type")
+    if t == "assistant":
+        for b in e.get("message", {}).get("content", []):
+            if b.get("type") == "tool_use":
+                print("  -> %s %s" % (b.get("name", "?"), hint(b.get("input", {}))))
+            elif b.get("type") == "text" and b.get("text", "").strip():
+                txt = " ".join(b["text"].split())
+                print("   · " + (txt[:200] + "..." if len(txt) > 200 else txt))
+    elif t == "result":
+        secs = int(e.get("duration_ms", 0) / 1000)
+        print("  == %s: %s turns, %dm %02ds, $%.2f" % (
+            e.get("subtype", "?"), e.get("num_turns", "?"),
+            secs // 60, secs % 60, e.get("total_cost_usd") or 0))
+' || cat
+  else
+    cat
+  fi
+}
+
+# Run the AI on a task already in doing/. The raw stream-json event log
+# always lands in docs/tmp/; pass display=1 (sequential mode) to also
+# render live progress on the terminal. Returns the CLI's exit code.
 _run_task() {
-  local name="$1" log
+  local name="$1" display="${2:-0}" log
   log="$(fiveday_log_path tasks "$name")"
-  fiveday_run -p "$(_task_prompt "$WORKING_DIR/$name")" \
-    ${_model_args[@]+"${_model_args[@]}"} \
-    ${_turns_args[@]+"${_turns_args[@]}"} \
-    ${_budget_args[@]+"${_budget_args[@]}"} \
-    --tools "$TOOLS" \
-    --permissions "$PERMISSIONS" \
-    --output-format json > "$log" 2>&1
+  if [ "$display" -eq 1 ]; then
+    fiveday_run -p "$(_task_prompt "$WORKING_DIR/$name")" \
+      ${_model_args[@]+"${_model_args[@]}"} \
+      ${_budget_args[@]+"${_budget_args[@]}"} \
+      --tools "$TOOLS" \
+      --permissions "$PERMISSIONS" \
+      --output-format stream-json --verbose 2>&1 \
+      | tee "$log" | _stream_filter
+  else
+    fiveday_run -p "$(_task_prompt "$WORKING_DIR/$name")" \
+      ${_model_args[@]+"${_model_args[@]}"} \
+      ${_budget_args[@]+"${_budget_args[@]}"} \
+      --tools "$TOOLS" \
+      --permissions "$PERMISSIONS" \
+      --output-format stream-json --verbose > "$log" 2>&1
+  fi
 }
 
 # Route a finished task (in doing/) to review/ or blocked/, update counters.
 # Args: name  exit_code
 _route_result() {
-  local name="$1" rc="$2" num
+  local name="$1" rc="$2"
   if [ "$rc" -eq 0 ] && grep -q '^## Completed' "$WORKING_DIR/$name"; then
     if [ "$RUN_AUDIT" -eq 1 ] && [ -f "$AUDIT_SCRIPT" ]; then
       echo "  ▸ Running code audit..."
@@ -265,24 +359,39 @@ _route_result() {
         echo "  ⚠ Audit completed with warnings (see task file)"
       fi
     fi
+    # Excellence presumes correctness, so it runs AFTER the code audit. It
+    # appends its own '## Excellence' section to the task file. A BLOCKER
+    # verdict does NOT halt the queue — the task still routes to review/;
+    # the blocker is only counted in the end-of-run summary. Detect it by
+    # the appended verdict line, not the exit code: exit 1 also covers the
+    # UNCLEAR/parse-failure case, which is not a blocker.
+    if [ "$RUN_EXCELLENCE" -eq 1 ] && [ -f "$EXCELLENCE_SCRIPT" ]; then
+      echo "  ▸ Running excellence audit..."
+      if bash "$EXCELLENCE_SCRIPT" "$WORKING_DIR/$name"; then
+        echo "  ✓ Excellence audit passed"
+      else
+        echo "  ⚠ Excellence audit completed with findings (see task file)"
+      fi
+      if grep -q '^- \*\*Verdict\*\*: BLOCKER' "$WORKING_DIR/$name"; then
+        BLOCKERS=$((BLOCKERS + 1))
+        echo "  ⚠ Excellence: BLOCKER recorded — routing to review/ for human attention"
+      fi
+    fi
     move_file "$WORKING_DIR/$name" "$REVIEW_DIR/$name"
     COMPLETED=$((COMPLETED + 1))
     echo "  ✓ Complete → $REVIEW_DIR/$name"
-  elif [ -n "$MAX_TURNS" ]; then
-    # No ## Completed and a turn cap was in force → too big to finish atomically.
-    num=$(echo "$name" | grep -oE '^[0-9]+' || echo "?")
-    move_file "$WORKING_DIR/$name" "$BLOCKED_DIR/$name"
-    FAILED=$((FAILED + 1))
-    echo "  ✗ Task $num exceeded $MAX_TURNS turns — too complex for atomic execution."
-    echo "    → Moved to $BLOCKED_DIR/$name"
-    echo "    Consider: split with ./5day.sh split, or redefine with fewer goals."
   elif [ "$rc" -eq 0 ]; then
+    # Ran to completion but never wrote ## Completed — the run stopped short
+    # (or hit the budget cap). The prompt requires documenting what remains.
+    move_file "$WORKING_DIR/$name" "$BLOCKED_DIR/$name"
     INCOMPLETE=$((INCOMPLETE + 1))
-    echo "  ⚠ Incomplete (no ## Completed section) — left in $WORKING_DIR/$name"
+    echo "  ⚠ Incomplete — no '## Completed' section."
+    echo "    → Moved to $BLOCKED_DIR/$name (task file should note what remains)"
   else
     FAILED=$((FAILED + 1))
     HARD_FAIL=1
     echo "  ✗ Failed (exit $rc) — left in $WORKING_DIR/$name"
+    echo "    Log: docs/tmp/log-tasks-${name%.md}-*.json"
   fi
 }
 
@@ -471,7 +580,10 @@ Rules:
     esac
   fi
 
-  _run_task "$TASK_NAME"; _rc=$?
+  # '|| _rc=$?' keeps set -e from killing the whole queue on a CLI error —
+  # the result must reach _route_result so the task gets routed and reported.
+  _rc=0
+  _run_task "$TASK_NAME" 1 || _rc=$?
   _route_result "$TASK_NAME" "$_rc"
 
   TASK_ELAPSED=$((SECONDS - TASK_START))
@@ -487,3 +599,8 @@ fi # end parallel/sequential branch
 TOTAL_ELAPSED=$((SECONDS - TOTAL_START))
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "▸ Done: $COMPLETED completed, $FAILED failed, $INCOMPLETE incomplete, $((COUNT - COMPLETED - FAILED - INCOMPLETE)) skipped — total $((TOTAL_ELAPSED / 60))m $((TOTAL_ELAPSED % 60))s"
+# `if`, not `&&`: this is the script's last statement, and a false `[ ]` on a
+# blocker-free run would become the script's non-zero exit status.
+if [ "$BLOCKERS" -gt 0 ]; then
+  echo "  ⚠ $BLOCKERS excellence blocker(s) recorded — inspect the '## Excellence' section in review/ before merging"
+fi

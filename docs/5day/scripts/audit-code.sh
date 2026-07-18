@@ -6,6 +6,7 @@ set -euo pipefail
 # ── Config ───────────────────────────────────────────────────────────
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
+AI_MODE="$(fiveday_ai_mode)"
 MODEL="$(fiveday_resolve_model CODE_AUDIT)"
 TOOLS_FIXER="Read,Edit,Write,Bash,Grep,Glob,Agent"
 TOOLS_VERIFIER="Read,Bash,Grep,Glob,Agent"
@@ -57,7 +58,9 @@ else
 fi
 
 # ── Preflight ───────────────────────────────────────────────────────
-if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
+# The CLI binary is only required in exec mode; emit mode hands the prompt
+# to the surrounding agent and never spawns it.
+if [ "$AI_MODE" != "emit" ] && ! command -v "$FIVEDAY_CLI" &>/dev/null; then
   echo "✗ AI CLI '$FIVEDAY_CLI' not found in PATH" >&2
   echo "  Edit docs/5day/config to change CLI, or install the tool." >&2
   exit 1
@@ -67,35 +70,9 @@ mkdir -p "$LOG_DIR"
 
 # ── Build the change manifest ───────────────────────────────────────
 # Priority: AUDIT_MANIFEST env > explicit files > task ## Completed > git diff
-CHANGED_FILES=""
-CONTEXT_SOURCE=""
-
-# 1. Manifest file from tasks.sh (most reliable — exact before/after snapshot)
-if [ -n "${AUDIT_MANIFEST:-}" ] && [ -f "${AUDIT_MANIFEST}" ]; then
-  CHANGED_FILES=$(grep -v '^$' "$AUDIT_MANIFEST" || true)
-  CONTEXT_SOURCE="manifest from tasks.sh"
-
-# 2. Explicit file list from CLI args
-elif [ ${#EXPLICIT_FILES[@]} -gt 0 ]; then
-  CHANGED_FILES=$(printf '%s\n' "${EXPLICIT_FILES[@]}")
-  CONTEXT_SOURCE="explicit file list"
-
-# 3. Task file's ## Completed section
-elif [ -n "$TASK_FILE" ] && grep -q '^## Completed' "$TASK_FILE"; then
-  # Extract file paths from the Completed section (lines containing path-like strings)
-  CHANGED_FILES=$(sed -n '/^## Completed/,/^## /{ /^## /d; p; }' "$TASK_FILE" \
-    | grep -oE '[a-zA-Z0-9_/./-]+\.[a-zA-Z]{1,5}' \
-    | sort -u \
-    | while read -r f; do [ -f "$f" ] && echo "$f"; done || true)
-  CONTEXT_SOURCE="task ## Completed section"
-
-# 4. Fallback: git working tree diff
-else
-  CHANGED_FILES=$(git diff --name-only 2>/dev/null || true)
-  STAGED=$(git diff --cached --name-only 2>/dev/null || true)
-  CHANGED_FILES=$(printf '%s\n%s' "$CHANGED_FILES" "$STAGED" | sort -u | grep -v '^$' || true)
-  CONTEXT_SOURCE="git working tree diff"
-fi
+fiveday_change_manifest "$TASK_FILE" ${EXPLICIT_FILES[@]+"${EXPLICIT_FILES[@]}"}
+CHANGED_FILES="$FIVEDAY_CHANGED_FILES"
+CONTEXT_SOURCE="$FIVEDAY_CONTEXT_SOURCE"
 
 if [ -z "$CHANGED_FILES" ]; then
   echo "▸ No changed files found — nothing to audit"
@@ -120,6 +97,34 @@ echo "  Max fixer passes: $MAX_PASSES"
 echo "  Files:"
 echo "$CHANGED_FILES" | sed 's/^/    /'
 echo ""
+
+# ── Emit mode: hand the whole audit to the surrounding agent ──────────
+# In emit mode fiveday_run prints the prompt instead of spawning the CLI, so
+# the fixer/verifier loop below cannot parse a verdict out of its command
+# substitution (the emitted prompt text — which contains "VERDICT: PASS" —
+# would be mis-read as a clean pass having audited nothing). Emit one
+# combined prompt describing the whole audit instead, mirroring
+# audit-excellence.sh's AI_MODE guard.
+if [ "$AI_MODE" = "emit" ]; then
+  fiveday_run -p "You are auditing the code changes below for the developer.
+
+CLAUDE.md is auto-loaded with project context and conventions. Read it first.
+
+${TASK_FILE:+ORIGINAL TASK FILE: $TASK_FILE
+}CHANGED FILES (context source: $CONTEXT_SOURCE):
+$CHANGED_FILES
+
+Do a fresh-eyes code audit:
+1. Build an impact graph — grep for imports/references to the changed files.
+2. Audit for correctness, project conventions, style (touched lines only),
+   build/type safety, and unsafe patterns.
+3. Fix any issues you find directly.
+4. Re-verify your fixes with read-only checks.
+
+Finish with a '## Summary' section, then a final line:
+VERDICT: PASS — no issues | FIXED — fixed all | FAIL — couldn't fix all | BLOCKED — needs human"
+  exit 0
+fi
 
 # ── Build task context block ────────────────────────────────────────
 if [ -n "$TASK_CONTENT" ]; then
@@ -222,34 +227,7 @@ fi
 echo ""
 
 # ── Feed-forward summary extraction ────────────────────────────────
-extract_summary() {
-  local json_file="$1"
-  python3 -c "
-import json, sys, re
-try:
-    data = json.load(open(sys.argv[1]))
-    text = data.get('result', '')
-    # Try ## Summary section first
-    m = re.search(r'## Summary\n(.*?)(?=\nVERDICT:|$)', text, re.DOTALL)
-    if m:
-        print(m.group(1).strip())
-    else:
-        lines = text.strip().split('\n')
-        verdict_idx = None
-        for i, l in enumerate(lines):
-            if 'VERDICT:' in l:
-                verdict_idx = i
-        if verdict_idx is not None and verdict_idx > 0:
-            start = max(0, verdict_idx - 30)
-            print('\n'.join(lines[start:verdict_idx]).strip())
-        elif text:
-            print(text[-2000:] if len(text) > 2000 else text)
-        else:
-            print('(no output captured)')
-except Exception as e:
-    print(f'(Could not extract summary: {e})')
-" "$json_file" 2>/dev/null || echo "(Could not extract summary from previous pass)"
-}
+# Provided by lib.sh as fiveday_extract_summary (shared with audit-excellence).
 
 # ── Audit loop ──────────────────────────────────────────────────────
 STEP=0
@@ -443,7 +421,7 @@ VERDICT: PASS — no issues | FIXED — fixed all | FAIL — couldn't fix all | 
   fi
 
   # Extract feed-forward summary for next pass
-  PREV_SUMMARY=$(extract_summary "$LOG_FILE")
+  PREV_SUMMARY=$(fiveday_extract_summary "$LOG_FILE")
 
   # ── Route verdict ──────────────────────────────────────────────
   case "$STEP_VERDICT" in

@@ -101,6 +101,28 @@ closes the loop and starts the next one.
 
 ---
 
+## Running a sprint
+
+A **sprint is just the group of tasks sitting in `docs/tasks/next/`.** There's no
+special file, label, or ID — whatever is in `next/` right now *is* the sprint.
+
+Three separate commands take a sprint from backlog to finished. They're separate on
+purpose: each one stops so you can fix whatever it reveals before moving on.
+
+| Step | Command | What it does | You stop to… |
+|------|---------|--------------|--------------|
+| **1. Plan** | `./5day.sh sprint [count]` | picks tasks from `backlog/` into `next/` | review the plan before files move |
+| **2. Define** | `./5day.sh define` | vets each task in `next/`, marks it `READY` | answer questions, fix blocked tasks |
+| **3. Execute** | `./5day.sh tasks` | works the `READY` tasks, each in a fresh AI context → `review/` | review the diffs before you commit |
+
+`sprint` **plans** a sprint; `tasks` **executes** the one already in `next/`. Keeping
+them apart lets you catch problems each step surfaces instead of running blind.
+
+Want it unattended? `./5day.sh loop --refill --retry` chains all three and drains the
+backlog on its own — you trade the stop-points for hands-off.
+
+---
+
 ## What's in the package
 
 Five ways to create work. Each command writes a file with inline guidance — fill

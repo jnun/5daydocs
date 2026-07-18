@@ -291,6 +291,11 @@ merge_config() {
 # ============================================================================
 
 if $UPDATE_MODE; then
+    # Remember the version we started from — the migrations below walk
+    # INSTALLED_VERSION forward, so this is the only point it still holds
+    # the version actually on disk. Used in the final summary.
+    ORIGINAL_VERSION="$INSTALLED_VERSION"
+
     echo ""
     echo "Running version migrations..."
 
@@ -1435,24 +1440,26 @@ if $UPDATE_MODE && [ -n "$CURRENT_CLI" ]; then
     echo "  Current: $CURRENT_CLI"
 fi
 echo "  1) Claude"
-echo "  2) OpenAI / Codex"
-echo "  3) Gemini"
-echo "  4) Mistral"
-echo "  5) Other"
+echo "  2) Cursor"
+echo "  3) OpenAI / Codex"
+echo "  4) Gemini"
+echo "  5) Mistral"
+echo "  6) Other"
 echo ""
 if $UPDATE_MODE && [ -n "$CURRENT_CLI" ]; then
-    echo "Enter your choice (1-5, or press Enter to keep current):"
+    echo "Enter your choice (1-6, or press Enter to keep current):"
 else
-    echo "Enter your choice (1-5, or press Enter for Claude):"
+    echo "Enter your choice (1-6, or press Enter for Claude):"
 fi
 read -r CLI_CHOICE
 
 case "$CLI_CHOICE" in
-    1)  SELECTED_CLI="claude"  ;;
-    2)  SELECTED_CLI="codex"   ;;
-    3)  SELECTED_CLI="gemini"  ;;
-    4)  SELECTED_CLI="mistral" ;;
-    5)
+    1)  SELECTED_CLI="claude"       ;;
+    2)  SELECTED_CLI="cursor-agent" ;;
+    3)  SELECTED_CLI="codex"        ;;
+    4)  SELECTED_CLI="gemini"       ;;
+    5)  SELECTED_CLI="mistral"      ;;
+    6)
         echo "Enter the CLI binary name:"
         read -r CUSTOM_CLI
         if [ -z "$CUSTOM_CLI" ]; then
@@ -1476,18 +1483,51 @@ case "$CLI_CHOICE" in
         ;;
 esac
 
-# Write CLI into the config file
+# Derive the capability tier from the chosen CLI binary. This mirrors the
+# inference in lib.sh:fiveday_ai_tier exactly, so config and library agree.
+case "$SELECTED_CLI" in
+    claude)              SELECTED_PROVIDER="claude-code" ;;
+    cursor-agent|cursor) SELECTED_PROVIDER="cursor"      ;;
+    codex)               SELECTED_PROVIDER="openai"      ;;
+    *)                   SELECTED_PROVIDER="generic"     ;;
+esac
+
+# Write CLI and provider tier into the config file
 if [ -f "$CONFIG_FILE" ]; then
     if declare -F fiveday_cfg_set >/dev/null 2>&1; then
         fiveday_cfg_set CLI "$SELECTED_CLI"
-    elif grep -q "^CLI=" "$CONFIG_FILE"; then
-        sed -i '' "s|^CLI=.*|CLI=${SELECTED_CLI}|" "$CONFIG_FILE"
+        fiveday_cfg_set PROVIDER "$SELECTED_PROVIDER"
     else
-        echo "CLI=${SELECTED_CLI}" >> "$CONFIG_FILE"
+        for _kv in "CLI=${SELECTED_CLI}" "PROVIDER=${SELECTED_PROVIDER}"; do
+            _k="${_kv%%=*}"
+            if grep -q "^${_k}=" "$CONFIG_FILE"; then
+                sed -i '' "s|^${_k}=.*|${_kv}|" "$CONFIG_FILE"
+            else
+                echo "$_kv" >> "$CONFIG_FILE"
+            fi
+        done
     fi
-    msg_success "AI CLI set to: $SELECTED_CLI"
+    msg_success "AI CLI set to: $SELECTED_CLI (provider tier: $SELECTED_PROVIDER)"
 else
     msg_warning "Config file not found: $CONFIG_FILE"
+fi
+
+# Provider-specific instruction file. When Claude Code or Cursor is the tier,
+# offer to create the matching AI instruction file if it doesn't exist yet.
+# Reuses the prepend-never-clobber machinery (setup_ai_file) — no new content.
+case "$SELECTED_PROVIDER" in
+    claude-code) PROVIDER_AI_FILE="CLAUDE.md"    ;;
+    cursor)      PROVIDER_AI_FILE=".cursorrules" ;;
+    *)           PROVIDER_AI_FILE=""             ;;
+esac
+if [ -n "$PROVIDER_AI_FILE" ] && [ ! -f "$PROVIDER_AI_FILE" ] \
+   && declare -F setup_ai_file >/dev/null 2>&1; then
+    echo ""
+    echo "Create the $(_ai_label "$PROVIDER_AI_FILE") instruction file (${PROVIDER_AI_FILE}) for your provider? [Y]es/No"
+    read -r PROVIDER_FILE_CHOICE
+    if [[ -z "$PROVIDER_FILE_CHOICE" ]] || [[ "$PROVIDER_FILE_CHOICE" =~ ^[Yy] ]]; then
+        setup_ai_file "$SRC_DIR/$PROVIDER_AI_FILE" "$PROVIDER_AI_FILE" "$PROVIDER_AI_FILE" "yes"
+    fi
 fi
 
 echo ""
@@ -1564,15 +1604,17 @@ echo ""
 if $UPDATE_MODE; then
     msg_success "5DayDocs updated to version $CURRENT_VERSION"
     echo ""
-    echo "Changes:"
-    echo "  - New commands: find, search, profile, triage"
-    echo "  - Leaner templates and streamlined create scripts"
-    echo "  - AI guidance restructured into focused files"
-    echo "  - Shared utilities consolidated into lib.sh"
-    echo "  - Scripts synced and DOC_STATE.md reconciled"
+    if [ -n "${ORIGINAL_VERSION:-}" ] && [ "$ORIGINAL_VERSION" != "$CURRENT_VERSION" ]; then
+        echo "  Version:       $ORIGINAL_VERSION → $CURRENT_VERSION"
+    else
+        echo "  Version:       $CURRENT_VERSION (no change — files re-synced)"
+    fi
+    echo "  Files synced:  $FILES_COPIED"
+    echo "  Scripts synced from src/ and DOC_STATE.md reconciled"
 else
     msg_success "5DayDocs installed to: $TARGET_PATH"
     echo "Platform: $PLATFORM"
+    echo "Files installed: $FILES_COPIED"
     echo ""
     echo "Directory structure created in docs/"
     echo "Scripts available at docs/5day/scripts/"

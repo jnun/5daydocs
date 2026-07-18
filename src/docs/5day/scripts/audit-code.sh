@@ -67,35 +67,9 @@ mkdir -p "$LOG_DIR"
 
 # ── Build the change manifest ───────────────────────────────────────
 # Priority: AUDIT_MANIFEST env > explicit files > task ## Completed > git diff
-CHANGED_FILES=""
-CONTEXT_SOURCE=""
-
-# 1. Manifest file from tasks.sh (most reliable — exact before/after snapshot)
-if [ -n "${AUDIT_MANIFEST:-}" ] && [ -f "${AUDIT_MANIFEST}" ]; then
-  CHANGED_FILES=$(grep -v '^$' "$AUDIT_MANIFEST" || true)
-  CONTEXT_SOURCE="manifest from tasks.sh"
-
-# 2. Explicit file list from CLI args
-elif [ ${#EXPLICIT_FILES[@]} -gt 0 ]; then
-  CHANGED_FILES=$(printf '%s\n' "${EXPLICIT_FILES[@]}")
-  CONTEXT_SOURCE="explicit file list"
-
-# 3. Task file's ## Completed section
-elif [ -n "$TASK_FILE" ] && grep -q '^## Completed' "$TASK_FILE"; then
-  # Extract file paths from the Completed section (lines containing path-like strings)
-  CHANGED_FILES=$(sed -n '/^## Completed/,/^## /{ /^## /d; p; }' "$TASK_FILE" \
-    | grep -oE '[a-zA-Z0-9_/./-]+\.[a-zA-Z]{1,5}' \
-    | sort -u \
-    | while read -r f; do [ -f "$f" ] && echo "$f"; done || true)
-  CONTEXT_SOURCE="task ## Completed section"
-
-# 4. Fallback: git working tree diff
-else
-  CHANGED_FILES=$(git diff --name-only 2>/dev/null || true)
-  STAGED=$(git diff --cached --name-only 2>/dev/null || true)
-  CHANGED_FILES=$(printf '%s\n%s' "$CHANGED_FILES" "$STAGED" | sort -u | grep -v '^$' || true)
-  CONTEXT_SOURCE="git working tree diff"
-fi
+fiveday_change_manifest "$TASK_FILE" ${EXPLICIT_FILES[@]+"${EXPLICIT_FILES[@]}"}
+CHANGED_FILES="$FIVEDAY_CHANGED_FILES"
+CONTEXT_SOURCE="$FIVEDAY_CONTEXT_SOURCE"
 
 if [ -z "$CHANGED_FILES" ]; then
   echo "▸ No changed files found — nothing to audit"
@@ -222,34 +196,7 @@ fi
 echo ""
 
 # ── Feed-forward summary extraction ────────────────────────────────
-extract_summary() {
-  local json_file="$1"
-  python3 -c "
-import json, sys, re
-try:
-    data = json.load(open(sys.argv[1]))
-    text = data.get('result', '')
-    # Try ## Summary section first
-    m = re.search(r'## Summary\n(.*?)(?=\nVERDICT:|$)', text, re.DOTALL)
-    if m:
-        print(m.group(1).strip())
-    else:
-        lines = text.strip().split('\n')
-        verdict_idx = None
-        for i, l in enumerate(lines):
-            if 'VERDICT:' in l:
-                verdict_idx = i
-        if verdict_idx is not None and verdict_idx > 0:
-            start = max(0, verdict_idx - 30)
-            print('\n'.join(lines[start:verdict_idx]).strip())
-        elif text:
-            print(text[-2000:] if len(text) > 2000 else text)
-        else:
-            print('(no output captured)')
-except Exception as e:
-    print(f'(Could not extract summary: {e})')
-" "$json_file" 2>/dev/null || echo "(Could not extract summary from previous pass)"
-}
+# Provided by lib.sh as fiveday_extract_summary (shared with audit-excellence).
 
 # ── Audit loop ──────────────────────────────────────────────────────
 STEP=0
@@ -443,7 +390,7 @@ VERDICT: PASS — no issues | FIXED — fixed all | FAIL — couldn't fix all | 
   fi
 
   # Extract feed-forward summary for next pass
-  PREV_SUMMARY=$(extract_summary "$LOG_FILE")
+  PREV_SUMMARY=$(fiveday_extract_summary "$LOG_FILE")
 
   # ── Route verdict ──────────────────────────────────────────────
   case "$STEP_VERDICT" in

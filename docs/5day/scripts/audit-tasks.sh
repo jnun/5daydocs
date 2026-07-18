@@ -36,33 +36,21 @@ elif [ ! -d "$dir" ]; then
     exit 1
 fi
 timeout_sec=120       # kill hung AI CLI calls after this
-command -v "$FIVEDAY_CLI" &>/dev/null || { echo "Error: AI CLI '$FIVEDAY_CLI' not found in PATH. Edit docs/5day/config (CLI) or install the tool. Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview" >&2; exit 1; }
+AI_MODE="$(fiveday_ai_mode)"
+
+# The CLI binary is only required in exec mode; emit mode hands the prompt to
+# the surrounding agent and never spawns it.
+if [ "$AI_MODE" != "emit" ]; then
+  command -v "$FIVEDAY_CLI" &>/dev/null || { echo "Error: AI CLI '$FIVEDAY_CLI' not found in PATH. Edit docs/5day/config (CLI) or install the tool. Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview" >&2; exit 1; }
+fi
 
 # Build --model args (empty = let CLI pick its own default)
 _audit_model="$(fiveday_resolve_model AUDIT)"
 _model_args=()
 [ -n "$_audit_model" ] && _model_args=(--model "$_audit_model")
 
-# Portable timeout: macOS lacks coreutils timeout
-if command -v timeout &>/dev/null; then
-  run_with_timeout() { timeout "${timeout_sec}s" "$@"; }
-elif command -v gtimeout &>/dev/null; then
-  run_with_timeout() { gtimeout "${timeout_sec}s" "$@"; }
-else
-  run_with_timeout() {
-    "$@" &
-    local pid=$!
-    ( sleep "$timeout_sec" && kill "$pid" 2>/dev/null ) &
-    local watcher=$!
-    wait "$pid" 2>/dev/null
-    local ret=$?
-    # Kill watcher and its child sleep to avoid orphaned processes
-    kill "$watcher" 2>/dev/null
-    pkill -P "$watcher" 2>/dev/null
-    wait "$watcher" 2>/dev/null
-    return $ret
-  }
-fi
+# Portable timeout comes from lib.sh (run_with_timeout SECONDS CMD…), which
+# handles shell functions like fiveday_run via its watchdog path.
 
 review_dir="docs/tasks/review"
 blocked_dir="docs/tasks/blocked"
@@ -86,6 +74,49 @@ fi
 
 total=${#files[@]}
 run_log=""
+
+# ── Emit mode: hand the whole audit to the surrounding agent ──────────
+# In emit mode fiveday_run prints the prompt instead of running the CLI, so
+# the per-task exec loop below cannot parse a verdict out of a command
+# substitution (the emitted prompt text — which literally contains
+# "DONE - …" — would be mis-read as the verdict and move every task to
+# review/). Instead emit one combined prompt describing the whole audit,
+# mirroring triage.sh.
+if [ "$AI_MODE" = "emit" ]; then
+  if [ "$total" -eq 0 ]; then
+    echo "No tasks to audit in $folder/."
+    exit 0
+  fi
+  _file_list=$(printf '%s\n' "${files[@]}")
+  fiveday_run -p "You are auditing task files from $folder/ for the developer, one at a time.
+
+CLAUDE.md is auto-loaded with project context and conventions. Read it first.
+
+Task files to audit, in order:
+$_file_list
+
+For EACH task file in order:
+1. Read the task file, then check the current codebase.
+2. Decide EXACTLY ONE verdict:
+   - DONE      — the work described is already present in the codebase
+   - OUTDATED  — it references files/patterns/features that no longer exist
+   - UNDEFINED — it is too vaguely defined to be actionable
+   - KEEP      — still relevant, well-defined, and not yet completed
+   Be conservative: if in doubt, KEEP.
+3. Take the action for that verdict:
+   - DONE      → move the file to docs/tasks/review/ (use 'git mv' if the
+                 repo is a git working tree, else plain 'mv')
+   - OUTDATED  → remove the file ('git rm' or plain 'rm')
+   - UNDEFINED → insert a bold '**This task is not defined yet. Define it
+                 first.**' note under its '## Problem' heading, then move it
+                 to docs/tasks/blocked/
+   - KEEP      → leave it in $folder/
+4. Print one line per task: 'VERDICT | <taskname> | <one-line reason>'.
+
+After all tasks, print a short summary count per verdict."
+  exit 0
+fi
+
 echo "=== Task Audit ($folder): $total tasks (${timeout_sec}s timeout) ==="
 
 for i in "${!files[@]}"; do
@@ -122,7 +153,7 @@ Rules:
 - UNDEFINED means someone would need to rewrite the task before working it
 - Only output the verdict line and reason line, nothing else"
 
-  verdict=$(run_with_timeout fiveday_run -p "$_audit_prompt" \
+  verdict=$(run_with_timeout "$timeout_sec" fiveday_run -p "$_audit_prompt" \
     ${_model_args[@]+"${_model_args[@]}"} --skip-permissions 2>/dev/null) || true
 
   # Parse verdict — scan for keyword (Sonnet sometimes buries it)

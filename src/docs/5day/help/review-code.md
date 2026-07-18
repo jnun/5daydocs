@@ -21,3 +21,7 @@ Usage:
 
 The audit never blocks task promotion — it fixes what it can,
 documents what it cannot, and exits 0 (clean) or 1 (warnings).
+
+review-code answers "is it correct?" For "is it well-engineered and does
+it fully solve the problem?", run the excellence pass after it passes:
+  ./5day.sh excellence <task-file>     (see: help excellence)

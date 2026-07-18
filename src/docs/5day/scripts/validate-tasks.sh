@@ -27,12 +27,17 @@ for arg in "$@"; do
         --dry-run)
             DRY_RUN=true
             ;;
+        --docs)
+            # Delegate to the doc-drift checker (help/*.md vs script flags).
+            exec bash "$SCRIPT_DIR/check-docs.sh"
+            ;;
         --help|-h)
-            echo "Usage: $0 [--fix] [--dry-run]"
+            echo "Usage: $0 [--fix] [--dry-run] [--docs]"
             echo ""
             echo "Options:"
             echo "  --fix       Automatically fix issues in task files"
             echo "  --dry-run   Show what would be fixed without making changes"
+            echo "  --docs      Check help/*.md for flag drift against scripts"
             echo "  --help      Show this help message"
             exit 0
             ;;
@@ -154,9 +159,16 @@ fix_task_file() {
         has_success_criteria=true
     fi
 
-    # Extract title text (strips "# " and any "Task X: " prefix)
+    # Extract title text (strips "# " and any "Task X: " prefix).
+    # A heading-less file yields an empty title; fall back to a readable slug
+    # from the filename (e.g. "12-fix-auth.md" -> "fix auth") so --fix never
+    # writes a bare "# Task N: " with no title.
     local title_text
     title_text=$(task_title "$file" || true)
+    if [ -z "$title_text" ]; then
+        title_text=$(basename "$file" .md | sed -E 's/^[0-9]+-?//; s/-/ /g')
+        [ -z "$title_text" ] && title_text="untitled"
+    fi
 
     # Start building corrected file
     {
@@ -173,7 +185,6 @@ fix_task_file() {
 
         # Process rest of file (skip first line)
         local line_num=0
-        local seen_success_criteria=false
 
         while IFS= read -r line; do
             line_num=$((line_num + 1))
@@ -183,19 +194,15 @@ fix_task_file() {
                 continue
             fi
 
-            # Rename section variations to standard names
-            if echo "$line" | grep -qE '^## (Success criteria|Success Criteria|Testing Criteria|Acceptance Criteria)$'; then
-                # Only output Success criteria once
-                if [ "$seen_success_criteria" = false ]; then
-                    echo "## Success criteria"
-                    seen_success_criteria=true
-                fi
-            elif echo "$line" | grep -qE '^## Desired Outcome$'; then
-                # Rename Desired Outcome to Success criteria
-                if [ "$seen_success_criteria" = false ]; then
-                    echo "## Success criteria"
-                    seen_success_criteria=true
-                fi
+            # Rename section variations to the canonical name. Normalize each
+            # matching heading in place — do NOT dedup. Suppressing a second
+            # success-criteria-style heading would leave its body orphaned,
+            # silently merging it into the previous section (data loss).
+            # Only exact ($-anchored) variant names are normalized; a heading
+            # with extra words (e.g. "## Success Criteria and tests") is
+            # preserved verbatim below rather than force-stripped.
+            if echo "$line" | grep -qE '^## (Success criteria|Success Criteria|Testing Criteria|Acceptance Criteria|Desired Outcome)$'; then
+                echo "## Success criteria"
             elif echo "$line" | grep -qE '^## (Description|What|Overview)$'; then
                 echo "## Problem"
             elif echo "$line" | grep -qE '^## '; then

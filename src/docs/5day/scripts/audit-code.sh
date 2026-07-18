@@ -6,6 +6,7 @@ set -euo pipefail
 # ── Config ───────────────────────────────────────────────────────────
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
+AI_MODE="$(fiveday_ai_mode)"
 MODEL="$(fiveday_resolve_model CODE_AUDIT)"
 TOOLS_FIXER="Read,Edit,Write,Bash,Grep,Glob,Agent"
 TOOLS_VERIFIER="Read,Bash,Grep,Glob,Agent"
@@ -57,7 +58,9 @@ else
 fi
 
 # ── Preflight ───────────────────────────────────────────────────────
-if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
+# The CLI binary is only required in exec mode; emit mode hands the prompt
+# to the surrounding agent and never spawns it.
+if [ "$AI_MODE" != "emit" ] && ! command -v "$FIVEDAY_CLI" &>/dev/null; then
   echo "✗ AI CLI '$FIVEDAY_CLI' not found in PATH" >&2
   echo "  Edit docs/5day/config to change CLI, or install the tool." >&2
   exit 1
@@ -94,6 +97,34 @@ echo "  Max fixer passes: $MAX_PASSES"
 echo "  Files:"
 echo "$CHANGED_FILES" | sed 's/^/    /'
 echo ""
+
+# ── Emit mode: hand the whole audit to the surrounding agent ──────────
+# In emit mode fiveday_run prints the prompt instead of spawning the CLI, so
+# the fixer/verifier loop below cannot parse a verdict out of its command
+# substitution (the emitted prompt text — which contains "VERDICT: PASS" —
+# would be mis-read as a clean pass having audited nothing). Emit one
+# combined prompt describing the whole audit instead, mirroring
+# audit-excellence.sh's AI_MODE guard.
+if [ "$AI_MODE" = "emit" ]; then
+  fiveday_run -p "You are auditing the code changes below for the developer.
+
+CLAUDE.md is auto-loaded with project context and conventions. Read it first.
+
+${TASK_FILE:+ORIGINAL TASK FILE: $TASK_FILE
+}CHANGED FILES (context source: $CONTEXT_SOURCE):
+$CHANGED_FILES
+
+Do a fresh-eyes code audit:
+1. Build an impact graph — grep for imports/references to the changed files.
+2. Audit for correctness, project conventions, style (touched lines only),
+   build/type safety, and unsafe patterns.
+3. Fix any issues you find directly.
+4. Re-verify your fixes with read-only checks.
+
+Finish with a '## Summary' section, then a final line:
+VERDICT: PASS — no issues | FIXED — fixed all | FAIL — couldn't fix all | BLOCKED — needs human"
+  exit 0
+fi
 
 # ── Build task context block ────────────────────────────────────────
 if [ -n "$TASK_CONTENT" ]; then
@@ -312,7 +343,10 @@ $CHANGED_FILES
 2. Verify: correctness, conventions, safety.
 $BUILD_BLOCK
 
-VERDICT as LAST LINE: PASS or FAIL"
+Your response's VERY LAST line must be the verdict and nothing after it, in
+exactly this form — the literal word VERDICT, a colon, a space, then ONE
+uppercase token, no bold, no punctuation, no trailing text:
+VERDICT: PASS    (fixes hold up)   or   VERDICT: FAIL   (issues remain)"
 
   else
     # ── Fixer prompt (full tools, can edit) ──────────────────────
@@ -338,8 +372,12 @@ $CHANGED_FILES
 3. Fix issues you find.
 $BUILD_BLOCK
 
-Output ## Summary then VERDICT as LAST LINE:
-VERDICT: PASS — no issues | FIXED — fixed all | FAIL — couldn't fix all | BLOCKED — needs human"
+End with a '## Summary' section. Then your VERY LAST line must be the verdict
+and nothing after it, in exactly this form — the literal word VERDICT, a colon,
+a space, then ONE uppercase token, no bold, no punctuation, no trailing text:
+VERDICT: PASS
+Choose the token by meaning — PASS: no issues · FIXED: fixed all you found ·
+FAIL: couldn't fix all · BLOCKED: needs a human."
   fi
 
   # ── Run the CLI ──────────────────────────────────────────────────
@@ -354,8 +392,8 @@ VERDICT: PASS — no issues | FIXED — fixed all | FAIL — couldn't fix all | 
     --max-turns "$MAX_TURNS" \
     --output-format json 2>/dev/null | tee "$LOG_FILE") || true
 
-  # Extract verdict
-  STEP_VERDICT=$(echo "$OUTPUT" | grep -oE 'VERDICT: (PASS|FIXED|FAIL|BLOCKED)' | tail -1 | awk '{print $2}' || true)
+  # Extract verdict (case/format tolerant — see fiveday_parse_verdict in lib.sh)
+  STEP_VERDICT=$(printf '%s' "$OUTPUT" | fiveday_parse_verdict 'PASS|FIXED|FAIL|BLOCKED')
   [ -z "$STEP_VERDICT" ] && STEP_VERDICT="UNCLEAR"
 
   echo "  Result: $STEP_VERDICT"
@@ -462,6 +500,18 @@ case "$VERDICT" in
   PASS)
     echo "✓ Code audit passed ($STEP step(s): $FIXER_COUNT fixer + $VERIFY_COUNT verifier)"
     exit 0
+    ;;
+  UNCLEAR)
+    # No parseable verdict — distinguish "CLI never ran" from "model reworded
+    # its last line" so the user knows whether to fix their install or re-run.
+    echo "? Code audit: could not parse a verdict after $STEP step(s)"
+    if [ -n "${LOG_FILE:-}" ] && [ ! -s "$LOG_FILE" ]; then
+      echo "  Last log is empty — the AI CLI likely failed to start (check '$FIVEDAY_CLI' install/auth)"
+    else
+      echo "  The model's final line held no recognizable VERDICT token."
+      echo "  Inspect the log tail in $LOG_DIR/, then re-run: ./5day.sh review-code <files>"
+    fi
+    exit 1
     ;;
   *)
     echo "⚠ Code audit completed with warnings after $STEP step(s)"

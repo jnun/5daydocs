@@ -35,6 +35,8 @@ docs/tmp/*
 *.seed
 *.pid.lock
 nohup.out
+# 5DayDocs ID-allocation mutex (auto-created and removed; never commit a stale one)
+docs/5day/.5day-alloc.lock/
 
 # Archive Files (if users zip up old work)
 *.zip

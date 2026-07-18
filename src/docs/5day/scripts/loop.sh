@@ -15,11 +15,23 @@ RETRY=0
 PASSTHROUGH=()
 
 # ── Argument parsing ────────────────────────────────────────────────
+# --hours/--max/--cooldown take a numeric value. Validate it here: unlike
+# tasks.sh's boolean --max, loop's --max expects a count, so a bare
+# `loop --max --audit` would otherwise capture "--audit" as the limit, and
+# every later `[ "$MAX_ATTEMPTS" -gt 0 ]` test would error to stderr and never
+# trip — a silent runaway. Reject a missing or non-integer value up front.
+_require_int() {  # _require_int FLAG VALUE
+  if [ -z "$2" ] || ! [[ "$2" =~ ^[0-9]+$ ]]; then
+    echo "✗ $1 needs a whole number, got '${2:-}'" >&2
+    echo "  e.g. ./5day.sh loop $1 10" >&2
+    exit 1
+  fi
+}
 while [ $# -gt 0 ]; do
   case "$1" in
-    --hours)     MAX_HOURS="$2"; shift 2 ;;
-    --max)       MAX_ATTEMPTS="$2"; shift 2 ;;
-    --cooldown)  COOLDOWN="$2"; shift 2 ;;
+    --hours)     _require_int --hours "${2:-}";    MAX_HOURS="$2"; shift 2 ;;
+    --max)       _require_int --max "${2:-}";       MAX_ATTEMPTS="$2"; shift 2 ;;
+    --cooldown)  _require_int --cooldown "${2:-}";  COOLDOWN="$2"; shift 2 ;;
     --refill)    REFILL=1
                  if [ $# -gt 1 ] && [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" != "0" ]; then
                    REFILL_SIZE="$2"; shift
@@ -55,6 +67,10 @@ ls "$BLOCKED_DIR"/*.md 2>/dev/null | while read -r f; do basename "$f"; done > "
 # ── Helpers ─────────────────────────────────────────────────────────
 count_tasks() { find "$1" -maxdepth 1 -name "*.md" 2>/dev/null | wc -l | tr -d ' '; }
 
+# The limit is checked between iterations, not mid-task. A task that starts at
+# 3h59m of a 4h cap runs to completion — deliberate: killing a task mid-flight
+# would strand a half-edited tree, and the CLI's own --budget cap already bounds
+# a single run. Treat --hours as "stop starting new work after N hours".
 time_up() {
   [ "$MAX_HOURS" -gt 0 ] || return 1
   local elapsed=$(( SECONDS - TOTAL_START ))

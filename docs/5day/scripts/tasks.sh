@@ -230,11 +230,15 @@ $_TASK_RULES
 PROMPT
 }
 
-# ── Emit mode: orchestrate one fresh subagent per task ───────────────
-# Claude Code (or any agent with a Task/subagent tool) is the driver. Give
-# it an orchestration plan: dispatch each task to a FRESH subagent so tasks
-# don't share context, run them in parallel, and move each file by result.
-# This mirrors exec mode's per-task isolation, natively.
+# ── Emit mode: hand the queue to the surrounding agent ───────────────
+# On claude-code the driver has a Task/subagent tool, so we emit an
+# orchestration plan: dispatch each task to a FRESH subagent so tasks don't
+# share context, run them in parallel, and move each file by result — this
+# mirrors exec mode's per-task isolation natively. Other tiers (cursor, openai,
+# generic) can't be assumed to have a subagent tool; handing them the
+# orchestration prompt is a broken imitation. They get the honest sequential
+# fallback: work the tasks one at a time in the current context, resetting focus
+# between them. Same routing rules either way, so behavior can't drift.
 if [ "$AI_MODE" = "emit" ]; then
   _profile_line="$(fiveday_profile_line)"
 
@@ -258,7 +262,8 @@ if [ "$AI_MODE" = "emit" ]; then
    d. If it landed in review/, run: ./5day.sh excellence docs/tasks/review/<name>
       (leave it in review/ even if the verdict is BLOCKER)"
 
-  fiveday_run -p "You are running the 5DayDocs task queue: $COUNT task(s) to execute.
+  if [ "$(fiveday_ai_tier)" = "claude-code" ]; then
+    fiveday_run -p "You are running the 5DayDocs task queue: $COUNT task(s) to execute.
 CLAUDE.md is auto-loaded.${_profile_line}
 
 Execute each task in its OWN fresh subagent (Task tool) so tasks never share
@@ -278,6 +283,28 @@ Tasks (in order):$_task_list
 
 When every task has been routed, report a one-line summary:
 how many landed in review/ vs blocked/."
+  else
+    # Honest sequential fallback — no subagent tool assumed.
+    fiveday_run -p "You are running the 5DayDocs task queue: $COUNT task(s) to execute.
+CLAUDE.md is auto-loaded.${_profile_line}
+
+Work the tasks ONE AT A TIME, in the listed order. You do not have a subagent
+tool, so you are the worker, not an orchestrator — after finishing each task,
+reset your focus and start the next one from a clean slate.
+
+For EACH task file listed below:
+1. Move it into doing/:   git mv <path> docs/tasks/doing/
+2. Read docs/tasks/doing/<name> and do the work:
+$_TASK_RULES
+3. Route it:
+   a. you wrote a '## Completed' section → git mv it to docs/tasks/review/
+   b. otherwise → git mv it to docs/tasks/blocked/ and note what remains${_audit_step}${_excellence_step}
+
+Tasks (in order):$_task_list
+
+When every task has been routed, report a one-line summary:
+how many landed in review/ vs blocked/."
+  fi
   exit 0
 fi
 
@@ -397,6 +424,19 @@ _route_result() {
 
 trap 'echo ""; [ -n "${TASK_NAME:-}" ] && echo "▸ Interrupted — current task left in $WORKING_DIR/$TASK_NAME" || echo "▸ Interrupted"; exit 130' INT TERM
 
+# Recursively kill a process and all of its descendants. `_run_task` runs in a
+# wrapper subshell whose PID we track, but the actual CLI child (and whatever it
+# spawns) is a grandchild — killing only the tracked PID would orphan the CLI,
+# leaving a zombie burning tokens. Walk the tree leaves-first so parents don't
+# reap-and-replace before we reach the children.
+_kill_tree() {
+  local pid="$1" child
+  for child in $(pgrep -P "$pid" 2>/dev/null || true); do
+    _kill_tree "$child"
+  done
+  kill "$pid" 2>/dev/null || true
+}
+
 # ── Parallel runner ────────────────────────────────────────────────
 if [ "$PARALLEL" -eq 1 ]; then
 
@@ -411,9 +451,27 @@ if [ "$PARALLEL" -eq 1 ]; then
   PIDS=(); EXIT_CODES=(); TASK_DONE=()
   for ((i=0; i<COUNT; i++)); do PIDS+=(0); EXIT_CODES+=(0); TASK_DONE+=(0); done
 
-  # Kill background jobs on interrupt.
+  # Interrupt handling. Two hazards this cleans up:
+  #  1. Zombies — kill each launched task's whole process tree, not just the
+  #     wrapper subshell (the CLI child would otherwise survive as an orphan).
+  #  2. Stranded files — all COUNT tasks were moved to doing/ upfront, but a
+  #     never-launched task (PID still 0) has no work in flight, so return it to
+  #     next/ rather than abandon it in doing/. Tasks that were actually running
+  #     stay in doing/ (their partial edits may need inspection); loop.sh's
+  #     orphan sweep rescues those on its next pass.
   # shellcheck disable=SC2154
-  trap 'echo ""; echo "▸ Interrupted — killing background tasks..."; for p in "${PIDS[@]}"; do kill "$p" 2>/dev/null; done; wait 2>/dev/null; echo "▸ In-progress tasks left in $WORKING_DIR/"; exit 130' INT TERM
+  trap '
+    echo ""; echo "▸ Interrupted — killing background tasks..."
+    for p in "${PIDS[@]}"; do [ "$p" -ne 0 ] && _kill_tree "$p"; done
+    wait 2>/dev/null
+    for ((_i=0; _i<COUNT; _i++)); do
+      if [ "${PIDS[$_i]}" -eq 0 ] && [ -f "$WORKING_DIR/${TASK_NAMES[$_i]}" ]; then
+        move_file "$WORKING_DIR/${TASK_NAMES[$_i]}" "$NEXT_DIR/${TASK_NAMES[$_i]}"
+        echo "  ↩ Never started: ${TASK_NAMES[$_i]} → next/"
+      fi
+    done
+    echo "▸ In-progress tasks left in $WORKING_DIR/"
+    exit 130' INT TERM
 
   _launch() {
     local idx="$1"

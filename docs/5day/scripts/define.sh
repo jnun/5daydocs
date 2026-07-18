@@ -88,44 +88,23 @@ fi
 echo "▸ Reviewing $COUNT task(s) from $NEXT_DIR"
 echo ""
 
-# ── Runner ──────────────────────────────────────────────────────────
+# Profile line is task-independent — resolve it once, not per task.
+_PROFILE_LINE="$(fiveday_profile_line)"
 
-# Echo the file's ## BLOCKED section (guaranteed to exist by the routing
-# below) so the reason is also visible on screen. The FILE is the record;
-# this is a convenience copy for whoever is watching.
-_show_blocked() {
-  awk '/^## BLOCKED[[:space:]]*$/{f=1; next} f && /^## /{exit} f' "$1" \
-    | head -20 | sed 's/^/    /'
-}
-
-READY=0
-BLOCKED=0
-DONE=0
-BLOCKED_TASKS=()
-ERROR_TASKS=()
-TOTAL_START=$SECONDS
-
-for i in $(seq 0 $((COUNT - 1))); do
-  TASK_FILE="${TASK_FILES[$i]}"
-  TASK_NAME=$(basename "$TASK_FILE")
-  N=$((i + 1))
-  TASK_START=$SECONDS
-
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  echo "▸ Review $N/$COUNT: $TASK_NAME"
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-  _PROFILE_LINE="$(fiveday_profile_line)"
-
-  PROMPT="You are a senior developer reviewing a task before it enters a sprint.
+# The invariant review contract. Both the sequential per-task path and the
+# claude-code parallel-subagent path build their prompt from this one source so
+# the two can never drift. $1 is the task file the reviewer must read and edit.
+_review_contract() {
+  cat <<EOF
+You are a senior developer reviewing a task before it enters a sprint.
 
 CLAUDE.md is auto-loaded with project context and conventions.
 For task workflow details, see DOCUMENTATION.md.${_PROFILE_LINE}
 
-The task file is at: $NEXT_DIR/$TASK_NAME — read it first.
+The task file is at: $1 — read it first.
 
 Your job:
-1. Read the task file at $NEXT_DIR/$TASK_NAME.
+1. Read the task file at $1.
 2. Read the actual source files referenced by this task. Thoroughly check the current state of the code for every action item.
 3. Classify each action item into one of three categories:
    - DONE: Already implemented in the current code.
@@ -184,7 +163,69 @@ to understand the blocker from this section alone, without reading anything else
 
 If the verdict is not BLOCKED, delete any ## BLOCKED section left from a previous review.
 
-You may only use Edit/Write on the task file at $NEXT_DIR/$TASK_NAME.${_MOVE_INSTR}"
+You may only use Edit/Write on the task file at $1.
+EOF
+}
+
+# ── claude-code fast path: review all tasks in parallel subagents ─────
+# On the claude-code tier in emit mode, dispatching one subagent per task is
+# strictly faster than emitting N prompts the host agent runs one after another,
+# and the reviews are independent (each touches only its own file). Other tiers
+# can't fan out, and exec mode drives the CLI directly — both fall through to
+# the sequential loop below. Only worth the orchestration when COUNT > 1.
+if [ "$AI_MODE" = "emit" ] && [ "$(fiveday_ai_tier)" = "claude-code" ] && [ "$COUNT" -gt 1 ]; then
+  _parallel_files=""
+  for i in $(seq 0 $((COUNT - 1))); do
+    _parallel_files="${_parallel_files}
+- ${TASK_FILES[$i]}"
+  done
+
+  fiveday_run -p "You are orchestrating a parallel task-definition review of $COUNT tasks.
+
+Dispatch ONE subagent per task file below, ALL IN PARALLEL (issue every Task
+tool call in a single message). Each subagent reviews exactly one file and
+follows this contract verbatim, substituting its assigned file path:
+
+────────────────────────────────────────────────────────────
+$(_review_contract "<the task file assigned to this subagent>")${_MOVE_INSTR}
+────────────────────────────────────────────────────────────
+
+Task files to review (one subagent each):${_parallel_files}
+
+When every subagent has finished, print a summary table: one row per task with
+its file name and final verdict (READY / BLOCKED / DONE)."
+  echo ""
+  exit 0
+fi
+
+# ── Runner ──────────────────────────────────────────────────────────
+
+# Echo the file's ## BLOCKED section (guaranteed to exist by the routing
+# below) so the reason is also visible on screen. The FILE is the record;
+# this is a convenience copy for whoever is watching.
+_show_blocked() {
+  awk '/^## BLOCKED[[:space:]]*$/{f=1; next} f && /^## /{exit} f' "$1" \
+    | head -20 | sed 's/^/    /'
+}
+
+READY=0
+BLOCKED=0
+DONE=0
+BLOCKED_TASKS=()
+ERROR_TASKS=()
+TOTAL_START=$SECONDS
+
+for i in $(seq 0 $((COUNT - 1))); do
+  TASK_FILE="${TASK_FILES[$i]}"
+  TASK_NAME=$(basename "$TASK_FILE")
+  N=$((i + 1))
+  TASK_START=$SECONDS
+
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "▸ Review $N/$COUNT: $TASK_NAME"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  PROMPT="$(_review_contract "$NEXT_DIR/$TASK_NAME")${_MOVE_INSTR}"
 
   _model_args=()
   [ -n "$MODEL" ] && _model_args=(--model "$MODEL")

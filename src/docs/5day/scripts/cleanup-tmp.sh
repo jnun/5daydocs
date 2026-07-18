@@ -98,15 +98,19 @@ if [ ${#recent[@]} -gt 0 ]; then
     echo ""
 fi
 
-# Determine what to delete based on mode
+# Determine what to delete based on mode.
+# Build targets by guarded appends: on macOS's stock bash 3.2, expanding an
+# empty array as "${arr[@]}" under `set -u` aborts with "unbound variable",
+# so never expand stale/recent unless they hold at least one element.
+targets=()
 if [ "$MODE" = "--all" ]; then
-    targets=("${stale[@]}" "${recent[@]}")
+    [ ${#stale[@]} -gt 0 ] && targets+=("${stale[@]}")
+    [ ${#recent[@]} -gt 0 ] && targets+=("${recent[@]}")
     label="all $total_count"
 elif [ "$MODE" = "--delete" ] || [ "$MODE" = "--force" ]; then
-    targets=("${stale[@]}")
+    [ ${#stale[@]} -gt 0 ] && targets+=("${stale[@]}")
     label="${#stale[@]} stale"
 else
-    targets=()
     label=""
 fi
 

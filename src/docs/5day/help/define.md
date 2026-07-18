@@ -16,8 +16,22 @@ Usage:
   ./5day.sh define          # review all tasks in next/
   ./5day.sh define 3        # review at most 3 tasks
   ./5day.sh define 1        # review just the next task
+  ./5day.sh define --force  # re-review tasks already stamped READY
+
+By default define skips tasks already stamped 'Status: READY' so you don't
+re-pay to review the whole queue each run. --force re-reviews all of them.
 
 After running:
   - READY tasks: run ./5day.sh tasks to execute them
   - BLOCKED tasks: answer questions in the file, move back to next/
   - DONE tasks: verify in review/, then move to done/
+
+Related commands (how they differ):
+  define  — deep, per-task review of next/ that writes the ## Questions gate
+            (Status: READY/BLOCKED/DONE) that ./5day.sh tasks enforces. Use
+            before running a sprint.
+  audit   — fast, non-interactive bulk verdict pass over backlog/next/doing/
+            blocked to clear out DONE/OUTDATED/UNDEFINED work. Use to keep the
+            backlog clean, not to gate a sprint.
+  triage  — the interactive form of audit: the AI assesses each task, you
+            decide (work/define/kill/skip) one at a time.

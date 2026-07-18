@@ -13,9 +13,11 @@
 #   move_file SRC DEST         — git mv with plain mv fallback
 #   run_with_timeout SECS CMD… — portable timeout (coreutils, gtimeout, or shell)
 #   kebab_case STRING          — lowercase, hyphenated slug
+#   fiveday_slug NAME [MAX]    — kebab_case + length cap + empty guard (returns 1)
 #   fiveday_cfg KEY            — read a value from docs/5day/config
 #   fiveday_cfg_set KEY VALUE  — update or append a value in config
 #   fiveday_resolve_model SFX  — model resolution: env > config > default
+#   fiveday_tier_model SFX     — fiveday_resolve_model, strongest model on claude-code
 #   fiveday_profile_line       — one-line pointer to project.md (empty if absent)
 #   fiveday_find_task ID [dirs…] — resolve a task file by numeric ID
 #   fiveday_review_verdict FILE — READY/BLOCKED/DONE stamp from a define review
@@ -27,6 +29,7 @@
 #   fiveday_run ARGS…          — run AI: emit prompt to stdout, or exec the CLI
 #   fiveday_change_manifest TASK_FILE [FILE…] — build audit change manifest;
 #       sets FIVEDAY_CHANGED_FILES and FIVEDAY_CONTEXT_SOURCE
+#   fiveday_parse_verdict TOKENS — (stdin) last VERDICT token, case/format tolerant
 #   fiveday_extract_summary JSON — print the summary text from a CLI JSON log
 
 _FIVEDAY_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -108,6 +111,24 @@ kebab_case() {
         | sed 's/[^a-zA-Z0-9-]/-/g; s/--*/-/g; s/^-//; s/-$//'
 }
 
+# fiveday_slug NAME [MAXLEN] -> a filename-safe slug for NAME.
+# kebab-cases NAME, caps it to MAXLEN chars (default 50) and trims any trailing
+# hyphen the cut leaves behind. Prints the slug on stdout; a truncation note
+# goes to stderr so it never pollutes command-substitution capture. Returns 1
+# with empty output when NAME has no slug-able characters (all symbols/unicode)
+# so callers reject it instead of writing "NNN-.md" or a hidden ".md".
+fiveday_slug() {
+    local name="$1" max="${2:-50}" slug
+    slug="$(kebab_case "$name")"
+    if [ "${#slug}" -gt "$max" ]; then
+        slug="${slug:0:$max}"
+        slug="${slug%-}"
+        echo -e "${YELLOW}Note: Filename truncated to $max characters${NC}" >&2
+    fi
+    [ -n "$slug" ] || return 1
+    printf '%s' "$slug"
+}
+
 FIVEDAY_CONFIG_FILE="${FIVEDAY_CONFIG_FILE:-${_FIVEDAY_LIB_DIR}/config}"
 
 # ── Config reader ────────────────────────────────────────────────────
@@ -164,6 +185,25 @@ fiveday_resolve_model() {
     # Config global default
     val=$(fiveday_cfg "MODEL_DEFAULT")
     printf '%s' "$val"
+}
+
+# ── Tier-aware model resolver ────────────────────────────────────────
+# Usage: model=$(fiveday_tier_model FEATURE)
+#
+# Like fiveday_resolve_model, but when nothing is configured (env/config both
+# empty) and the provider tier supports model selection (claude-code), fall
+# back to the strongest appropriate alias instead of letting the CLI pick its
+# cheaper default. For interactive, reasoning-heavy flows — the feature Q&A
+# and the idea Feynman protocol — the best model is worth it unless the user
+# has pinned one. Other tiers can't select a model, so this returns empty
+# (their default.sh passthrough would only warn about a dropped flag).
+fiveday_tier_model() {
+    local suffix="$1" model
+    model="$(fiveday_resolve_model "$suffix")"
+    if [ -z "$model" ] && [ "$(fiveday_ai_tier)" = "claude-code" ]; then
+        model="opus"
+    fi
+    printf '%s' "$model"
 }
 
 # ── Task helpers ─────────────────────────────────────────────────────
@@ -262,12 +302,57 @@ bump_doc_state() {
 }
 
 # copy_template SRC DEST -> validate SRC exists, mkdir DEST's dir, copy.
-# Returns 1 if SRC is missing (caller prints the error).
+# Prints a precise error to stderr and returns 1 on any failure, distinguishing
+# a missing template from an unwritable destination (read-only tree, permission
+# denied) — callers only need `|| exit 1`, no error message of their own.
 copy_template() {
     local src="$1" dest="$2"
-    [ -f "$src" ] || return 1
-    mkdir -p "$(dirname "$dest")"
-    cp "$src" "$dest"
+    if [ ! -f "$src" ]; then
+        echo -e "${RED}ERROR: Template file not found: $src${NC}" >&2
+        return 1
+    fi
+    if ! mkdir -p "$(dirname "$dest")" 2>/dev/null; then
+        echo -e "${RED}ERROR: Cannot create $(dirname "$dest") — read-only tree or permission denied${NC}" >&2
+        return 1
+    fi
+    if ! cp "$src" "$dest" 2>/dev/null; then
+        echo -e "${RED}ERROR: Cannot write $dest — read-only tree or permission denied${NC}" >&2
+        return 1
+    fi
+}
+
+# ── ID-allocation lock ───────────────────────────────────────────────
+# Portable advisory mutex via mkdir (an atomic create-or-fail on every POSIX
+# filesystem). Serializes the alloc_id → create-file → bump_doc_state sequence
+# so two concurrent `newtask`/`newbug` runs never draw the same ID. Best-effort
+# by design: a lock we cannot create (read-only tree) or one held too long (a
+# crashed run) never hangs the command — we proceed unlocked rather than block
+# forever. Auto-released via an EXIT trap. fiveday_unlock is idempotent.
+FIVEDAY_LOCK_DIR=""
+fiveday_lock() {
+    local lockdir tries=0 stole=0
+    lockdir="$(dirname "$FIVEDAY_DOC_STATE")/.5day-alloc.lock"
+    while ! mkdir "$lockdir" 2>/dev/null; do
+        # A failed mkdir means "already held" only if the dir now exists;
+        # otherwise the tree is unwritable — give up and proceed unlocked.
+        [ -d "$lockdir" ] || return 0
+        tries=$((tries + 1))
+        if [ "$tries" -ge 50 ]; then           # ~5s held: assume a stale lock
+            [ "$stole" = 1 ] && return 0        # already stole once — proceed
+            rmdir "$lockdir" 2>/dev/null
+            stole=1; tries=0
+            continue
+        fi
+        sleep 0.1
+    done
+    FIVEDAY_LOCK_DIR="$lockdir"
+    trap 'fiveday_unlock' EXIT
+    return 0
+}
+
+fiveday_unlock() {
+    [ -n "$FIVEDAY_LOCK_DIR" ] && rmdir "$FIVEDAY_LOCK_DIR" 2>/dev/null
+    FIVEDAY_LOCK_DIR=""
 }
 
 # ── Provider profile loader ──────────────────────────────────────────
@@ -427,6 +512,25 @@ fiveday_change_manifest() {
         FIVEDAY_CHANGED_FILES=$(printf '%s\n%s' "$FIVEDAY_CHANGED_FILES" "$staged" | sort -u | grep -v '^$' || true)
         FIVEDAY_CONTEXT_SOURCE="git working tree diff"
     fi
+}
+
+# fiveday_parse_verdict TOKENS  (reads stdin) -> print the last verdict token.
+# TOKENS is a |-separated list of accepted UPPERCASE tokens, e.g.
+#   printf '%s' "$OUTPUT" | fiveday_parse_verdict 'PASS|FIXED|FAIL|BLOCKED'
+# The audit scripts pin the verdict to a "VERDICT: <TOKEN>" last line, but a
+# model that writes "Verdict — pass" or "**VERDICT: PASS**" would silently
+# degrade to UNCLEAR under an exact-uppercase grep. This tolerates case, any
+# run of whitespace/punctuation between VERDICT and the token (colon, em/en
+# dash, hyphen), and surrounding markdown emphasis. Returns the matched token
+# uppercased, or nothing (caller maps empty -> UNCLEAR). Always exits 0 so it
+# is safe under set -e in a command substitution.
+fiveday_parse_verdict() {
+    local tokens="$1"
+    grep -oiE "VERDICT[[:space:][:punct:]]*($tokens)" \
+        | tail -1 \
+        | grep -oiE "($tokens)" \
+        | tr '[:lower:]' '[:upper:]' \
+        || true
 }
 
 # fiveday_extract_summary JSON_LOG_FILE -> print the audit summary text.

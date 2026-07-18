@@ -3,12 +3,16 @@ set -euo pipefail
 
 # 5day - Five Day Docs CLI
 
-# Colors
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+# Colors — blanked when NO_COLOR is set (matches docs/5day/lib.sh).
+if [ -n "${NO_COLOR:-}" ]; then
+    RED='' YELLOW='' BLUE='' CYAN='' NC=''
+else
+    RED='\033[0;31m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    CYAN='\033[0;36m'
+    NC='\033[0m'
+fi
 
 # Resolve project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -28,6 +32,7 @@ count_files() {
     local -a files
     restore="$(shopt -p nullglob)"
     shopt -s nullglob
+    # shellcheck disable=SC2206  # $pat is an intentional glob, not a split risk
     files=( "$dir"/$pat )
     eval "$restore"
     echo "${#files[@]}"
@@ -92,7 +97,8 @@ show_help() {
     echo ""
     echo -e "${BLUE}Maintenance:${NC}"
     echo "  validate [--fix] [--dry-run]  Validate task files against template"
-    echo "  cleanup [--delete|--all]      Clean stale scratch files"
+    echo "  validate --docs               Check help/*.md for flag drift vs scripts"
+    echo "  cleanup [--delete|--force|--all]  Clean stale scratch files"
     echo ""
     echo "  help                      Show this message"
     echo "  help <command>            Show details for a command (e.g. help tasks)"

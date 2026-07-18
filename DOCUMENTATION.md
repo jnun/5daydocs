@@ -115,8 +115,8 @@ Each command creates a file with inline guidance. Fill in the sections, then com
 ./5day.sh sync [--all]              # Push task changes to GitHub
 
 # Maintenance
-./5day.sh validate [--fix]          # Validate task files against template
-./5day.sh cleanup [--delete|--all]  # Clean stale files from docs/tmp/
+./5day.sh validate [--fix] [--dry-run]  # Validate task files (--docs checks help/ for flag drift)
+./5day.sh cleanup [--delete|--force|--all]  # Clean stale files from docs/tmp/
 ./5day.sh help                      # Show all commands
 ```
 

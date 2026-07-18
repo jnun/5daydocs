@@ -9,21 +9,27 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 create_feature_file() {
     local name="$1"
 
+    # This function's stdout is the return channel (it prints the file path),
+    # so every diagnostic must go to stderr or it is swallowed by the caller's
+    # command substitution.
     local kebab
-    kebab=$(kebab_case "$name")
+    kebab=$(fiveday_slug "$name") || {
+        echo -e "${RED}ERROR: Name has no letters or numbers to build a filename from.${NC}" >&2
+        exit 1
+    }
 
     local feature_file="docs/features/${kebab}.md"
 
+    # Honest collision: name the resulting slug. If the name was truncated
+    # (fiveday_slug printed a note above), the user sees the two together —
+    # two long names can collapse to the same 50-char slug.
     if [ -f "$feature_file" ]; then
-        echo -e "${YELLOW}WARNING: Feature '$kebab' already exists at $feature_file${NC}"
+        echo -e "${YELLOW}WARNING: Feature '$kebab' already exists at $feature_file${NC}" >&2
         exit 1
     fi
 
     local template_file="docs/features/.TEMPLATE-feature.md"
-    copy_template "$template_file" "$feature_file" || {
-        echo -e "${RED}ERROR: Template file not found: $template_file${NC}"
-        exit 1
-    }
+    copy_template "$template_file" "$feature_file" || exit 1
 
     local created_date
     created_date=$(date +%Y-%m-%d)
@@ -50,7 +56,7 @@ fi
 echo "▸ Starting feature definition Q&A..."
 echo ""
 
-_MODEL="$(fiveday_resolve_model FEATURE)"
+_MODEL="$(fiveday_tier_model FEATURE)"
 _model_args=()
 [ -n "$_MODEL" ] && _model_args=(--model "$_MODEL")
 

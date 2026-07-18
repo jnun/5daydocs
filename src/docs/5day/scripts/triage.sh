@@ -12,6 +12,10 @@ limit="${1:-0}"
 
 # Colours (RED/YELLOW/BLUE/CYAN/DIM/BOLD/NC) come from lib.sh.
 timeout_sec=120
+# The per-task assessment is a single-shot classification (three lines out).
+# Cap turns so a misbehaving model can't burn a long session before the
+# wall-clock timeout fires. Consistent with define/sprint/split/review-sprint.
+MAX_TURNS=15
 AI_MODE="$(fiveday_ai_mode)"
 
 _triage_model="$(fiveday_resolve_model TRIAGE)"
@@ -132,7 +136,7 @@ Rules:
 - Do not output anything else"
 
   verdict=$(run_with_timeout "$timeout_sec" fiveday_run -p "$_triage_prompt" \
-    ${_model_args[@]+"${_model_args[@]}"} --skip-permissions 2>/dev/null) || true
+    ${_model_args[@]+"${_model_args[@]}"} --max-turns "$MAX_TURNS" --skip-permissions 2>/dev/null) || true
 
   # Parse structured output
   status=$(echo "$verdict" | grep -oE '^STATUS: (DONE|BLOCKED|UNDEFINED|READY|STALE)' | head -1 | sed 's/^STATUS: //' || true)

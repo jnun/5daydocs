@@ -20,17 +20,17 @@ the model-resolution conventions and should exploit the provider tiers.
 
 ## Success criteria
 
-- [ ] ID allocation race examined and either made safe (lock via `mkdir`
+- [x] ID allocation race examined and either made safe (lock via `mkdir`
       or `noclobber`) or measured and documented as acceptable, with the
       existing file-exists guard proven sufficient
-- [ ] All five commands behave sanely with: missing DOC_STATE, missing
+- [x] All five commands behave sanely with: missing DOC_STATE, missing
       template, descriptions containing quotes/unicode/200 chars,
       read-only docs tree — clear errors, no partial state left behind
-- [ ] Filename collision on truncation detected and handled (suffix or
+- [x] Filename collision on truncation detected and handled (suffix or
       error), not silently refused as "another process created this"
-- [ ] AI flows use `fiveday_resolve_model` keys and, on Claude Code (per
+- [x] AI flows use `fiveday_resolve_model` keys and, on Claude Code (per
       task 194 tiers), the strongest appropriate model
-- [ ] Fixes mirrored to `src/`; fresh install verified
+- [x] Fixes mirrored to `src/`; fresh install verified
 
 ## Notes
 
@@ -113,3 +113,80 @@ None — task is fully defined. The two either/or choices (lock vs.
 documented-acceptable race; suffix vs. error on collision) are latitude
 the task explicitly grants, and the recommendation in each case is noted
 above (mkdir lock; honest error).
+
+## Completed
+
+All five success criteria met. Chose the recommended options: a `mkdir`
+lock for the race, honest errors for collisions.
+
+**Criterion 1 — ID race:** Added `fiveday_lock`/`fiveday_unlock` to
+`lib.sh` (portable `mkdir` mutex over `docs/5day/.5day-alloc.lock`).
+`create-task.sh` and `create-bug.sh` now bracket
+`alloc_id → create-file → bump_doc_state` in the lock. The lock is
+best-effort by design — unwritable tree ⇒ proceed unlocked; a lock held
+>5s (crashed run) is stolen once then abandoned; auto-released via an EXIT
+trap. **Verified:** 10 parallel `newtask` runs produced 10 unique IDs
+(11–20) with DOC_STATE landing exactly at 20; previously two concurrent
+creates with different descriptions could share an ID.
+
+**Criterion 2 — edge cases:**
+- `DESCRIPTION="${1:-}"` in task/bug (was `"$1"` → `set -u` "unbound
+  variable" crash on no-arg; now prints usage).
+- `copy_template` now emits its own precise error to stderr,
+  distinguishing a missing template from an unwritable destination
+  (read-only tree / permission denied); callers reduced to `|| exit 1`.
+- New `fiveday_slug` helper rejects descriptions that kebab-case to an
+  empty slug (all-symbol/unicode) instead of writing `NNN-.md` / a hidden
+  `.md`; all five commands guard on it.
+- Removed `create-idea.sh`'s CLI-missing hard-fail — emit mode needs no
+  binary (matches `create-feature.sh`). **Verified:** `newidea` with a
+  nonexistent CLI now emits the prompt instead of aborting.
+- `create-idea.sh`/`create-feature.sh` diagnostics moved to stderr so they
+  aren't swallowed by the `$()` return-channel (fixed the empty-slug and
+  collision messages, which were silently eaten before).
+
+**Criterion 3 — truncation collision:** `fiveday_slug` trims the trailing
+hyphen left by a 50-char cut (task/bug did not before) and the truncation
+note goes to stderr. Collision messages are now honest: task/bug name the
+exact path and attribute it to DOC_STATE drift (the lock rules out a
+racing process); feature/idea/test name the resulting slug so a
+truncation-induced collapse of two long names is visible alongside the
+truncation note.
+
+**Criterion 4 — tier-aware models:** Added `fiveday_tier_model` to
+`lib.sh` — resolves via `fiveday_resolve_model` but, when nothing is
+configured and the tier is `claude-code`, defaults to `opus` (strongest
+appropriate for the interactive Q&A / Feynman flows). `create-feature.sh`
+and `create-idea.sh` use it. Added the previously-undocumented
+`MODEL_FEATURE`/`MODEL_IDEA` keys to `config`. **Verified:** empty config
+on claude-code ⇒ `opus`; env/config pin wins; cursor/openai/generic ⇒
+empty (they can't select a model).
+
+**Criterion 5 — mirror + install:** All seven files
+(`lib.sh`, `config`, five `create-*.sh`) mirrored byte-identical to
+`src/docs/5day/`. Fresh `/tmp` install verified: `newtask`, `newbug`,
+`newfeature`, `newtest` all create files and bump DOC_STATE correctly.
+
+**Elegance:** `create-test.sh` no longer duplicates `kebab_case` inline or
+redefines the color variables `lib.sh` already provides — it routes
+through `fiveday_slug` and `copy_template` like the others.
+
+### Files changed
+- `docs/5day/lib.sh` — added `fiveday_slug`, `fiveday_tier_model`,
+  `fiveday_lock`/`fiveday_unlock`; `copy_template` now emits precise
+  stderr errors; header updated.
+- `docs/5day/config` — added `MODEL_FEATURE`/`MODEL_IDEA` keys with a note
+  on the claude-code strongest-model default.
+- `docs/5day/scripts/create-task.sh` — `${1:-}`, slug guard, `mkdir` lock
+  around allocation, honest collision message, `copy_template || exit 1`.
+- `docs/5day/scripts/create-bug.sh` — same set as create-task.
+- `docs/5day/scripts/create-feature.sh` — slug guard (stderr),
+  `fiveday_tier_model`, `copy_template || exit 1`.
+- `docs/5day/scripts/create-idea.sh` — slug guard (stderr),
+  `fiveday_tier_model`, removed CLI-missing hard-fail,
+  `copy_template || exit 1`.
+- `docs/5day/scripts/create-test.sh` — folded into `fiveday_slug` +
+  `copy_template`; dropped duplicated `kebab_case` and color redefs.
+- Mirrored all of the above to `src/docs/5day/`.
+- `src/.gitignore.template` and repo `.gitignore` — ignore the transient
+  `docs/5day/.5day-alloc.lock/` mutex dir.

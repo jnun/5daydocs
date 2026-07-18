@@ -33,8 +33,12 @@ for feature_file in docs/features/*.md; do
     feature_name=$(basename "$feature_file" .md)
     echo -e "${BLUE}${BOLD}Feature: ${NC}$feature_name"
 
-    # Get feature status (look for overall status first)
-    feature_status=$(grep -E "^## (Feature |Overall )?Status:" "$feature_file" 2>/dev/null | head -1 | sed 's/.*Status: *//' | tr -d '[:space:]')
+    # Get feature status (look for overall status first). Accept both the
+    # shipped template's "**Status:** X" (colon inside the bold) and this
+    # repo's older "## Feature Status: X" heading / "**Status**: X" forms, so
+    # a fresh user's first template-generated feature isn't reported as having
+    # no status. head -1 takes whichever appears first (the overall status).
+    feature_status=$(grep -E "^(## (Feature |Overall )?Status:|\*\*Status:?\*\*:?)" "$feature_file" 2>/dev/null | head -1 | sed -E 's/.*Status//; s/^[*:[:space:]]+//' | cut -d' ' -f1 | tr -d '[:space:]')
 
     if [ -z "$feature_status" ]; then
         echo -e "  ${RED}⚠ No status found in feature file${NC}"
@@ -59,9 +63,9 @@ for feature_file in docs/features/*.md; do
             if ! echo "$line" | grep -qE "^## (Feature |Overall )?Status:"; then
                 prev_heading=$(echo "$line" | sed 's/^## *//')
             fi
-        # Check for capability status
-        elif echo "$line" | grep -qF '**Status**:'; then
-            cap_status=$(echo "$line" | sed 's/.*\*\*Status\*\*: *//' | cut -d' ' -f1)
+        # Check for capability status (both "**Status**: X" and "**Status:** X")
+        elif echo "$line" | grep -qE '\*\*Status:?\*\*:?'; then
+            cap_status=$(echo "$line" | sed -E 's/.*Status//; s/^[*:[:space:]]+//' | cut -d' ' -f1)
             if [ -n "$prev_heading" ] && [ -n "$cap_status" ]; then
                 capability_count=$((capability_count + 1))
                 echo -e "    - $prev_heading: $cap_status"

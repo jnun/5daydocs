@@ -31,9 +31,11 @@ Usage:
   ./5day.sh tasks --excellence     # enable post-task excellence audit (after --audit)
   ./5day.sh tasks --parallel       # run all tasks concurrently (2 jobs)
   ./5day.sh tasks --fast           # shorthand for --parallel with 4 jobs
+  ./5day.sh tasks --jobs N         # run parallel with N concurrent jobs
   ./5day.sh tasks --max            # no budget cap
   ./5day.sh tasks --fast --max     # parallel (4 jobs), no budget cap
   ./5day.sh tasks --assist         # interactive mode picker
+  ./5day.sh tasks --verbose        # stream full per-task event detail
 
 Quality chain: --audit runs the correctness audit (review-code) on each task
 that lands in review/; --excellence then runs the excellence audit after it

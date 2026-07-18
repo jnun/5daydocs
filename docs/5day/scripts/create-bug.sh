@@ -12,15 +12,8 @@ if [ ! -f "docs/5day/DOC_STATE.md" ]; then
     exit 1
 fi
 
-# Read highest bug ID and increment with error handling
-NEW_ID=$(alloc_id 5DAY_BUG_ID) || {
-    echo -e "${RED}ERROR: Invalid or missing bug ID in DOC_STATE.md${NC}"
-    echo "Please fix docs/5day/DOC_STATE.md manually. Expected format: '**5DAY_BUG_ID**: NUMBER'"
-    exit 1
-}
-
 # Get the bug description from the command line argument
-DESCRIPTION="$1"
+DESCRIPTION="${1:-}"
 if [ -z "$DESCRIPTION" ]; then
     echo "Usage: $0 \"Brief description of the bug\""
     echo ""
@@ -30,30 +23,37 @@ if [ -z "$DESCRIPTION" ]; then
     exit 1
 fi
 
-# Convert to kebab-case
-KEBAB_CASE_DESC=$(kebab_case "$DESCRIPTION")
+# Convert to a filename-safe slug; reject descriptions with no slug-able text.
+KEBAB_CASE_DESC=$(fiveday_slug "$DESCRIPTION") || {
+    echo -e "${RED}ERROR: Description has no letters or numbers to build a filename from.${NC}"
+    echo "Provide a description with at least one alphanumeric character."
+    exit 1
+}
 
-# Limit filename length to prevent filesystem issues
-if [ ${#KEBAB_CASE_DESC} -gt 50 ]; then
-    KEBAB_CASE_DESC="${KEBAB_CASE_DESC:0:50}"
-    echo -e "${YELLOW}Note: Filename truncated to 50 characters${NC}"
-fi
+# Serialize ID allocation so concurrent creates never draw the same ID.
+fiveday_lock
+
+# Read highest bug ID and increment with error handling
+NEW_ID=$(alloc_id 5DAY_BUG_ID) || {
+    echo -e "${RED}ERROR: Invalid or missing bug ID in DOC_STATE.md${NC}"
+    echo "Please fix docs/5day/DOC_STATE.md manually. Expected format: '**5DAY_BUG_ID**: NUMBER'"
+    exit 1
+}
 
 FILENAME=$(printf "%d-%s.md" "$NEW_ID" "$KEBAB_CASE_DESC")
 
-# Check if file already exists (race condition protection)
+# A file for this fresh ID should never exist. If it does, DOC_STATE.md's
+# counter is behind the files on disk — say so honestly rather than blaming
+# an imaginary racing process (the lock above rules that out).
 if [ -f "docs/bugs/$FILENAME" ]; then
-    echo -e "${RED}ERROR: Bug file already exists!${NC}"
-    echo "Another process may have created this bug. Please try again."
+    echo -e "${RED}ERROR: docs/bugs/$FILENAME already exists!${NC}"
+    echo "DOC_STATE.md's 5DAY_BUG_ID may be out of sync with the files on disk."
     exit 1
 fi
 
 # Read template and substitute placeholders
 TEMPLATE_FILE="docs/bugs/.TEMPLATE-bug.md"
-copy_template "$TEMPLATE_FILE" "docs/bugs/$FILENAME" || {
-    echo -e "${RED}ERROR: Template file not found: $TEMPLATE_FILE${NC}"
-    exit 1
-}
+copy_template "$TEMPLATE_FILE" "docs/bugs/$FILENAME" || exit 1
 
 CREATED_DATE=$(date +%Y-%m-%d)
 
@@ -65,6 +65,7 @@ sed_inplace "s/YYYY-MM-DD/$CREATED_DATE/g" "docs/bugs/$FILENAME"
 LAST_UPDATED=$(date +%F)
 bump_doc_state 5DAY_BUG_ID "$NEW_ID"
 bump_doc_state "Last Updated" "$LAST_UPDATED"
+fiveday_unlock
 echo -e "${GREEN}✓ DOC_STATE.md updated successfully${NC}"
 
 # Verify bug file was created successfully

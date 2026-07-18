@@ -348,8 +348,13 @@ Steps:
 1. Read every success criterion in the task file.
 2. For each criterion, check the current codebase to verify it was implemented.
 3. Report your findings: which criteria are met, which are not.
-4. If ALL criteria are met, say: VERIFIED — this task is complete and ready to move to done/.
-5. If any criteria are NOT met, list what remains and say: NOT COMPLETE — these items still need work."
+4. If ALL criteria are met: check off every criterion in the task file and add a
+   '## Completed' section listing the files that satisfy them. This is the signal
+   the tooling reads to confirm the task is verified — without it the task is
+   treated as still open.
+5. If any criteria are NOT met: do NOT add a '## Completed' section. List what
+   remains directly in your report so the developer can send the task back to
+   doing/."
         ;;
 
     blocked)
@@ -411,8 +416,10 @@ esac
 echo ""
 echo -e "${CYAN}▸ Running task $TASK_ID...${NC}"
 
-TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-LOG_FILE="$LOG_DIR/log-find-${TASK_ID}-$TIMESTAMP.json"
+# Log path via the shared helper so naming stays consistent with define/split/
+# tasks. It returns a repo-relative path; anchor it to PROJECT_ROOT to match
+# find.sh's absolute-path convention.
+LOG_FILE="$PROJECT_ROOT/$(fiveday_log_path find "$TASK_NAME")"
 
 if fiveday_run -p "$PROMPT" \
     ${_model_args[@]+"${_model_args[@]}"} \

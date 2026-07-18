@@ -20,23 +20,23 @@ exactly the provider-first behavior we want to maximize.
 
 ## Success criteria
 
-- [ ] Parallel runner audited: SIGINT mid-run leaves recoverable state, no
+- [x] Parallel runner audited: SIGINT mid-run leaves recoverable state, no
       zombie processes, no task stranded in doing/ without a message, log
       files never interleave
-- [ ] Verdict contracts hardened at both ends: prompts make drift
+- [x] Verdict contracts hardened at both ends: prompts make drift
       near-impossible AND parsing tolerates reasonable variation; every
       UNCLEAR path tells the user what to do next
-- [ ] Emit-mode orchestration (subagent-per-task) exercised end to end in
+- [x] Emit-mode orchestration (subagent-per-task) exercised end to end in
       Claude Code and the prompt audited against task 194's tier
       capabilities (parallel dispatch limits, fresh-context guarantee)
-- [ ] `loop.sh` hour/budget limits and refill/retry logic verified against
+- [x] `loop.sh` hour/budget limits and refill/retry logic verified against
       wall-clock and cost runaways
-- [ ] READY gate (`--force` bypass included) behaves as documented in
+- [x] READY gate (`--force` bypass included) behaves as documented in
       DOCUMENTATION.md
-- [ ] Coordinates with task 192 (shared manifest/summary helpers) and task
+- [x] Coordinates with task 192 (shared manifest/summary helpers) and task
       193 (`--excellence` chaining) — implement or sequence them here
       rather than duplicating the work
-- [ ] Fixes mirrored to `src/`; fresh install verified
+- [x] Fixes mirrored to `src/`; fresh install verified
 
 ## Notes
 
@@ -135,3 +135,101 @@ found concrete weak spots the audit should start from:
    and git diff can't be attributed per task. Only wire a
    sequential-mode-only manifest if the audit shows the `## Completed`
    parser losing files in practice.)
+
+## Completed
+
+Audit performed and fixes landed across the execution pipeline and quality
+chain. Both developer questions answered below.
+
+### Criterion-by-criterion outcome
+
+1. **Parallel runner (SIGINT recovery).** Two hazards fixed in `tasks.sh`:
+   - *Zombies* — the INT/TERM trap killed only the tracked `_run_task` wrapper
+     PIDs, orphaning the CLI grandchild that keeps burning tokens. Added a
+     recursive `_kill_tree` (walks `pgrep -P` leaves-first) and the trap now
+     kills each launched task's whole process tree.
+   - *Stranded files* — parallel mode moves all tasks to doing/ upfront, so an
+     interrupt abandoned never-launched tasks there. The trap now returns
+     never-launched tasks (PID still 0) to next/ with a message; genuinely
+     in-flight tasks stay in doing/ for inspection (loop.sh's orphan sweep
+     rescues those). Verified the rescue logic under bash.
+   - *Log interleaving* — confirmed a non-issue: each task's stream-json log is
+     a distinct timestamped path from `fiveday_log_path`; no shared handle.
+
+2. **Verdict contracts.** Added a shared, tolerant parser
+   `fiveday_parse_verdict` to `lib.sh` (case-insensitive; tolerates `**bold**`,
+   `VERDICT — pass`, `verdict:fail`, em/en dashes; last-match-wins). Both
+   `audit-code.sh` and `audit-excellence.sh` now use it instead of an
+   exact-uppercase grep, so a reworded last line no longer silently degrades to
+   UNCLEAR. Hardened the prompt side too: fixer/verifier/excellence prompts now
+   demand the literal `VERDICT: <TOKEN>` as the very last line, one uppercase
+   token, no bold/punctuation. Gave `audit-code.sh`'s UNCLEAR path the
+   actionable messaging excellence already had (empty last log → CLI
+   start/auth failure; otherwise → inspect log tail and re-run). Parser
+   verified against 10 drift-prone forms.
+
+3. **Emit-mode orchestration.** Exercised both emit paths end to end (prompt
+   emitted, no files moved). Found and fixed a real gap against the Notes'
+   "honest sequential fallback" requirement: the emit branch handed the
+   subagent-orchestration prompt to *every* emit-mode provider, but only
+   claude-code can be assumed to have a Task/subagent tool. Gated the
+   orchestration prompt on `fiveday_ai_tier = claude-code`; cursor/openai/generic
+   now get a sequential "you are the worker, not an orchestrator" prompt with
+   identical routing rules (so behavior can't drift). Verified claude-code emits
+   the subagent prompt and cursor emits the fallback.
+
+4. **loop.sh runaways.** Fixed the documented `--max` hazard: loop's `--max`
+   takes a count while tasks' `--max` is boolean, so `loop --max --audit` used
+   to capture "--audit" as the limit and every `attempts_up` test errored to
+   stderr and never tripped — a silent runaway. Added `_require_int` validation
+   for `--hours`, `--max`, and `--cooldown` (reject missing/non-integer up
+   front). Documented that the time limit is checked between iterations (a task
+   starting at 3h59m of a 4h cap runs to completion) as deliberate — killing
+   mid-task strands a half-edited tree, and the CLI `--budget` cap bounds a
+   single run.
+
+5. **READY gate.** Verified — no change needed. `tasks.sh` uses the robust
+   `fiveday_review_verdict` (anchored `^**Status: READY**`, last `## Questions`
+   section only), not a loose whole-file grep, so body text quoting the verdict
+   vocabulary can't spoof it. `--force` bypass and skip messaging match
+   DOCUMENTATION.md:106 and help/tasks.md.
+
+6. **Coordination (192/193).** No duplication. `fiveday_parse_verdict` is new
+   and complementary to 192's manifest/summary helpers (which already exist and
+   were reused as-is). 193's `--excellence` chaining is already implemented in
+   `tasks.sh` / `_route_result`; left intact.
+
+7. **Mirror + fresh install.** All five edited files mirrored to `src/` and
+   confirmed byte-identical. Fresh `/tmp` install via `setup.sh` passed all
+   checks; installed scripts syntax-check and the new parser + loop guard work
+   in the installed copy.
+
+### Answers to the developer questions
+
+1. **Prerequisite ordering (192/193/194).** Accepted as an operational
+   guarantee — no task edit. Ordering holds in sequential mode; run this sprint
+   sequentially (or clear 192–194 first) when the tier-capability audit needs
+   194's matrix. No code enforces it because doing so would couple unrelated
+   tasks.
+2. **AUDIT_MANIFEST wording.** Accepted `## Completed` as the contract; did not
+   wire a per-task manifest. A true per-task manifest is impossible in parallel
+   mode (concurrent tasks share one working tree; git diff can't be attributed
+   per task), and the `## Completed` parser in `fiveday_change_manifest` did not
+   lose files in practice. The Problem statement's "chains audit-code.sh via
+   AUDIT_MANIFEST" overstates the wiring; the real chain is task-path →
+   `## Completed` fallback. (AUDIT_MANIFEST remains supported as priority-1 if a
+   caller sets it, e.g. a future sequential-only manifest.)
+
+### Files changed
+
+- `docs/5day/lib.sh` — added `fiveday_parse_verdict`; header comment updated.
+- `docs/5day/scripts/tasks.sh` — parallel-runner `_kill_tree` + never-launched
+  rescue in the interrupt trap; emit branch gated by tier (subagent
+  orchestration vs sequential fallback).
+- `docs/5day/scripts/audit-code.sh` — tolerant verdict parse; hardened
+  fixer/verifier prompts; actionable UNCLEAR messaging.
+- `docs/5day/scripts/audit-excellence.sh` — tolerant verdict parse; hardened
+  prompt.
+- `docs/5day/scripts/loop.sh` — `_require_int` numeric validation for
+  `--hours`/`--max`/`--cooldown`; documented time-limit granularity.
+- Mirrored all five to `src/docs/5day/`.

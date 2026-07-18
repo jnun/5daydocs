@@ -10,22 +10,26 @@ cd "$PROJECT_ROOT"
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
+# Exit codes (documented in help/sync.md):
+#   0  success, or nothing to sync
+#   1  environment not ready (no git repo, wrong branch, no remote, no gh)
+
 # Check we're in a git repo
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    echo -e "${RED}ERROR: Not a git repository${NC}"
+    echo -e "${RED}ERROR: Not a git repository.${NC} Run: git init"
     exit 1
 fi
 
 # Check we're on main
 BRANCH=$(git branch --show-current)
 if [ "$BRANCH" != "main" ]; then
-    echo -e "${RED}ERROR: Must be on main branch (currently on '$BRANCH')${NC}"
+    echo -e "${RED}ERROR: Must be on main branch (currently on '$BRANCH').${NC} Switch with: git checkout main"
     exit 1
 fi
 
 # Check for a remote
 if ! git remote get-url origin >/dev/null 2>&1; then
-    echo -e "${RED}ERROR: No 'origin' remote configured${NC}"
+    echo -e "${RED}ERROR: No 'origin' remote configured.${NC} Add one with: git remote add origin <url>"
     exit 1
 fi
 
@@ -34,6 +38,14 @@ FORCE_ALL=false
 if [ "${1:-}" = "--all" ]; then
     FORCE_ALL=true
     shift
+fi
+
+# Precheck gh for --all BEFORE committing/pushing, so a --all run fails whole
+# rather than half — otherwise we'd push, then discover gh is missing and be
+# unable to trigger the full resync, leaving the sync half-done.
+if [ "$FORCE_ALL" = "true" ] && ! command -v gh >/dev/null 2>&1; then
+    echo -e "${RED}ERROR: gh CLI is required for --all.${NC} Install from https://cli.github.com"
+    exit 1
 fi
 
 echo -e "${CYAN}=== 5DayDocs GitHub Sync ===${NC}"
@@ -81,13 +93,10 @@ if [ "$STAGED" -gt 0 ]; then
     echo -e "${GREEN}Synced $STAGED file(s). GitHub Actions will update issues shortly.${NC}"
 fi
 
-# If --all, trigger a full resync via workflow_dispatch
+# If --all, trigger a full resync via workflow_dispatch. gh was already
+# verified above, before any commit/push, so we never reach here without it.
 if [ "$FORCE_ALL" = "true" ]; then
     echo -e "${YELLOW}Triggering full resync via workflow_dispatch...${NC}"
-    if ! command -v gh >/dev/null 2>&1; then
-        echo -e "${RED}ERROR: gh CLI is required for --all. Install from https://cli.github.com${NC}"
-        exit 1
-    fi
     gh workflow run sync-tasks-to-issues.yml -f force_sync_all=true
     echo -e "${GREEN}Full resync triggered. All tasks will be synced to GitHub Issues.${NC}"
 fi

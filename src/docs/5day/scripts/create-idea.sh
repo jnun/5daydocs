@@ -9,21 +9,27 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 create_idea_file() {
     local name="$1"
 
+    # This function's stdout is the return channel (it prints the file path),
+    # so every diagnostic must go to stderr or it is swallowed by the caller's
+    # command substitution.
     local kebab
-    kebab=$(kebab_case "$name")
+    kebab=$(fiveday_slug "$name") || {
+        echo -e "${RED}ERROR: Name has no letters or numbers to build a filename from.${NC}" >&2
+        exit 1
+    }
 
     local idea_file="docs/ideas/${kebab}.md"
 
+    # Honest collision: name the resulting slug. If the name was truncated
+    # (fiveday_slug printed a note above), the user sees the two together —
+    # two long names can collapse to the same 50-char slug.
     if [ -f "$idea_file" ]; then
-        echo -e "${YELLOW}WARNING: Idea '$kebab' already exists at $idea_file${NC}"
+        echo -e "${YELLOW}WARNING: Idea '$kebab' already exists at $idea_file${NC}" >&2
         exit 1
     fi
 
     local template_file="docs/ideas/.TEMPLATE-idea.md"
-    copy_template "$template_file" "$idea_file" || {
-        echo -e "${RED}ERROR: Template file not found: $template_file${NC}"
-        exit 1
-    }
+    copy_template "$template_file" "$idea_file" || exit 1
 
     local created_date
     created_date=$(date +%Y-%m-%d)
@@ -46,18 +52,15 @@ if [ -n "${1:-}" ]; then
 fi
 
 # ── Without argument: AI-assisted Q&A ──────────────────────────────
-
-if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
-    echo "Error: AI CLI '$FIVEDAY_CLI' not found in PATH"
-    echo "  Edit docs/5day/config to change CLI, or install the tool."
-    echo "  Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview"
-    exit 1
-fi
+# No CLI-presence check: fiveday_run falls back to emit mode when no binary is
+# installed (or when already inside an agent session), printing the prompt for
+# the surrounding agent to run. Bailing here would break that path — the same
+# reason create-feature.sh has no such check.
 
 echo "▸ Starting idea refinement session..."
 echo ""
 
-_MODEL="$(fiveday_resolve_model IDEA)"
+_MODEL="$(fiveday_tier_model IDEA)"
 _model_args=()
 [ -n "$_MODEL" ] && _model_args=(--model "$_MODEL")
 

@@ -80,6 +80,10 @@ After creating all sub-tasks, read each newly created file and fill in:
 - The ## Success criteria (1-3 checkboxes, specific and verifiable)
 - The ## Notes section (mention the parent task number, list which file(s) to change)
 - Set **Depends on**: to the previous sub-task number if ordering matters, or 'none' if independent
+- Set the **Parent**: field to the numeric ID of THIS parent task ($TASK_NAME).
+  Write just the number, e.g. '**Parent**: ${TASK_NAME%%-*}'. This is what
+  './5day.sh sprint N \"parent:${TASK_NAME%%-*}\"' matches to gather the children,
+  so it must be exact — do not omit it.
 ${_DELETE_INSTR}
 After creating all sub-tasks, print a summary of what was created:
   'Created N sub-tasks from [original task title]'

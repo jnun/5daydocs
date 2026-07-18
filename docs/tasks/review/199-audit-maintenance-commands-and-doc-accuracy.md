@@ -18,19 +18,19 @@ the feature template must actually contain.
 
 ## Success criteria
 
-- [ ] Every `help/*.md` and the DOCUMENTATION.md command list diffed
+- [x] Every `help/*.md` and the DOCUMENTATION.md command list diffed
       against the flags each script actually parses — zero drift, and a
       repeatable check for it (script or documented procedure) so drift is
       caught next time
-- [ ] Each command run against three environments: empty fresh install,
+- [x] Each command run against three environments: empty fresh install,
       populated project, degenerate cases (no git remote, no `gh`, empty
       folders, missing DOC_STATE) — no unguarded failures, every error
       names the fix
-- [ ] `validate --fix` round-trips current template output without
+- [x] `validate --fix` round-trips current template output without
       mangling user content
-- [ ] `sync` degrades gracefully without GitHub: clear message, documented
+- [x] `sync` degrades gracefully without GitHub: clear message, documented
       exit code
-- [ ] Fixes mirrored to `src/`; fresh install verified
+- [x] Fixes mirrored to `src/`; fresh install verified
 
 ## Notes
 
@@ -133,3 +133,83 @@ the formal dependency; nothing here needs to wait on a decision from it.
    generates, and make `check-alignment.sh` accept both patterns —
    antifragile per the audit bar, and it avoids rewriting existing user
    feature files.)
+
+## Completed
+
+Ran the audit against a fresh `/tmp/test-5day` install (empty, populated,
+and degenerate cases) plus the live repo. All five criteria met.
+
+### New repeatable drift check — `validate --docs`
+
+- `docs/5day/scripts/check-docs.sh` (new, mirrored to `src/`): reads the
+  command→script map from the dispatcher (so it self-updates as commands
+  change), extracts the flags each script actually recognizes (case
+  branches + `= "--foo"` compares — external-CLI args like `--tools` are
+  correctly ignored), and diffs them against each `help/*.md`. Reports
+  undocumented flags (parsed, not in help) and stale flags (in help,
+  parsed by no script — forwarded flags like `loop`'s `--audit` are
+  filtered out). Exit 1 on drift, 0 clean.
+- Wired in as `./5day.sh validate --docs` (delegates from
+  `validate-tasks.sh`). Documented in `help/validate.md` and the dispatcher.
+
+### Doc drift fixed (document-reality per audit note Q2)
+
+- `help/cleanup.md` — added `--force` (delete stale, no prompt).
+- `help/define.md` — added `--force` (re-review already-READY tasks).
+- `help/tasks.md` — added `--jobs N` and `--verbose`.
+- `help/validate.md` — added `--docs`.
+- `help/sync.md` — documented requirements and exit codes.
+- `DOCUMENTATION.md` + `5day.sh` quick-reference — `validate [--fix]
+  [--dry-run] [--docs]` and `cleanup [--delete|--force|--all]`.
+- `validate --docs` now reports zero drift across all 24 flag-bearing
+  commands.
+
+### Command robustness fixes
+
+- `check-alignment.sh` (`checkfeatures`) — now accepts the shipped
+  template's `**Status:** BACKLOG` (colon inside bold) as well as the
+  repo's older `## Feature Status:` heading / `**Status**:` forms, for
+  both the overall status and per-capability lines. Fresh users' first
+  template-generated feature no longer reports "⚠ No status found".
+  Verified both formats parse.
+- `cleanup-tmp.sh` — fixed empty-array expansion under `set -u` on macOS
+  stock bash 3.2 (old `targets=("${stale[@]}" "${recent[@]}")` aborted
+  with "unbound variable" whenever one array was empty; now built with
+  guarded `+=` appends). Verified old code crashes, new code runs, and
+  `cleanup --all`/`--delete` complete end-to-end.
+- `sync.sh` — moved the `gh` precheck ahead of commit/push so a `--all`
+  run fails whole instead of pushing then failing to trigger the resync;
+  every environment error (no repo / not main / no origin / no gh) now
+  names the fixing command; documented exit codes (0 success, 1 env not
+  ready) in `help/sync.md`.
+- `validate-tasks.sh --fix` round-trip hardening: (1) a heading-less file
+  no longer yields a bare `# Task N: ` — falls back to a filename slug;
+  (2) a second success-criteria-style heading is no longer silently
+  dropped (which orphaned its body into the prior section) — each variant
+  heading is normalized in place; template output round-trips unchanged
+  (verified).
+
+### Housekeeping
+
+- Deleted stray `docs/5day/config.sh.bak`.
+- Mirrored all changes to `src/`; `docs/5day/` and `src/docs/5day/` are
+  byte-identical except dev-only `DOC_STATE.md` and `tmp/`. Fresh install
+  verified (setup.sh exit 0, all commands run).
+
+### Files changed
+
+- `5day.sh` + `src/5day.sh` (dispatcher help)
+- `DOCUMENTATION.md` + `src/DOCUMENTATION.md`
+- `docs/5day/scripts/check-docs.sh` (new) + `src/` mirror
+- `docs/5day/scripts/{cleanup-tmp,sync,check-alignment,validate-tasks}.sh`
+  + `src/` mirrors
+- `docs/5day/help/{cleanup,define,tasks,validate,sync}.md` + `src/` mirrors
+- Deleted `docs/5day/config.sh.bak`
+
+### Not done / out of scope
+
+- `tasks.sh` flag *behavior* left unchanged (task 198's territory) — only
+  documented per Q2.
+- `profile` is the one AI-invoking command here; its CLI path was not
+  exercised (no provider configured in the test env), but its argument
+  handling and missing-input guards were reviewed.

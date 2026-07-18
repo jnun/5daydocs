@@ -36,6 +36,10 @@ elif [ ! -d "$dir" ]; then
     exit 1
 fi
 timeout_sec=120       # kill hung AI CLI calls after this
+# The per-task audit is a single-shot classification (verdict + reason). Cap
+# turns so a misbehaving model can't burn a long session before the timeout
+# fires. Consistent with define/sprint/split/review-sprint/triage.
+MAX_TURNS=15
 AI_MODE="$(fiveday_ai_mode)"
 
 # The CLI binary is only required in exec mode; emit mode hands the prompt to
@@ -154,7 +158,7 @@ Rules:
 - Only output the verdict line and reason line, nothing else"
 
   verdict=$(run_with_timeout "$timeout_sec" fiveday_run -p "$_audit_prompt" \
-    ${_model_args[@]+"${_model_args[@]}"} --skip-permissions 2>/dev/null) || true
+    ${_model_args[@]+"${_model_args[@]}"} --max-turns "$MAX_TURNS" --skip-permissions 2>/dev/null) || true
 
   # Parse verdict — scan for keyword (Sonnet sometimes buries it)
   action=$(echo "$verdict" | grep -oE '^(DONE|OUTDATED|UNDEFINED|KEEP)' | head -1 || true)

@@ -47,9 +47,25 @@ FOCUS_INSTRUCTION=""
 CHILD_FILES=""
 if [[ "$FOCUS" == parent:* ]]; then
   PARENT_ID="${FOCUS#parent:}"
-  # Pre-find children so the AI doesn't have to search 300+ files
-  CHILD_FILES=$(grep -rl "Task $PARENT_ID\|parent.*$PARENT_ID" "$BACKLOG_DIR"/ 2>/dev/null | sort | while read -r f; do basename "$f"; done | tr '\n' ', ') || CHILD_FILES=""
-  CHILD_COUNT=$(grep -rl "Task $PARENT_ID\|parent.*$PARENT_ID" "$BACKLOG_DIR"/ 2>/dev/null | wc -l | tr -d ' ') || CHILD_COUNT=0
+  if ! [[ "$PARENT_ID" =~ ^[0-9]+$ ]]; then
+    echo "✗ Invalid parent reference: '$FOCUS' — expected parent:<number>" >&2
+    exit 1
+  fi
+  # Pre-find children so the AI doesn't have to search 300+ files. Match the
+  # structured **Parent**: field split.sh stamps into each sub-task, anchored
+  # and line-exact: '**Parent**: 19' can never match '192', and prose that
+  # merely mentions the number can't false-positive (the old
+  # "Task $ID\|parent.*$ID" grep did both). One grep drives both list and count.
+  _child_paths=$(grep -rlE "^\*\*Parent\*\*:[[:space:]]*${PARENT_ID}[[:space:]]*$" "$BACKLOG_DIR"/ 2>/dev/null | sort || true)
+  # Check for zero children BEFORE building the name list: an empty list would
+  # otherwise trip set -e in the loop below (its final iteration returns 1).
+  if [ -z "$_child_paths" ]; then
+    echo "✗ No sub-tasks in $BACKLOG_DIR/ carry '**Parent**: $PARENT_ID'." >&2
+    echo "  Split the parent first (./5day.sh split <task>), or check the ID." >&2
+    exit 1
+  fi
+  CHILD_COUNT=$(printf '%s\n' "$_child_paths" | grep -c . || true)
+  CHILD_FILES=$(printf '%s\n' "$_child_paths" | while read -r f; do basename "$f"; done | tr '\n' ', ')
   FOCUS_INSTRUCTION="
 PARENT TASK FILTER: This sprint is composed of sub-tasks split from parent Task $PARENT_ID.
 There are $CHILD_COUNT child tasks. Here are their filenames — include ALL of them:
@@ -166,7 +182,8 @@ if fiveday_run -p "$PROMPT" \
   MOVE_SOURCES=$(sed -n '/^## Commands/,$p' "$PLAN_FILE" | grep -oE "docs/tasks/backlog/[^ ]+" 2>/dev/null | sort -u || true)
 
   if [ -z "$MOVE_SOURCES" ]; then
-    echo "No move commands found in plan."
+    echo "No move commands found under '## Commands' in $PLAN_FILE."
+    echo "Review the plan and run any git mv commands manually."
     exit 0
   fi
 

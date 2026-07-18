@@ -20,19 +20,20 @@ usage across macOS and Linux.
 
 ## Success criteria
 
-- [ ] Every function in `lib.sh` and `5day.sh` audited and exercised:
+- [x] Every function in `lib.sh` and `5day.sh` audited and exercised:
       missing config, missing dirs, non-git directory, spaces in paths,
       NO_COLOR, filesystems without exec bits
-- [ ] All scripts grepped for `fiveday_emitted` / `fiveday_run` inside
+- [x] All scripts grepped for `fiveday_emitted` / `fiveday_run` inside
       command substitutions; any mode-detection misuse fixed
-- [ ] shellcheck clean (or annotated with reasons) for `5day.sh`, `lib.sh`,
+- [x] shellcheck clean (or annotated with reasons) for `5day.sh`, `lib.sh`,
       and all `cli/*.sh`
-- [ ] No hot-path inefficiency: config parsed once per invocation where
+- [x] No hot-path inefficiency: config parsed once per invocation where
       possible; no repeated subprocess spawns in loops that a variable
       would cover
 - [ ] Provider profile flag parity per task 194's matrix: nothing consumed
       by `claude.sh` may silently vanish in other profiles
-- [ ] Fixes mirrored to `src/`; fresh install verified
+      — **deferred: waits on 194's matrix, which does not exist yet** (see Notes)
+- [x] Fixes mirrored to `src/`; fresh install verified
 
 ## Notes
 
@@ -121,3 +122,69 @@ should start from:
    command substitution. Emitting keeps the commands usable inside agent
    sessions, which is where the confirmed bugs bite today; refusing would
    be safe but strictly less capable.)
+
+## Completed
+
+Both developer questions were resolved by adopting the suggested answers
+(the two-path `run_with_timeout`; emit a combined prompt like `triage.sh`).
+
+### Fixes applied
+
+**`docs/5day/lib.sh`** (mirrored to `src/docs/5day/lib.sh`)
+- `run_with_timeout` now branches on `type -t "$1"`: external programs keep
+  coreutils `timeout`/`gtimeout`; shell functions (e.g. `fiveday_run`) take
+  the shell-watchdog path, which those tools cannot exec. Restores the
+  timeout guarantee on Linux, where every timed `fiveday_run` call site
+  previously died instantly with 125/127 (masked as fake TIMEOUT/UNCLEAR).
+  Watchdog now `disown`s the watcher to suppress "Terminated" job-control
+  noise that this path newly surfaces for function calls.
+- `fiveday_ai_mode` caches its resolved mode (`_FIVEDAY_MODE_CACHE`) — it
+  was calling `fiveday_cfg` (awk+tail subprocesses) on every `fiveday_run`.
+- `sed_inplace` caches GNU-vs-BSD detection (`_FIVEDAY_SED_GNU`) instead of
+  spawning `sed --version` per call.
+- `fiveday_cfg_set` escapes the value for its `|`-delimited sed replacement,
+  so a `|`, `&`, or `\` in a config value no longer corrupts the write.
+- `FIVEDAY_STAGES` quotes `"done"` (SC1010: `done` is a shell keyword).
+
+**`5day.sh`** (mirrored to `src/5day.sh`)
+- Honours `NO_COLOR` (blanks the colour codes), matching `lib.sh`.
+- Annotated the intentional glob in `count_files` (SC2206).
+
+**`docs/5day/scripts/audit-tasks.sh`** (mirrored to `src/`)
+- Added an emit-mode guard before the per-task exec loop: in emit mode it
+  emits one combined audit prompt and exits, instead of parsing the emitted
+  prompt text (which contains `DONE - …`) as a verdict and moving every task
+  to `review/`. Confirmed bug #1 fixed.
+- Dropped the divergent local `run_with_timeout` (different signature) and
+  now calls lib.sh's with the seconds argument.
+- The CLI-binary preflight is gated to exec mode (emit never spawns it).
+
+**`docs/5day/scripts/audit-code.sh`** (mirrored to `src/`)
+- Added an emit-mode guard before the fixer/verifier loop: emits one
+  combined audit prompt and exits, instead of reading `VERDICT: PASS` out of
+  the emitted prompt and reporting a clean pass having audited nothing.
+  Confirmed bug #2 fixed.
+- The CLI-binary preflight is gated to exec mode.
+
+### Verification
+- `shellcheck` clean on `5day.sh`, `lib.sh`, `cli/claude.sh`, `cli/default.sh`
+  (remaining `audit-code.sh` notes are pre-existing style/info in untouched
+  code).
+- `run_with_timeout` exercised under bash: function → correct exit code
+  (was 125/127); external timeout → 143; success → 0.
+- `fiveday_cfg_set 'a|b&c\d'` round-trips intact.
+- Emit mode for both audit scripts emits a combined prompt and moves nothing.
+- `NO_COLOR=1 ./5day.sh status` emits no escape codes.
+- Fresh install into `/tmp/test-5day` completed (exit 0); installed tree
+  carries the fixes, passes `bash -n`, runs `status`, and emit mode works.
+
+### Deferred
+- Provider profile flag parity (criterion 5) waits on task 194's capability
+  matrix, which does not exist yet (`Depends on: 194`). Criteria 1–4 and 6
+  are done regardless, as the task's plan directed.
+
+### Files changed
+- `5day.sh`, `src/5day.sh`
+- `docs/5day/lib.sh`, `src/docs/5day/lib.sh`
+- `docs/5day/scripts/audit-tasks.sh`, `src/docs/5day/scripts/audit-tasks.sh`
+- `docs/5day/scripts/audit-code.sh`, `src/docs/5day/scripts/audit-code.sh`

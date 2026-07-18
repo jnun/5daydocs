@@ -20,20 +20,20 @@ distinction should be justified or collapsed.
 
 ## Success criteria
 
-- [ ] Consistent emit/exec behavior across all eight commands: emit prompts
+- [x] Consistent emit/exec behavior across all eight commands: emit prompts
       are complete enough for the surrounding agent to act alone; exec
       parses results robustly with actionable failure messages
-- [ ] Every AI prompt audited: states role, inputs, output contract, and a
+- [x] Every AI prompt audited: states role, inputs, output contract, and a
       parseable completion signal; no prompt relies on the model guessing
       file layouts it wasn't given
-- [ ] The define→READY→tasks gate contract verified end to end, including
+- [x] The define→READY→tasks gate contract verified end to end, including
       what happens to tasks that fail the gate
-- [ ] On Claude Code (task 194 tiers), parallel/subagent dispatch is used
+- [x] On Claude Code (task 194 tiers), parallel/subagent dispatch is used
       where it materially helps (e.g. `define` reviewing N tasks in
       parallel subagents); generic providers degrade to sequential
-- [ ] define vs audit overlap resolved: merge, differentiate clearly in
+- [x] define vs audit overlap resolved: merge, differentiate clearly in
       help text, or document why both exist
-- [ ] Fixes mirrored to `src/`; fresh install verified
+- [x] Fixes mirrored to `src/`; fresh install verified
 
 ## Notes
 
@@ -133,3 +133,93 @@ visible that the audit must fix:
    cross-references, and defer any code merge of audit/triage to a
    follow-up task; this satisfies the criterion's "differentiate clearly
    in help text" option without growing this task's diff.)
+
+## Completed
+
+Audited all eight planning/definition commands against the audit bar
+(efficient, functionally excellent, elegantly coded, antifragile). Several
+concerns raised in the task were already resolved by recent edits and by
+task 194 and are noted below; the rest were fixed here.
+
+### Already resolved before this task (verified, no change needed)
+- **audit-tasks.sh emit guard** — the destructive emit-mode path was already
+  guarded: it emits one combined prompt and exits before the exec parse loop.
+- **run_with_timeout shadowing** — audit-tasks.sh already uses the lib.sh
+  version; no local redefinition remains.
+- **Gate fragility (criterion 3)** — `fiveday_review_verdict` (lib.sh, from
+  task 194) already anchors on the last `## Questions` section and a
+  line-exact `**Status: X**` stamp; define.sh and tasks.sh both route through
+  it. Verified end to end: tasks whose bodies merely quote the verdict
+  vocabulary (197–200) do not false-positive; no-verdict tasks stay in next/
+  and are skipped by `tasks` with a clear message + `--force` escape.
+- **Tier helpers (criterion 4 dependency)** — task 194 shipped
+  `fiveday_ai_tier`, `fiveday_tier_model`, and the `PROVIDER` config key.
+
+### Fixed here
+1. **review-sprint.sh made mode-aware** — CLI preflight now hard-fails only in
+   exec mode (emit falls back per lib.sh); added an emit-mode branch that
+   stops after emitting instead of printing a false "complete" block; exec
+   mode now verifies a `SPRINT REVIEW COMPLETE` marker before claiming success.
+2. **Completion signals / prompt contracts (criterion 2)** — added a
+   parseable `SPRINT REVIEW COMPLETE` last-line contract to review-sprint;
+   aligned find.sh's review-stage prompt with what the script actually parses
+   (write `## Completed` when verified — the routing signal — instead of the
+   unparsed VERIFIED/NOT COMPLETE phrases); sprint.sh's empty-`## Commands`
+   soft-fail now names the plan file and next step.
+3. **define parallel dispatch (criterion 4)** — factored the review contract
+   into one shared `_review_contract` function used by both paths; on the
+   claude-code tier in emit mode with >1 task, define now emits a single
+   orchestration prompt that fans out one subagent per task in parallel.
+   Other tiers and exec mode fall through to the unchanged sequential loop.
+4. **sprint.sh parent matching (criterion, item 5)** — replaced the fragile
+   `grep "Task $ID\|parent.*$ID"` (matched "Task 19" in "Task 192" and any
+   prose) with an anchored, line-exact match on a new structured `**Parent**:`
+   field; one grep now drives both the name list and the count; added a
+   numeric-validation guard and a no-children guard. Fixed a set -e/pipefail
+   bug where the empty-list name-building loop aborted the script before the
+   guard could report. Added `**Parent**: none` to the task template and
+   taught split.sh to stamp the parent ID onto every child it creates.
+5. **define vs audit vs triage overlap (criterion 5)** — added a "Related
+   commands" block to each of the three help files differentiating and
+   cross-referencing them (define = pre-sprint gate on next/ writing the
+   ## Questions readiness stamp; audit = non-interactive bulk cleanup;
+   triage = the interactive form of audit). Code merge deferred per the
+   task's own suggestion.
+6. **Consistency sweep (item 8)** — added a `MAX_TURNS=15` cap to the
+   single-shot classification runs in triage.sh and audit-tasks.sh (bounded
+   like the other planning commands); normalized find.sh's `--work` log path
+   to the shared `fiveday_log_path` helper. Left find.sh's `--work` run
+   without a turn cap deliberately: it is an implementation run and mirrors
+   tasks.sh (budget-bounded, not turn-bounded); a small cap would truncate
+   real work. Per Q1, find.sh's `--think`/`--work` exec pin and mode
+   conversion are left to task 191.
+
+### Verification
+- `bash -n` clean on all seven edited scripts.
+- define emit paths exercised: claude-code tier fans out one orchestration
+  prompt; generic tier degrades to sequential per-task emit; move
+  instructions present in both.
+- `fiveday_review_verdict` confirmed to read only the anchored stamp.
+- sprint parent guards confirmed: invalid ref rejected, no-children rejected,
+  a matching `**Parent**:` child found.
+- Fresh `/tmp` install passed all checks (73 files); installed template
+  carries `**Parent**: none`, `newtask` emits it, all scripts syntax-check,
+  help cross-references present.
+
+### Files changed
+- docs/5day/scripts/define.sh (+ src mirror)
+- docs/5day/scripts/review-sprint.sh (+ src mirror)
+- docs/5day/scripts/find.sh (+ src mirror)
+- docs/5day/scripts/sprint.sh (+ src mirror)
+- docs/5day/scripts/split.sh (+ src mirror)
+- docs/5day/scripts/triage.sh (+ src mirror)
+- docs/5day/scripts/audit-tasks.sh (+ src mirror)
+- docs/5day/help/define.md, audit.md, triage.md (+ src mirrors)
+- docs/tasks/.TEMPLATE-task.md (+ src/docs/tasks/.TEMPLATE-task.md)
+
+### Not changed (out of scope / deferred)
+- find.sh --think/--work mode conversion → task 191.
+- Any code merge of audit/triage → follow-up (help-level differentiation
+  only, per Q2).
+- plan.sh required no changes: already mode-aware, prompt states role/inputs/
+  contract, and its blocked→backlog move is folded into the emit prompt.

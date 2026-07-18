@@ -5,12 +5,6 @@ set -euo pipefail
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib.sh"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
 NAME="${1:-}"
 if [ -z "$NAME" ]; then
     echo "Usage: $0 \"What you're testing\""
@@ -21,34 +15,26 @@ if [ -z "$NAME" ]; then
     exit 1
 fi
 
-# Convert to kebab-case for the filename
-KEBAB=$(echo "$NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-zA-Z0-9-]/-/g' | sed 's/--*/-/g' | sed 's/^-//;s/-$//')
-
-# Limit filename length to keep paths portable
-if [ ${#KEBAB} -gt 50 ]; then
-    KEBAB="${KEBAB:0:50}"
-    KEBAB=$(echo "$KEBAB" | sed 's/-$//')
-    echo -e "${YELLOW}Note: Filename truncated to 50 characters${NC}"
-fi
+# Convert to a filename-safe slug; reject names with no slug-able text.
+KEBAB=$(fiveday_slug "$NAME") || {
+    echo -e "${RED}ERROR: Name has no letters or numbers to build a filename from.${NC}"
+    exit 1
+}
 
 TEST_FILE="docs/tests/${KEBAB}.md"
 
+# Honest collision: name the resulting slug. If the name was truncated
+# (fiveday_slug printed a note above), the user sees the two together —
+# two long names can collapse to the same 50-char slug.
 if [ -f "$TEST_FILE" ]; then
     echo -e "${YELLOW}WARNING: Test '$KEBAB' already exists at $TEST_FILE${NC}"
     exit 1
 fi
 
-mkdir -p docs/tests
-
 TEMPLATE_FILE="docs/tests/.TEMPLATE-test.md"
-if [ ! -f "$TEMPLATE_FILE" ]; then
-    echo -e "${RED}ERROR: Template file not found: $TEMPLATE_FILE${NC}"
-    exit 1
-fi
+copy_template "$TEMPLATE_FILE" "$TEST_FILE" || exit 1
 
 CREATED_DATE=$(date +%Y-%m-%d)
-
-cp "$TEMPLATE_FILE" "$TEST_FILE"
 
 sed_inplace "s/\[TEST-NAME\]/$(sed_escape "$NAME")/g" "$TEST_FILE"
 sed_inplace "s/YYYY-MM-DD/$CREATED_DATE/g" "$TEST_FILE"

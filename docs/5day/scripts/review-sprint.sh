@@ -16,7 +16,12 @@ MAX_TURNS=50
 
 # ── Preflight ───────────────────────────────────────────────────────
 
-if ! command -v "$FIVEDAY_CLI" &>/dev/null; then
+AI_MODE="$(fiveday_ai_mode)"
+
+# The CLI binary is only needed in exec mode; emit mode hands the prompt to
+# the surrounding agent and never spawns it (lib.sh falls back to emit when
+# the binary is missing). Only hard-fail when we actually intend to exec.
+if [ "$AI_MODE" != "emit" ] && ! command -v "$FIVEDAY_CLI" &>/dev/null; then
   echo "✗ AI CLI '$FIVEDAY_CLI' not found in PATH"
   echo "  Edit docs/5day/config to change CLI, or install the tool."
   echo "  Claude Code: https://docs.anthropic.com/en/docs/claude-code/overview"
@@ -81,7 +86,11 @@ If the sprint is already well-ordered and no changes are needed, say so and why.
 
 **Style:** Write in clear, conversational prose — full sentences that commit to a point, not bullet fragments that gesture at one. Read like a thoughtful colleague explaining their reasoning.
 
-**Operating principle:** We practice LEAN, but the goal is perfection. Tools, rules, and process serve the outcome. If following the structure above would produce a worse plan, break it and explain why."
+**Operating principle:** We practice LEAN, but the goal is perfection. Tools, rules, and process serve the outcome. If following the structure above would produce a worse plan, break it and explain why.
+
+**Completion signal:** When both passes are finished, make the very last line of $REVIEW_FILE read exactly:
+SPRINT REVIEW COMPLETE — <N> tasks annotated
+(replace <N> with the number of tasks you annotated). This is the machine-readable marker that the review ran end to end."
 
 # ── Run ─────────────────────────────────────────────────────────────
 
@@ -97,6 +106,25 @@ if fiveday_run -p "$PROMPT" \
   --tools "$TOOLS" \
   --permissions "$PERMISSIONS" \
   --max-turns "$MAX_TURNS"; then
+
+  # Emit mode: fiveday_run only printed the prompt — the surrounding agent
+  # runs it and writes the files. Announcing "complete" here would be a lie.
+  if fiveday_emitted; then
+    echo ""
+    echo "▸ Prompt emitted — the review runs in this agent session."
+    echo "  When it finishes: annotations land in $NEXT_DIR/, analysis in $REVIEW_FILE."
+    exit 0
+  fi
+
+  # Exec mode: confirm the run actually produced the analysis before claiming
+  # success. The prompt writes a 'SPRINT REVIEW COMPLETE' marker as its last
+  # line; its absence means the CLI returned 0 without finishing the work.
+  if [ ! -f "$REVIEW_FILE" ] || ! grep -q '^SPRINT REVIEW COMPLETE' "$REVIEW_FILE"; then
+    echo ""
+    echo "⚠ Sprint review ended without a completion marker."
+    echo "  $REVIEW_FILE may be missing or partial — inspect it before acting."
+    exit 1
+  fi
 
   echo ""
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

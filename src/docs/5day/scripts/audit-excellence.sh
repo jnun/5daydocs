@@ -127,8 +127,11 @@ $CHANGED_FILES
 3. Judge: effectiveness, efficiency, design fit, operability, robustness.
 4. For each ENHANCEMENT finding, run: ./5day.sh newtask \"<description>\"
    then append Why and Scope to the created task file in docs/tasks/backlog/.
-5. Output the report per the protocol, VERDICT as LAST LINE:
-   VERDICT: EXCELLENT | FILED — <n> enhancement task(s) | BLOCKER — <reason>$APPEND_STEP"
+5. Output the report per the protocol. Your VERY LAST line must be the verdict
+   and nothing after it — the literal word VERDICT, a colon, a space, then ONE
+   uppercase token (EXCELLENT, FILED, or BLOCKER), no bold. A short reason may
+   follow the token:
+   VERDICT: EXCELLENT | VERDICT: FILED — <n> enhancement task(s) | VERDICT: BLOCKER — <reason>$APPEND_STEP"
 
 # ── Run ─────────────────────────────────────────────────────────────
 _model_args=()
@@ -155,7 +158,7 @@ OUTPUT=$(fiveday_run -p "$PROMPT" \
   --output-format json 2>/dev/null | tee "$LOG_FILE") || true
 
 # ── Parse result (exec mode) ────────────────────────────────────────
-VERDICT=$(echo "$OUTPUT" | grep -oE 'VERDICT: (EXCELLENT|FILED|BLOCKER)' | tail -1 | awk '{print $2}' || true)
+VERDICT=$(printf '%s' "$OUTPUT" | fiveday_parse_verdict 'EXCELLENT|FILED|BLOCKER')
 [ -z "$VERDICT" ] && VERDICT="UNCLEAR"
 
 SUMMARY=$(fiveday_extract_summary "$LOG_FILE")

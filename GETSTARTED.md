@@ -60,6 +60,19 @@ concrete piece of work.
 **Do this:** Write one task per piece of work. Keep each small enough to finish
 and check.
 
+**Task still rough?** Discuss it with an AI to turn it into a well-defined,
+workable task:
+
+```bash
+./5day.sh talk 12          # use the task's number
+```
+
+`talk` reads the task, then asks one focused question at a time — sharpening the
+problem, the success criteria, and the technical notes until any developer could
+pick it up. It edits the file as you answer, so progress shows up right in the
+task. And if the task turns out to be several jobs in a trench coat, it splits
+them into small, ordered sub-tasks for you.
+
 ## Step 4 — Move tasks to done
 
 Tasks live in folders, and the folder is the status. Move a task by moving its
@@ -147,6 +160,7 @@ in the sections, then commit.
 
 **Handy commands:**
 
+- `./5day.sh talk <task-id>` — discuss a task with an AI to make it well-defined and workable
 - `./5day.sh status` — see counts and what's in progress
 - `./5day.sh help` — list every command
 - `./5day.sh help <command>` — details for one command

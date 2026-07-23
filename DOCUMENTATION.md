@@ -101,7 +101,7 @@ Each command creates a file with inline guidance. Fill in the sections, then com
 ./5day.sh search <keyword>          # Search tasks by keyword
 ./5day.sh find <task-id> [--think|--work]  # Find task, analyze quality, or execute
 ./5day.sh plan <task-id>            # Interactive Q&A to define a task
-./5day.sh talk <task-id>            # Talk a rough task through, one detail at a time
+./5day.sh talk <task-id>            # Discuss a task with AI to make it well-defined and workable
 ./5day.sh sprint [count] [focus]    # Plan a sprint from backlog
 ./5day.sh define [limit]            # Review and refine tasks in next/ (stamps Status: READY)
 ./5day.sh tasks [limit] [--fast]    # Execute READY tasks from next/ (--force to skip the gate; --audit --excellence to chain quality audits)

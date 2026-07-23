@@ -1,4 +1,5 @@
-Talk an existing task through, refining it — and splitting it if needed.
+Discuss a task with an AI to turn it into a well-defined, workable task —
+refining it in place, or splitting it when it's really several jobs.
 
 Finds a task by ID, reads it, then launches a conversation that first
 sizes the task up: is it one atomic job, or several jobs bundled together?

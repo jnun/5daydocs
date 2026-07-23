@@ -86,7 +86,7 @@ show_help() {
     echo "  find <task-id> --think        Stress-test task quality (interactive)"
     echo "  find <task-id> --work         Analyze → move → work (full lifecycle)"
     echo "  plan <task-id>                Interactive Q&A to define an incomplete task"
-    echo "  talk <task-id>                Talk a rough task through, one detail at a time"
+    echo "  talk <task-id>                Discuss a task with AI to make it well-defined and workable"
     echo "  split <path>                  Split a large task into subtasks"
     echo "  triage [limit]                Interactive walk-through of task pipeline"
     echo "  audit [folder|file] [limit] [offset]  Audit tasks in next/ (or specified folder)"

@@ -134,7 +134,8 @@ Run tasks continuously with crash recovery. Each task gets a fresh context.
 ```bash
 ./5day.sh find <id> --work             # analyze, move, and work a single task
 ./5day.sh triage [limit]               # walk through the task pipeline interactively
-./5day.sh plan <task-id>               # interactive Q&A to define a task
+./5day.sh plan <task-id>               # interactive Q&A to define a blank task
+./5day.sh talk <task-id>               # discuss a task with AI to make it well-defined and workable
 ./5day.sh split <path>                 # break a large task into subtasks
 ./5day.sh audit [folder] [limit]       # audit tasks for quality
 ./5day.sh review-code <file> [passes]  # code audit on changed files

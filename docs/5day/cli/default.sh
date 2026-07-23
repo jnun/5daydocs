@@ -51,3 +51,9 @@ fiveday_provider_exec() {
 
   "${cmd[@]}"
 }
+
+# No fiveday_provider_interactive here on purpose: a generic CLI can't be
+# trusted to host a live REPL, so this profile does not set
+# FIVEDAY_PROVIDER_INTERACTIVE. fiveday_interactive_ok then returns false and
+# fiveday_run_interactive routes talk to the one-shot fiveday_provider_exec
+# above — while talk.sh points the user at the guide for the full experience.

@@ -27,6 +27,10 @@
 #   fiveday_ai_mode            — "emit" or "exec" for the current environment
 #   fiveday_emitted            — true if the last fiveday_run only emitted a prompt
 #   fiveday_run ARGS…          — run AI: emit prompt to stdout, or exec the CLI
+#   fiveday_interactive_ok     — true if a live session is possible (exec mode,
+#       interactive-capable provider, real TTY) — one source of truth
+#   fiveday_run_interactive A… — like fiveday_run, but the exec path is a live
+#       back-and-forth session (inherits the terminal) instead of one-shot
 #   fiveday_change_manifest TASK_FILE [FILE…] — build audit change manifest;
 #       sets FIVEDAY_CHANGED_FILES and FIVEDAY_CONTEXT_SOURCE
 #   fiveday_parse_verdict TOKENS — (stdin) last VERDICT token, case/format tolerant
@@ -463,6 +467,48 @@ fiveday_run() {
         return 0
     fi
     fiveday_provider_exec "$@"
+}
+
+# fiveday_interactive_ok — true when a live back-and-forth session is actually
+# possible right now. The single source of truth for that decision, consulted
+# both by fiveday_run_interactive (to route the run) and by callers like
+# talk.sh (to decide whether to warn about a degraded single pass) — so the
+# warning and the behaviour can never drift apart. All three conditions must
+# hold:
+#   1. exec mode        — in emit mode the surrounding agent is the session.
+#   2. provider opt-in  — the loaded profile sets FIVEDAY_PROVIDER_INTERACTIVE=1
+#                         and defines fiveday_provider_interactive (claude does;
+#                         others don't, so they degrade to one-shot).
+#   3. a real terminal  — both stdin and stdout are TTYs; a REPL on a pipe or in
+#                         CI would just block on input that never arrives.
+# Adding interactive support to another provider is one line in its profile —
+# no edits here or in callers.
+fiveday_interactive_ok() {
+    [ "$(fiveday_ai_mode)" = "exec" ]                        || return 1
+    [ "${FIVEDAY_PROVIDER_INTERACTIVE:-0}" = 1 ]             || return 1
+    declare -F fiveday_provider_interactive >/dev/null 2>&1 || return 1
+    [ -t 0 ] && [ -t 1 ]
+}
+
+# fiveday_run_interactive — like fiveday_run, but opens a LIVE conversation the
+# user can reply to turn by turn instead of a one-shot run. Routing:
+#   emit — identical to fiveday_run. The surrounding agent already gives the
+#          user an interactive session, so we just hand it the prompt to run.
+#   exec — when fiveday_interactive_ok, call fiveday_provider_interactive, which
+#          inherits the terminal (no stdout capture, no -p/JSON) so the CLI
+#          stays in its REPL. Otherwise degrade to the one-shot exec path.
+# Used by talk.sh — the one command that is a dialogue rather than a job.
+fiveday_run_interactive() {
+    FIVEDAY_LAST_MODE="$(fiveday_ai_mode)"
+    if [ "$FIVEDAY_LAST_MODE" = "emit" ]; then
+        fiveday_emit_prompt "$@"
+        return 0
+    fi
+    if fiveday_interactive_ok; then
+        fiveday_provider_interactive "$@"
+    else
+        fiveday_provider_exec "$@"
+    fi
 }
 
 # ── Audit helpers ────────────────────────────────────────────────────

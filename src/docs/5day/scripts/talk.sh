@@ -102,7 +102,22 @@ RULES:
 - Stay within the task pipeline: you may edit $TASK_FILE and any sub-task files you create via ./5day.sh newtask. Do not touch unrelated files.
 - When everything reads clearly end to end, tell the user, show the final state (the refined task, or the list of children with the original retired), and stop."
 
-fiveday_run \
+# talk is a dialogue, not a one-shot job — fiveday_run_interactive keeps the
+# CLI attached to the terminal so the user answers each question in turn. In
+# emit mode the surrounding agent supplies that back-and-forth. In exec mode it
+# needs an interactive-capable provider on a real terminal; when that is not
+# available the run degrades to a single refinement pass — say so plainly and
+# point to the guide, rather than pretending the conversation happened. The
+# same fiveday_interactive_ok that routes the run decides the warning, so the
+# two can never disagree.
+if [ "$(fiveday_ai_mode)" = "exec" ] && ! fiveday_interactive_ok; then
+  echo -e "${YELLOW}Note: a live back-and-forth needs an interactive-capable AI CLI (claude) in a real terminal.${NC}"
+  echo -e "${YELLOW}Doing a single refinement pass instead. To wire up the full talk experience,${NC}"
+  echo -e "${YELLOW}see docs/5day/guides/use_talk.md${NC}"
+  echo ""
+fi
+
+fiveday_run_interactive \
   --append-system-prompt "$APPEND_PROMPT" \
   ${_model_args[@]+"${_model_args[@]}"} \
   --tools "Read,Edit,Write,Bash,Grep,Glob" \

@@ -197,3 +197,61 @@ fiveday_provider_exec() {
     sleep "$wait_s"
   done
 }
+
+# This provider can host a live interactive session (see fiveday_interactive_ok
+# in lib.sh, which gates on this flag). Set at source time so the gate sees it.
+FIVEDAY_PROVIDER_INTERACTIVE=1
+
+# fiveday_provider_interactive — launch an INTERACTIVE Claude Code session.
+#
+# fiveday_provider_exec (above) redirects the CLI's stdout to a temp file so it
+# can capture JSON and retry on a dropped connection. That capture is exactly
+# what makes it one-shot: with stdout on a pipe the CLI sees a non-TTY, prints
+# a single response and exits. A `talk`-style dialogue needs the opposite — the
+# CLI must inherit the real terminal so the user can reply turn by turn. This
+# function provides that: no stdout capture, no -p/--output-format, no retry
+# loop (a human is present to rerun). The initial message is passed as a bare
+# positional, NOT via -p, because -p forces non-interactive print mode.
+#
+# Precondition: only ever reached via fiveday_run_interactive, which calls
+# fiveday_interactive_ok first — so exec mode and a real TTY are guaranteed here
+# and need no re-check. Same argument surface as fiveday_provider_exec.
+fiveday_provider_interactive() {
+  local prompt="" model="" tools="" permissions="" name="" system_prompt=""
+  local skip_permissions=0
+  local -a extra_args=()
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -p)                     prompt="$2";        shift 2 ;;
+      --model)                model="$2";         shift 2 ;;
+      --tools)                tools="$2";         shift 2 ;;
+      --permissions)          permissions="$2";   shift 2 ;;
+      --name)                 name="$2";          shift 2 ;;
+      --append-system-prompt) system_prompt="$2"; shift 2 ;;
+      --skip-permissions)     skip_permissions=1; shift ;;
+      # Print-only / one-shot flags are meaningless in a live session — consume
+      # them so they never leak onto the interactive command line.
+      --max-turns|--output-format|--budget) shift 2 ;;
+      --)                     shift; extra_args+=("$@"); break ;;
+      *)                      extra_args+=("$1"); shift ;;
+    esac
+  done
+
+  local -a cmd=("$FIVEDAY_CLI")
+  [ -n "$system_prompt" ] && cmd+=(--append-system-prompt "$system_prompt")
+  [ -n "$model" ]         && cmd+=(--model "$model")
+  [ -n "$tools" ]         && cmd+=(--allowedTools "$tools")
+  [ -n "$name" ]          && cmd+=(--name "$name")
+  if [ "$skip_permissions" -eq 1 ]; then
+    cmd+=(--dangerously-skip-permissions)
+  elif [ -n "$permissions" ]; then
+    cmd+=(--permission-mode "$permissions")
+  fi
+  [ ${#extra_args[@]} -gt 0 ] && cmd+=("${extra_args[@]}")
+  # The opening message rides in as a positional so the session starts on it
+  # yet stays interactive. -p here would print one answer and exit.
+  [ -n "$prompt" ] && cmd+=("$prompt")
+
+  "${cmd[@]}"
+}

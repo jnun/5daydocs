@@ -86,6 +86,7 @@ show_help() {
     echo "  find <task-id> --think        Stress-test task quality (interactive)"
     echo "  find <task-id> --work         Analyze → move → work (full lifecycle)"
     echo "  plan <task-id>                Interactive Q&A to define an incomplete task"
+    echo "  talk <task-id>                Talk a rough task through, one detail at a time"
     echo "  split <path>                  Split a large task into subtasks"
     echo "  triage [limit]                Interactive walk-through of task pipeline"
     echo "  audit [folder|file] [limit] [offset]  Audit tasks in next/ (or specified folder)"
@@ -218,6 +219,11 @@ cmd_plan() {
     run_script "plan.sh" "$@"
 }
 
+cmd_talk() {
+    [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Task ID required${NC}"; echo "Usage: ./5day.sh talk <task-id>"; exit 1; }
+    run_script "talk.sh" "$@"
+}
+
 cmd_sprint() {
     run_script "sprint.sh" "$@"
 }
@@ -304,6 +310,7 @@ case "$CMD" in
     search)        shift; cmd_search "$@" ;;
     find)          shift; cmd_find "$@" ;;
     plan)          shift; cmd_plan "$@" ;;
+    talk)          shift; cmd_talk "$@" ;;
     sprint)        shift; cmd_sprint "$@" ;;
     define)        shift; cmd_define "$@" ;;
     tasks)         shift; cmd_tasks "$@" ;;

@@ -281,6 +281,46 @@ fiveday_review_verdict() {
         | sed 's/\*//g; s/Status: //'
 }
 
+# fiveday_unmet_deps FILE -> prints the space-separated dependency task IDs that
+# are NOT yet complete: those still sitting in backlog/, next/, doing/, or
+# blocked/. Empty output means every declared dependency is complete (has reached
+# review/ or done/) or none were declared — so the task is clear to run.
+#
+# Reads the '**Depends on**:' metadata field — a comma/space list of task numbers
+# with 'N-M' ranges expanded. 'none', an empty value, or a missing field all mean
+# no dependencies. An ID that resolves to no task file anywhere is treated as
+# complete (the task finished and was archived), so a stale reference can never
+# wedge a queue. This is what makes a dependency wait self-clearing: as each
+# dependency lands in review/, the dependent task becomes runnable on the next
+# pass with no human action.
+fiveday_unmet_deps() {
+    local file="$1" raw tok lo hi n id ids="" unmet=""
+    raw=$(grep -m1 -iE '^[[:space:]]*\*\*Depends on\*\*[[:space:]]*:' "$file" 2>/dev/null \
+            | sed -E 's/^[^:]*:[[:space:]]*//') || true
+    [ -z "$raw" ] && return 0
+    case "$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]')" in
+        none*|n/a*|-*|'') return 0 ;;
+    esac
+    for tok in $(printf '%s' "$raw" | tr ',' ' '); do
+        if [[ "$tok" =~ ^([0-9]+)-([0-9]+)$ ]]; then
+            lo="${BASH_REMATCH[1]}"; hi="${BASH_REMATCH[2]}"
+            [ "$lo" -le "$hi" ] || continue
+            for ((n=lo; n<=hi; n++)); do ids="$ids $n"; done
+        elif [[ "$tok" =~ ^[0-9]+$ ]]; then
+            ids="$ids $tok"
+        fi
+    done
+    for id in $ids; do
+        if find docs/tasks/backlog docs/tasks/next docs/tasks/doing docs/tasks/blocked \
+              -maxdepth 1 -name "${id}-*.md" 2>/dev/null | grep -q .; then
+            unmet="$unmet $id"
+        fi
+    done
+    [ -n "$unmet" ] && printf '%s' "$unmet" | tr ' ' '\n' \
+        | grep -E '^[0-9]+$' | sort -un | tr '\n' ' ' | sed 's/[[:space:]]*$//'
+    return 0
+}
+
 # ── DOC_STATE (ID allocation) and templates ──────────────────────────
 
 FIVEDAY_DOC_STATE="${FIVEDAY_DOC_STATE:-docs/5day/DOC_STATE.md}"

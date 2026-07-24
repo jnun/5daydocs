@@ -74,13 +74,20 @@ Example:
 
 ### Notes Section
 
-Link to technical context when the implementer needs specifications, procedures, or code samples.
+Helpful context for the implementer — not part of the task definition itself. Leave empty if there is nothing to add. When it helps, point to:
+
+- **Guides/specs that help** — `docs/guides/…`, `docs/features/…` for the procedures, specifications, or code samples the implementer will need.
+- **Existing files this touches — reuse, don't reinvent** — name the files you already know are involved so the implementer repurposes existing code instead of rebuilding it. This is also what an audit later checks for design fit.
+- **Edge cases or non-obvious constraints** — anything that isn't obvious from the Problem or Success criteria.
+
+Keep these as pointers, not payload: link to the guide or file, don't inline the implementation. The task says WHAT; guides and examples say HOW.
 
 Example:
 ```markdown
 ## Notes
-Technical specification: docs/features/task-automation.md
-Implementation guide: docs/guides/script-template-sync.md
+Guides/specs: docs/features/task-automation.md, docs/guides/script-template-sync.md
+Existing files (reuse, don't reinvent): docs/5day/lib.sh (sed helpers), docs/5day/scripts/create-task.sh
+Edge case: template HTML comments must survive placeholder substitution
 ```
 
 ## Verify Before Saving

@@ -139,15 +139,29 @@ fi
 # without that verdict hasn't been checked for clarity — and a headless
 # run can't ask clarifying questions, so ambiguity turns into wandering
 # and failure. Undefined tasks are skipped, not executed. --force overrides.
+# A dependency wait is separate from readiness: define stamps a task READY once
+# it is fully defined, but records unfinished prerequisites in '**Depends on**'
+# instead of blocking on them. This gate holds such a task in next/ until every
+# prerequisite reaches review/ or done/, then releases it automatically — so
+# nothing executes out of order and no human has to babysit the sequence.
+# (Dependency state is evaluated once, up front. If task B depends on task A and
+# both are queued in this run, B is held this pass and becomes runnable on the
+# next one, after A has landed in review/. --force bypasses both gates.)
 if [ "$FORCE" -ne 1 ]; then
   _ready=()
   _skipped=()
+  _waiting=()
   for _f in "${TASK_FILES[@]}"; do
-    if [ "$(fiveday_review_verdict "$_f")" = "READY" ]; then
-      _ready+=("$_f")
-    else
+    if [ "$(fiveday_review_verdict "$_f")" != "READY" ]; then
       _skipped+=("$_f")
+      continue
     fi
+    _unmet="$(fiveday_unmet_deps "$_f")"
+    if [ -n "$_unmet" ]; then
+      _waiting+=("${_f}"$'\t'"${_unmet}")
+      continue
+    fi
+    _ready+=("$_f")
   done
   if [ ${#_skipped[@]} -gt 0 ]; then
     echo "⊘ Skipping ${#_skipped[@]} task(s) not yet defined (no 'Status: READY' verdict):"
@@ -156,12 +170,22 @@ if [ "$FORCE" -ne 1 ]; then
     echo "  Or run anyway:   ./5day.sh tasks --force"
     echo ""
   fi
+  if [ ${#_waiting[@]} -gt 0 ]; then
+    echo "⏳ Holding ${#_waiting[@]} task(s) waiting on unfinished dependencies:"
+    for _w in "${_waiting[@]}"; do
+      _wf="${_w%%$'\t'*}"; _wd="${_w##*$'\t'}"
+      echo "    ${_wf##*/}  (needs: ${_wd})"
+    done
+    echo "  They run automatically once those dependencies reach review/ or done/."
+    echo "  Or run anyway:   ./5day.sh tasks --force"
+    echo ""
+  fi
   TASK_FILES=(${_ready[@]+"${_ready[@]}"})
   if [ ${#TASK_FILES[@]} -eq 0 ]; then
     echo "No ready tasks in $NEXT_DIR"
     exit 0
   fi
-  unset _ready _skipped _f
+  unset _ready _skipped _waiting _f _w _wf _wd _unmet
 fi
 
 COUNT=${#TASK_FILES[@]}

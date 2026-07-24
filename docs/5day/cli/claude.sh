@@ -21,6 +21,18 @@
 # rerun when no session id is recoverable. Sessions are persisted for this
 # reason. Control with FIVEDAY_RETRIES (default 2, 0 = off) and
 # FIVEDAY_RETRY_WAIT (seconds between attempts, default 60).
+#
+# Wedged-stream recovery: the retry loop above only fires once the CLI call
+# RETURNS a failure — it cannot rescue a request whose streaming response
+# stalls mid-flight and never closes the socket. That failure mode has hung a
+# single request for hours (one accepted request, zero events, no teardown)
+# while the retry logic sat idle waiting for a failure that never came. To cap
+# it, each attempt is wrapped in a wall-clock timeout: if the CLI produces no
+# result within FIVEDAY_ATTEMPT_TIMEOUT seconds (default 1800 = 30 min, 0 =
+# off) it is killed, and the kill is treated as a transient failure so the
+# normal wait-and-resume path takes over. Requires `timeout` or `gtimeout`
+# (coreutils) on PATH; if neither is present the wrapper is a no-op and a
+# hung request can still hang — install coreutils to get the cap.
 
 # Reads stream-json events on stdin; narrates tool activity to stderr and
 # emits only the final result event (identical shape to --output-format
@@ -64,6 +76,57 @@ PYEOF
 # Error text that justifies a retry. Deliberately narrow: budget caps, turn
 # caps, and flag errors must NOT retry.
 _FIVEDAY_TRANSIENT_RE='API Error|Connection (closed|error|reset)|overloaded|rate.?limit|timed? ?out|50[023]|529'
+
+# Failures a human must fix — expired/invalid credentials, a required re-login,
+# an exhausted balance. These take PRECEDENCE over the transient check: the
+# CLI often prefixes them with "API Error: 401 …", which would otherwise match
+# the broad transient pattern above and burn the whole retry budget re-running
+# something retrying can never repair. Matching here surfaces them at once.
+_FIVEDAY_FATAL_RE='invalid.{0,12}(api.?key|token)|authentication_error|unauthoriz|/login|please (run|log|sign).{0,4}(in|/login)|OAuth|token (has )?expired|re-?authenticat|credit balance'
+
+# OS family — used to tailor the "install a timeout tool" hint below, since the
+# package and binary differ per platform (macOS ships none; Linux has it in
+# coreutils; Windows' own timeout.exe is an unrelated pause utility).
+case "${OSTYPE:-$(uname -s 2>/dev/null)}" in
+  darwin*|Darwin*)                   _FIVEDAY_OS=macos ;;
+  linux*|Linux*)                     _FIVEDAY_OS=linux ;;
+  msys*|cygwin*|win32|MINGW*|MSYS*)  _FIVEDAY_OS=windows ;;
+  *)                                 _FIVEDAY_OS=unknown ;;
+esac
+
+# Per-attempt wall-clock timeout binary. We require GNU coreutils specifically,
+# because the guard uses `-k` (kill-after) which busybox's timeout lacks and
+# Windows' timeout.exe (a "wait N seconds" prompt tool, NOT a command wrapper)
+# does not understand. Verifying via --version rejects both impostors so a
+# false positive can't make the guard silently malfunction. Prefer `gtimeout`
+# (macOS/Homebrew name) then `timeout` (Linux). Empty when neither qualifies →
+# the wrapper below is skipped and a one-time note is printed. GNU timeout
+# exits 124 on expiry, or 128+signal (137 = SIGKILL from -k) if TERM is ignored.
+_FIVEDAY_TIMEOUT_BIN=""
+for _fiveday_cand in gtimeout timeout; do
+  if command -v "$_fiveday_cand" >/dev/null 2>&1 \
+     && "$_fiveday_cand" --version 2>/dev/null | grep -qi coreutils; then
+    _FIVEDAY_TIMEOUT_BIN="$_fiveday_cand"; break
+  fi
+done
+unset _fiveday_cand
+
+# Print, once per shell session, why the wall-clock cap is inactive and how to
+# fix it for this OS. Called at task kickoff (first exec) when no usable
+# timeout binary was found. Silent when the user disabled the cap themselves.
+_fiveday_warn_no_timeout() {
+  [ -n "${_FIVEDAY_TIMEOUT_WARNED:-}" ] && return 0
+  _FIVEDAY_TIMEOUT_WARNED=1
+  local fix
+  case "$_FIVEDAY_OS" in
+    macos)   fix="install coreutils for gtimeout — run: brew install coreutils" ;;
+    linux)   fix="install GNU coreutils (e.g. 'apt install coreutils' or 'dnf install coreutils')" ;;
+    windows) fix="the Windows timeout.exe cannot wrap commands — install GNU coreutils in MSYS2/Git Bash (e.g. 'pacman -S coreutils')" ;;
+    *)       fix="install GNU coreutils so 'timeout' (or 'gtimeout') is on PATH" ;;
+  esac
+  printf '5DayDocs: ⚠ timeout will not work until we %s.\n' "$fix" >&2
+  printf '          Until then a wedged/unresponsive API request can hang instead of being capped (set FIVEDAY_ATTEMPT_TIMEOUT=0 to silence this).\n' >&2
+}
 
 fiveday_provider_exec() {
   # ── Parse provider-neutral arguments ──────────────────────────────
@@ -115,6 +178,22 @@ fiveday_provider_exec() {
   out="$(mktemp)" || return 1
   errf="$(mktemp)" || { rm -f "$out"; return 1; }
 
+  # ── Wall-clock guard (built once; applies to every attempt) ───────
+  # Prefix the CLI call with `timeout` so a wedged stream that never returns
+  # is killed and surfaced as a (transient) failure instead of hanging for
+  # hours. `-k 10` follows an ignored TERM with a KILL 10s later. When no
+  # GNU timeout binary is available, warn the user once at kickoff and run
+  # uncapped rather than failing. FIVEDAY_ATTEMPT_TIMEOUT=0 disables entirely.
+  local attempt_timeout="${FIVEDAY_ATTEMPT_TIMEOUT:-1800}"
+  local -a tmo=()
+  if [ "$attempt_timeout" -gt 0 ] 2>/dev/null; then
+    if [ -n "$_FIVEDAY_TIMEOUT_BIN" ]; then
+      tmo=("$_FIVEDAY_TIMEOUT_BIN" -k 10 "$attempt_timeout")
+    else
+      _fiveday_warn_no_timeout
+    fi
+  fi
+
   while :; do
     attempt=$((attempt + 1))
 
@@ -153,11 +232,11 @@ fiveday_provider_exec() {
     : > "$out"; : > "$errf"
     if [ "$stream" -eq 1 ]; then
       local -a _ps
-      "${cmd[@]}" 2>"$errf" | python3 -c "$_FIVEDAY_STREAM_FILTER" > "$out" \
+      "${tmo[@]}" "${cmd[@]}" 2>"$errf" | python3 -c "$_FIVEDAY_STREAM_FILTER" > "$out" \
         && _ps=("${PIPESTATUS[@]}") || _ps=("${PIPESTATUS[@]}")
       rc="${_ps[0]}"
     else
-      "${cmd[@]}" > "$out" 2>"$errf" && rc=0 || rc=$?
+      "${tmo[@]}" "${cmd[@]}" > "$out" 2>"$errf" && rc=0 || rc=$?
     fi
 
     # ── Evaluate: success, hard failure, or transient? ──────────────
@@ -170,11 +249,23 @@ fiveday_provider_exec() {
       failed=1
     fi
 
-    local transient=0
-    if [ "$failed" -eq 1 ] && { [ -s "$out" ] || [ -s "$errf" ]; }; then
-      # Silent startup deaths (empty output) and non-transient errors
-      # (bad flags, budget/turn caps) never retry.
-      grep -qiE "$_FIVEDAY_TRANSIENT_RE" "$out" "$errf" 2>/dev/null && transient=1
+    local transient=0 timed_out=0
+    if [ "$failed" -eq 1 ]; then
+      if grep -qiE "$_FIVEDAY_FATAL_RE" "$out" "$errf" 2>/dev/null; then
+        # Re-auth / expired-token / exhausted-balance: a human must act.
+        # Checked FIRST so an "API Error: 401 …" prefix can't be mistaken for
+        # a transient blip and silently retried. Leave transient=0 → surface.
+        :
+      elif [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+        # Our own wall-clock guard fired (or KILL'd a TERM-ignoring process):
+        # a wedged/stalled request. Always retryable, and note it explicitly
+        # since the killed CLI may have printed nothing to match the regex.
+        transient=1; timed_out=1
+      elif [ -s "$out" ] || [ -s "$errf" ]; then
+        # Silent startup deaths (empty output) and non-transient errors
+        # (bad flags, budget/turn caps) never retry.
+        grep -qiE "$_FIVEDAY_TRANSIENT_RE" "$out" "$errf" 2>/dev/null && transient=1
+      fi
     fi
 
     if [ "$failed" -eq 0 ] || [ "$transient" -eq 0 ] || [ "$attempt" -gt "$max_retries" ]; then
@@ -189,10 +280,12 @@ fiveday_provider_exec() {
     found=$(grep -oE '"session_id" *: *"[^"]*"' "$out" 2>/dev/null | head -1 | sed 's/.*"\([^"]*\)"$/\1/') || true
     [ -n "$found" ] && session="$found"
 
+    local cause="Transient API failure"
+    [ "$timed_out" -eq 1 ] && cause="Attempt exceeded ${attempt_timeout}s wall-clock cap (wedged stream)"
     if [ -n "$session" ]; then
-      echo "⚠ Transient API failure (attempt $attempt/$((max_retries + 1))) — waiting ${wait_s}s, then resuming session ${session:0:8}…" >&2
+      echo "⚠ ${cause} (attempt $attempt/$((max_retries + 1))) — waiting ${wait_s}s, then resuming session ${session:0:8}…" >&2
     else
-      echo "⚠ Transient API failure (attempt $attempt/$((max_retries + 1))) — waiting ${wait_s}s, then retrying from scratch…" >&2
+      echo "⚠ ${cause} (attempt $attempt/$((max_retries + 1))) — waiting ${wait_s}s, then retrying from scratch…" >&2
     fi
     sleep "$wait_s"
   done

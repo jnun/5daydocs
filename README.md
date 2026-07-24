@@ -1,5 +1,7 @@
 # 5DayDocs
 
+No database, no SaaS, no login!
+
 Project management that lives in your repo as folders and markdown files. No databases, no apps, no syncing — just `git` and a text editor. Humans and AI agents work from the same files, so nothing falls out of sync when you switch tools, add teammates, or hand work to an agent. A task's status is which folder it's in:
 
 ```

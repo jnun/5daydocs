@@ -121,12 +121,28 @@ A task is READY if:
 - There is remaining work to do
 - All remaining action items are clear enough to execute without asking questions
 - No major design decisions are unresolved
+- It depends on other tasks being finished first. A dependency on other work is a
+  sequencing constraint, not a definition blocker — record it and stay READY
+  (see "Dependencies on other tasks" below).
 
 A task is BLOCKED only if:
 - Remaining action items require decisions the developer hasn't made yet
 - Action items contradict each other or the current code
-- Dependencies are unmet
 - The task is entirely done and there is nothing left to do (mark as DONE instead of BLOCKED)
+
+Dependencies on other tasks:
+Do NOT block a task merely because another task must be completed first — that is
+exactly what the dependency field is for. If executing this task requires other
+tasks to be finished first, ensure the task file records them in a bold
+'**Depends on**:' field near the top (after the title), listing the task numbers,
+e.g. '**Depends on**: 900-920, 922'. Add the field if it is missing, or update it
+if it is incomplete. An unmet dependency keeps the task READY (or DONE if already
+implemented): the task runner holds it in next/ until those dependencies reach
+review/ or done/, then runs it automatically — no one has to babysit the order.
+Reserve BLOCKED strictly for work that cannot be *defined* yet: genuine unresolved
+decisions, contradictions, or missing clarifications a developer must supply. The
+test is "could a developer start this if the prerequisite tasks were already
+done?" — if yes, it is READY with a dependency, not BLOCKED.
 
 Then update the task file by adding a ## Questions section at the end (before any HTML comments).
 If a ## Questions section from a previous review already exists, replace it instead of adding a second one.
@@ -160,6 +176,9 @@ If the verdict is BLOCKED, ALSO add a '## BLOCKED' section directly above ## Que
 One short plain-English paragraph: exactly why this task cannot proceed and what
 decision or input would unblock it. Another agent (or the developer) must be able
 to understand the blocker from this section alone, without reading anything else.
+End the paragraph by pointing the developer to talk it through interactively:
+"Run ./5day.sh talk <task-number> to resolve these questions." A BLOCKED verdict
+means the work needs human definition — this is precisely what talk is for.
 
 If the verdict is not BLOCKED, delete any ## BLOCKED section left from a previous review.
 
@@ -271,7 +290,8 @@ for i in $(seq 0 $((COUNT - 1))); do
             echo "## BLOCKED"
             echo ""
             echo "Blocked by define review on $(date +%Y-%m-%d). The open questions"
-            echo "below must be answered before work can start:"
+            echo "below must be answered before work can start. Talk them through"
+            echo "interactively with: ./5day.sh talk ${TASK_NAME%%-*}"
             echo "$_qs"
           } >> "$BLOCKED_DIR/$TASK_NAME" \
             || echo "  ⚠ Could not write ## BLOCKED section to $BLOCKED_DIR/$TASK_NAME"
@@ -280,7 +300,8 @@ for i in $(seq 0 $((COUNT - 1))); do
         echo "⊘ Blocked → $BLOCKED_DIR/$TASK_NAME"
         echo "  Why (the file's ## BLOCKED section):"
         _show_blocked "$BLOCKED_DIR/$TASK_NAME"
-        echo "  Next: answer the questions in the file, then re-queue:"
+        echo "  Next: talk it through, or answer the questions inline, then re-queue:"
+        echo "    ./5day.sh talk ${TASK_NAME%%-*}"
         echo "    git mv $BLOCKED_DIR/$TASK_NAME $NEXT_DIR/"
         ;;
       DONE)
@@ -324,9 +345,9 @@ if [ "$BLOCKED" -gt 0 ]; then
   echo ""
   echo "⊘ Blocked — each file's ## BLOCKED section says why:"
   for _t in ${BLOCKED_TASKS[@]+"${BLOCKED_TASKS[@]}"}; do
-    echo "    $BLOCKED_DIR/$_t"
+    echo "    $BLOCKED_DIR/$_t  (talk it through: ./5day.sh talk ${_t%%-*})"
   done
-  echo "  Answer the questions inline, then: git mv <file> $NEXT_DIR/"
+  echo "  Talk one through with ./5day.sh talk <id>, or answer inline, then: git mv <file> $NEXT_DIR/"
 fi
 
 if [ "$ERRS" -gt 0 ]; then

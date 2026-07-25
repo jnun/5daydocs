@@ -4,6 +4,8 @@
 
 **Write tasks in plain English, describing what users see and do.** Tasks define WHAT needs to happen. The implementer chooses HOW.
 
+Work flows **Feature → Task → Audit**: a task usually builds toward a feature, and it will later be audited against the problem and success criteria you write here. Write both so a future auditor can judge "done" without asking you.
+
 ## Where Content Belongs
 
 | Content Type | Location |
@@ -12,6 +14,8 @@
 | How to implement | `docs/guides/` |
 | Code samples and patterns | `docs/examples/` |
 | System specifications | `docs/features/` |
+
+The task links out to these — it does not inline them. The task says WHAT; guides, examples, and features say HOW.
 
 ## The Q&A Process
 
@@ -33,7 +37,15 @@ Ask:
 - "Are there related issues we should address together or separately?"
 - "What's the boundary of this task?"
 
-### 3. Define Success Behaviorally
+### 3. Map the Dependencies and Reuse
+
+Ask:
+- "Does anything need to be done first?" (→ **Depends on**)
+- "Will this hold up other work until it's finished?" (→ **Blocks**)
+- "What existing files or code does this touch?" (→ **References** — reuse, don't reinvent)
+- "Is there a guide or feature spec this follows?" (→ **Docs** / **Feature**)
+
+### 4. Define Success Behaviorally
 
 Ask:
 - "When this is done, what will a user be able to do?"
@@ -42,7 +54,7 @@ Ask:
 
 The answers become the success criteria.
 
-### 4. Confirm Understanding
+### 5. Confirm Understanding
 
 Before writing anything, summarize back:
 - "So the problem is [X], and we'll know it's fixed when [Y]. Is that right?"
@@ -51,13 +63,24 @@ Proceed after confirmation.
 
 ## Task Structure
 
+### Header Fields
+
+The header carries the task's place in the larger body of work. Set what applies; leave the rest as `none`.
+
+- **Feature** — the feature this builds toward, e.g. `/docs/features/user-auth.md`. `none` if no feature applies.
+- **Created** — date the task was created (`YYYY-MM-DD`). Set automatically by `./5day.sh newtask`; used for time audits.
+- **Docs** — a guide the implementer should follow, e.g. `docs/guides/script-template-sync.md`. `none` if there is none.
+- **Depends on** — task IDs that must be finished before this one can start.
+- **Blocks** — task IDs that cannot proceed until this one is done.
+- **Parent** — a task that groups this one with related work.
+
 ### Problem Section
 
-Write 2-5 sentences explaining what needs solving and why. Describe it as you would to a colleague unfamiliar with this area.
+Write the problem as a short user story — who is affected, what they can't do today, and why it matters. Loose Gherkin (Given/When/Then) is welcome but not required. 2-5 sentences, plain English, as you'd explain it to a colleague unfamiliar with this area.
 
 ### Success Criteria Section
 
-Write observable behaviors that anyone can verify.
+Write observable behaviors that anyone can verify. This is the yardstick the audit measures against, so make "done" unambiguous.
 
 Patterns that work:
 - "User can [do what]"
@@ -74,25 +97,23 @@ Example:
 
 ### Notes Section
 
-Helpful context for the implementer — not part of the task definition itself. Leave empty if there is nothing to add. When it helps, point to:
+Every relevant detail that helps build the solution fast and knowingly: decisions already made, constraints, edge cases, gotchas. Leave empty if there is nothing to add.
 
-- **Guides/specs that help** — `docs/guides/…`, `docs/features/…` for the procedures, specifications, or code samples the implementer will need.
-- **Existing files this touches — reuse, don't reinvent** — name the files you already know are involved so the implementer repurposes existing code instead of rebuilding it. This is also what an audit later checks for design fit.
-- **Edge cases or non-obvious constraints** — anything that isn't obvious from the Problem or Success criteria.
+### References Section
 
-Keep these as pointers, not payload: link to the guide or file, don't inline the implementation. The task says WHAT; guides and examples say HOW.
+Direct files that help build this — existing code to **reuse rather than reinvent**, plus specs and examples. One path per line. This is also what an audit checks for design fit, so name the files you already know are involved.
 
 Example:
 ```markdown
-## Notes
-Guides/specs: docs/features/task-automation.md, docs/guides/script-template-sync.md
-Existing files (reuse, don't reinvent): docs/5day/lib.sh (sed helpers), docs/5day/scripts/create-task.sh
-Edge case: template HTML comments must survive placeholder substitution
+## References
+docs/5day/lib.sh — sed helpers, reuse for placeholder substitution
+docs/5day/scripts/create-task.sh — existing pattern to follow
+docs/features/task-automation.md — spec this serves
 ```
 
 ## Verify Before Saving
 
 1. Someone unfamiliar with the codebase can understand the problem
-2. Success criteria describe observable behaviors
-3. Technical context lives in `docs/guides/`, `docs/examples/`, or `docs/features/`
-4. The Notes section links to any technical documents the implementer needs
+2. Success criteria describe observable behaviors an auditor could check
+3. Header fields set what applies (Feature, Docs, Depends on, Blocks)
+4. References name existing files to reuse; technical HOW lives in `docs/guides/`, `docs/examples/`, or `docs/features/`, not inlined here

@@ -126,7 +126,7 @@ cmd_newidea() {
 
 cmd_newtask() {
     [ -z "${1:-}" ] && { echo -e "${RED}ERROR: Task description required${NC}"; exit 1; }
-    run_script "create-task.sh" "$1"
+    run_script "create-task.sh" "$@"
 }
 
 cmd_newfeature() {

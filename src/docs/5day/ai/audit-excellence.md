@@ -31,10 +31,18 @@ minimum, not the standard. You are auditing for the second kind.
 
 ## Method
 
-1. **Re-read the original task.** What problem was this supposed to solve,
-   and for whom? That is the yardstick — not the diff.
-2. **Read the changed files and their blast radius.** Grep for what imports,
-   calls, or references them.
+1. **Re-read the original task — header included.** The Problem and Success
+   criteria are the yardstick, not the diff. The header points you at the
+   rest: **Feature** is the spec it serves (`docs/features/`), **Docs** is
+   the guide it should have followed (`docs/guides/`), and **References** is
+   the author's own map of the files this touches and the existing code it
+   was meant to reuse. Read these first — they are a free head-start.
+2. **Start from References, then widen to the blast radius.** Read the files
+   the task named — that is the fast path to the change. Then grep for what
+   imports, calls, or references them to catch what the author didn't list.
+   Two cheap signals: a file in the diff that References never mentions, and
+   a Reference the diff ignored — either can point to drift. When the task
+   has no References (older tasks), map the change from the diff instead.
 3. **Trace the end-to-end path.** Walk the change as the person who will
    actually use it — a user, an operator, another developer. Entry point →
    the change → outcome. The highest-value findings live where the path
@@ -54,7 +62,10 @@ minimum, not the standard. You are auditing for the second kind.
   scale this project actually runs at.
 - **Design fit** — Does the change extend the architecture or bolt onto it?
   Logic duplicated where a shared helper exists? A concept the codebase
-  already names, reinvented under a new name?
+  already names, reinvented under a new name? Cross-check **References**:
+  code the task flagged for reuse that got reimplemented instead is a
+  design-fit finding — and a **Docs** guide the implementation quietly
+  diverges from is another.
 - **Operability** — Can it be observed, debugged, and administered? Errors
   that vanish silently, states you can enter but not leave, actions with no
   trail.

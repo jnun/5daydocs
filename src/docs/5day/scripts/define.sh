@@ -91,6 +91,37 @@ echo ""
 # Profile line is task-independent — resolve it once, not per task.
 _PROFILE_LINE="$(fiveday_profile_line)"
 
+# Sprint context — an index of every OTHER task queued in next/ and waiting in
+# backlog/. The reviewer sees one task at a time; without this it reads the task
+# in isolation, finds that the code the task builds on doesn't exist yet, and —
+# blind to the sibling task that will create it — mistakes a sequencing
+# dependency for a blocker. With the index it can attribute a missing
+# prerequisite to a real queued task, record it in '**Depends on**', and stay
+# READY. Built once; identical for every task's review.
+_sprint_index() {
+  local label dir f id title
+  for label in next backlog; do
+    dir="docs/tasks/$label"
+    [ -d "$dir" ] || continue
+    for f in "$dir"/*.md; do
+      [ -e "$f" ] || continue
+      id="${f##*/}"; id="${id%%-*}"
+      title=$(grep -m1 '^# ' "$f" 2>/dev/null | sed 's/^#[[:space:]]*//')
+      [ -n "$title" ] || title="${f##*/}"
+      printf '  - %s (%s): %s\n' "$id" "$label" "$title"
+    done
+  done
+}
+_SPRINT_INDEX="$(_sprint_index)"
+_SPRINT_BLOCK=""
+if [ -n "$_SPRINT_INDEX" ]; then
+  _SPRINT_BLOCK="
+
+Other tasks already in this sprint (next/) and the backlog — a prerequisite this
+task builds on is very likely one of these, NOT an undefined blocker:
+$_SPRINT_INDEX"
+fi
+
 # The invariant review contract. Both the sequential per-task path and the
 # claude-code parallel-subagent path build their prompt from this one source so
 # the two can never drift. $1 is the task file the reviewer must read and edit.
@@ -99,7 +130,7 @@ _review_contract() {
 You are a senior developer reviewing a task before it enters a sprint.
 
 CLAUDE.md is auto-loaded with project context and conventions.
-For task workflow details, see DOCUMENTATION.md.${_PROFILE_LINE}
+For task workflow details, see DOCUMENTATION.md.${_PROFILE_LINE}${_SPRINT_BLOCK}
 
 The task file is at: $1 — read it first.
 
@@ -110,6 +141,10 @@ Your job:
    - DONE: Already implemented in the current code.
    - REMAINING: Not yet done, and the action item is clear enough to execute.
    - UNCLEAR: Not yet done, but requires a decision or clarification before work can start.
+   Before you mark anything UNCLEAR because the code it builds on is missing,
+   check the sprint/backlog index above: if a sibling task will create that
+   prerequisite, this is a DEPENDENCY, not an unclear item — keep it REMAINING
+   and record the dependency (see "Dependencies on other tasks" below).
 4. Produce an overall verdict: READY or BLOCKED.
 
 How to handle DONE items:
@@ -127,18 +162,30 @@ A task is READY if:
 
 A task is BLOCKED only if:
 - Remaining action items require decisions the developer hasn't made yet
-- Action items contradict each other or the current code
+- Action items contradict each other, or contradict the current code in a way
+  that no other queued task would resolve. Code the task builds on being absent
+  because a sibling or backlog task hasn't run yet is NOT a contradiction — it is
+  a dependency. Only treat a conflict with current code as a blocker when nothing
+  in the sprint/backlog index would produce what the task assumes.
 - The task is entirely done and there is nothing left to do (mark as DONE instead of BLOCKED)
 
 Dependencies on other tasks:
 Do NOT block a task merely because another task must be completed first — that is
-exactly what the dependency field is for. If executing this task requires other
-tasks to be finished first, ensure the task file records them in a bold
-'**Depends on**:' field near the top (after the title), listing the task numbers,
-e.g. '**Depends on**: 900-920, 922'. Add the field if it is missing, or update it
+exactly what the dependency field is for. Use the sprint/backlog index above to
+identify prerequisites: if the code, file, or API this task builds on will be
+produced by another task in next/ or backlog/, that is a dependency to record,
+not a reason to block. If executing this task requires other tasks to be finished
+first, ensure the task file records them in a bold '**Depends on**:' field near
+the top (after the title), listing the task numbers, e.g.
+'**Depends on**: 900-920, 922'. Add the field if it is missing, or update it
 if it is incomplete. An unmet dependency keeps the task READY (or DONE if already
 implemented): the task runner holds it in next/ until those dependencies reach
 review/ or done/, then runs it automatically — no one has to babysit the order.
+A prerequisite task being *itself* rough, undefined, or not-yet-reviewed is STILL
+a dependency, not a reason to block THIS task: that upstream task will get defined
+on its own turn. Record it in '**Depends on**' and keep this task READY. Only its
+own undefined-ness — a decision this task's developer must personally make — blocks
+this task.
 Reserve BLOCKED strictly for work that cannot be *defined* yet: genuine unresolved
 decisions, contradictions, or missing clarifications a developer must supply. The
 test is "could a developer start this if the prerequisite tasks were already
@@ -225,6 +272,87 @@ fi
 _show_blocked() {
   awk '/^## BLOCKED[[:space:]]*$/{f=1; next} f && /^## /{exit} f' "$1" \
     | head -20 | sed 's/^/    /'
+}
+
+# One printable talk line: "    ./5day.sh talk 12   Add auth middleware   [next]  needs: 8"
+# id=$1 file=$2 (may be empty/missing) needs=$3 (space-separated, may be empty)
+_talk_line() {
+  local id="$1" file="$2" needs="$3" title="" stage="" tail=""
+  if [ -n "$file" ] && [ -f "$file" ]; then
+    title="$(task_title "$file")"
+    stage="$(basename "$(dirname "$file")")"
+  fi
+  [ -n "$title" ] || title="(task $id)"
+  [ ${#title} -gt 44 ] && title="${title:0:41}..."
+  [ -n "$stage" ] && tail="  [$stage]"
+  [ -n "$needs" ] && tail="$tail  needs: $(echo "$needs" | tr -s ' ' | sed 's/^ *//; s/ *$//')"
+  printf '    ./5day.sh talk %-4s %-44s%s\n' "$id" "$title" "$tail"
+}
+
+# Turn the tasks blocked this run into a dependency-ordered talk queue. The root
+# cause of a block is often an UPSTREAM task that isn't defined yet, so a flat
+# "these are blocked" list hides the real work. This orders it top-down: the
+# undefined upstream tasks (the real X-Y-Z to define) and dependency-free blocks
+# come first; blocks that wait on them come after. Talk the top of the list and
+# the rest often fall out READY on the next define run.
+# Args: the blocked task basenames (as in $BLOCKED_DIR).
+_talk_queue() {
+  [ "$#" -gt 0 ] || return 0
+  local name id f deps
+  local blocked_ids="" roots="" waiters="" all_deps=""
+
+  # Partition the blocked tasks: dependency-free (roots) vs. waiting-on-others.
+  for name in "$@"; do
+    blocked_ids="$blocked_ids ${name%%-*}"
+  done
+  for name in "$@"; do
+    id="${name%%-*}"
+    f="$BLOCKED_DIR/$name"
+    deps="$(fiveday_unmet_deps "$f")"
+    all_deps="$all_deps $deps"
+    if [ -z "$deps" ]; then roots="$roots $id"; else waiters="$waiters $id"; fi
+  done
+
+  # Upstream deps that aren't blocked themselves but still need DEFINING (not yet
+  # stamped READY). These are the tasks whose absence is really holding the sprint
+  # up — surface them ABOVE the blocks that depend on them. A READY-but-unfinished
+  # dep only needs `tasks` to run it, not talk, so it's left off this list.
+  local upstream="" d dfile _res
+  for d in $(printf '%s' "$all_deps" | tr ' ' '\n' | grep -E '^[0-9]+$' | sort -un); do
+    case " $blocked_ids " in *" $d "*) continue ;; esac
+    _res="$(fiveday_find_task "$d")" || continue
+    dfile="${_res%%$'\t'*}"
+    [ "$(fiveday_review_verdict "$dfile")" = "READY" ] && continue
+    upstream="$upstream $d"
+  done
+
+  echo ""
+  echo "▸ Talk queue — define the blocking work, top-down:"
+  echo "  (the AI raises the questions, you make the calls)"
+  echo ""
+  local first_group=1
+  if [ -n "$upstream$roots" ]; then
+    echo "  Talk these first — nothing upstream is blocking them:"
+    for d in $(printf '%s' "$upstream" | tr ' ' '\n' | grep -E '^[0-9]+$' | sort -un); do
+      _res="$(fiveday_find_task "$d")" && _talk_line "$d" "${_res%%$'\t'*}" ""
+    done
+    for id in $(printf '%s' "$roots" | tr ' ' '\n' | grep -E '^[0-9]+$' | sort -un); do
+      f="$(find "$BLOCKED_DIR" -maxdepth 1 -name "${id}-*.md" 2>/dev/null | head -1)"
+      _talk_line "$id" "$f" ""
+    done
+    first_group=0
+  fi
+  if [ -n "$waiters" ]; then
+    [ "$first_group" -eq 0 ] && echo ""
+    echo "  Then these — they depend on the tasks above:"
+    for id in $(printf '%s' "$waiters" | tr ' ' '\n' | grep -E '^[0-9]+$' | sort -un); do
+      f="$(find "$BLOCKED_DIR" -maxdepth 1 -name "${id}-*.md" 2>/dev/null | head -1)"
+      _talk_line "$id" "$f" "$(fiveday_unmet_deps "$f")"
+    done
+  fi
+  echo ""
+  echo "  Once a blocked task is defined, re-queue it:"
+  echo "    git mv $BLOCKED_DIR/<file> $NEXT_DIR/"
 }
 
 READY=0
@@ -345,9 +473,9 @@ if [ "$BLOCKED" -gt 0 ]; then
   echo ""
   echo "⊘ Blocked — each file's ## BLOCKED section says why:"
   for _t in ${BLOCKED_TASKS[@]+"${BLOCKED_TASKS[@]}"}; do
-    echo "    $BLOCKED_DIR/$_t  (talk it through: ./5day.sh talk ${_t%%-*})"
+    echo "    $BLOCKED_DIR/$_t"
   done
-  echo "  Talk one through with ./5day.sh talk <id>, or answer inline, then: git mv <file> $NEXT_DIR/"
+  _talk_queue ${BLOCKED_TASKS[@]+"${BLOCKED_TASKS[@]}"}
 fi
 
 if [ "$ERRS" -gt 0 ]; then

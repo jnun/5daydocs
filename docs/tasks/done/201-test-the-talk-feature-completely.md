@@ -8,23 +8,19 @@
 
 ## Problem
 
-<!-- What needs solving and why — 2-5 sentences, plain English. -->
-
 Verify the `talk` feature (`docs/5day/scripts/talk.sh`) works as a *shipped* feature, not just inside this repo. Cut a release candidate of 5DayDocs, install it into a real project the way an actual user would (via `setup.sh`), then run `talk` on that project's genuine, under-specified tasks. Judge whether the give-and-take Q&A actually turns a vague task into a workable one — a filled-in Problem, verifiable Success criteria, and Notes with sensible technology choices and references. Where talk fails to deliver its promised outcomes, capture that as concrete feedback. This is a manual, end-to-end acceptance test in a real installed environment: the proof is a genuinely useful task at the end plus a clear list of any gaps found.
 
 
 ## Success criteria
 
-<!-- Observable behaviors: "User can [do what]" / "App shows [result]" -->
-
-- [ ] `./setup.sh` installs a fresh copy into a real test project when pointed at it; `talk` and its dependencies (talk.sh, lib.sh, ai guidance) land and are runnable there
-- [ ] Running `./5day.sh talk <task-id>` on a real, under-specified task in that project launches an interactive Q&A session (or, if the environment can't do interactive, it says so honestly and does a single refinement pass — it does not fake a conversation)
-- [ ] The session asks one question at a time — a real loop through the task, one detail per turn — not a batch of questions or a single rewrite at the end
-- [ ] The task file is updated after each answer/decision, so progress is visible in the file as the conversation moves, not only when it finishes
-- [ ] When the walk-through finishes, the task has a filled-in Problem, verifiable Success criteria checkboxes, and Notes with sensible technology choices and references
-- [ ] When the task is really several jobs, talk splits it into good sequential minitasks — atomic, ordered so dependencies come first, each independently workable
-- [ ] The resulting task reads as a fully functional task — a developer who never saw the conversation could pick it up and build it
-- [ ] The user evaluates the resulting task file and reports the outcome: whether talk delivered its promised outcomes, and where it fell short
+- [X] `./setup.sh` installs a fresh copy into a real test project when pointed at it; `talk` and its dependencies (talk.sh, lib.sh, ai guidance) land and are runnable there
+- [X] Running `./5day.sh talk <task-id>` on a real, under-specified task in that project launches an interactive Q&A session (or, if the environment can't do interactive, it says so honestly and does a single refinement pass — it does not fake a conversation)
+- [X] The session asks one question at a time — a real loop through the task, one detail per turn — not a batch of questions or a single rewrite at the end
+- [X] The task file is updated after each answer/decision, so progress is visible in the file as the conversation moves, not only when it finishes
+- [X] When the walk-through finishes, the task has a filled-in Problem, verifiable Success criteria checkboxes, and Notes with sensible technology choices and references
+- [X] When the task is really several jobs, talk splits it into good sequential minitasks — atomic, ordered so dependencies come first, each independently workable
+- [X] The resulting task reads as a fully functional task — a developer who never saw the conversation could pick it up and build it
+- [X] The user evaluates the resulting task file and reports the outcome: whether talk delivered its promised outcomes, and where it fell short
 
 ## Notes
 

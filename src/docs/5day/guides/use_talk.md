@@ -73,6 +73,30 @@ check:
   prints the prompt for a surrounding agent; `MODE=exec` always spawns the CLI;
   empty auto-detects. If you set it, make sure it matches how you actually run.
 
+## What happens when the task is defined
+
+`talk` doesn't just refine and leave you to clean up — it closes the loop and,
+when there's more to define, keeps the chain moving without ballooning context.
+
+- **A blocked task goes straight back into the sprint.** When you talk through
+  a task that `define` had parked in `blocked/` and the conversation genuinely
+  resolves it, `talk` stamps it `**Status: READY**`, removes the stale
+  `## BLOCKED` section, and moves it back to `next/`. It's immediately runnable
+  with `./5day.sh tasks` — no manual `git mv`, no second `define` pass. If a
+  real open question remains, `talk` does none of this: the task stays in
+  `blocked/` and it tells you what still needs deciding.
+
+- **The next dependency is picked up in a fresh context.** Defining one task
+  often reveals it depends on another task that isn't defined yet. Rather than
+  keep talking in the same session — where the whole conversation stays in
+  context and burns tokens — `talk` writes a short **Context from talk** note
+  into that next task's file (just the decisions that flow downstream), then
+  starts fresh on it: inside an agent it spins up a *new* agent for the next
+  task; in a plain terminal it prints the `./5day.sh talk <id>` for you to run
+  in a new window. Either way the next session begins with a clean context and
+  reads what it needs from the file. When nothing downstream is left undefined,
+  `talk` says the chain is complete and stops.
+
 ## Choosing the model
 
 Left unset on the `claude` provider, `talk` uses the strongest model — it is an

@@ -61,6 +61,44 @@ else
   _STAGE_MOVE="Each child is created in backlog/, but the original lives in ${STAGE}/ — move every finished child there with 'git mv docs/tasks/backlog/<child-file> $TASK_DIR/<child-file>' so this work stays in ${STAGE}/. "
 fi
 
+# ── Close-the-loop: a blocked task that talk fully defines goes straight back
+# into the sprint. Only meaningful when the task is in blocked/ (that's where
+# define parked it); for any other stage there is no loop to close, so this is
+# empty and the closing section reads clean. A human-supervised talk is a
+# stronger readiness signal than define's automated pass, so talk stamps the
+# READY verdict itself instead of bouncing the task through another define run.
+if [ "$STAGE" = "blocked" ]; then
+  _CLOSE_LOOP_INSTR="
+1b. CLOSE THE LOOP (this task is in blocked/):
+define parked this task in blocked/ because it wasn't defined enough to work.
+If — and ONLY if — the conversation has genuinely resolved it (no open decision
+remains and it now reads as fully defined), close the loop so it can be worked:
+1. Make the file END with a '## Questions' section whose first line is EXACTLY:
+     **Status: READY**
+   Keep the brief '### Already complete / ### Remaining work / ### Questions for
+   the developer' structure under it; if nothing is open write 'None — task is
+   fully defined.' Replace any earlier '## Questions' section, don't add a second.
+2. DELETE any '## BLOCKED' section — it no longer applies.
+3. Move it into the sprint queue:  git mv $TASK_FILE docs/tasks/next/$TASK_NAME
+Then tell the user it's back in next/ and runnable with ./5day.sh tasks.
+If ANY open question remains, do NONE of this: leave the file in blocked/ and say
+plainly what still needs deciding."
+else
+  _CLOSE_LOOP_INSTR=""
+fi
+
+# ── Chain to the next dependency in a FRESH context. Defining one task often
+# surfaces that it depends on another undefined task; walking that chain in THIS
+# conversation piles context up and burns tokens. So we hand the next task off
+# through its FILE (a durable note the fresh session reads) and start clean:
+# emit mode spawns a brand-new subagent (the driving agent has a Task tool);
+# exec mode can't open a window, so it prints the command for the user to run.
+if [ "$(fiveday_ai_mode)" = "emit" ] && [ "$(fiveday_ai_tier)" = "claude-code" ]; then
+  _CONTINUE_INSTR="Then CONTINUE THE CHAIN in a fresh context so this session's tokens don't pile up: launch a NEW subagent (Task tool) for <next-id>. Its entire instruction: 'Run ./5day.sh talk <next-id> and carry that task as far toward READY as you can on your own — read the *Context from talk* note already in its file, refine it, and if a question genuinely needs the human, leave it in the file's ## Questions section and report it back.' Tell the user you have spun up a fresh agent for <next-id> and say in one line what it is picking up."
+else
+  _CONTINUE_INSTR="Then, to keep each session's context small, do NOT keep going here. Tell the user the next task to define and the exact command to run in a FRESH window:  ./5day.sh talk <next-id>  — the *Context from talk* note you just wrote means that fresh session already has what it needs."
+fi
+
 APPEND_PROMPT="You are a senior engineer reviewing a task with the colleague who wrote it. They already sense it is not fully thought out and want to talk it through, one detail at a time, until it reads like a crisp, executive-summary-level brief that any developer could pick up.
 
 The task file is at: $TASK_FILE — read it now, before you say anything.${_PROFILE_LINE}
@@ -99,8 +137,19 @@ RULES:
 - Edit as each detail is settled — small atomic edits, not one big rewrite at the end.
 - Lead with the best practice when a question has a widely accepted one; call out security and performance trade-offs.
 - Keep the conversation moving — do not parrot the user's words back at length.
-- Stay within the task pipeline: you may edit $TASK_FILE and any sub-task files you create via ./5day.sh newtask. Do not touch unrelated files.
-- When everything reads clearly end to end, tell the user, show the final state (the refined task, or the list of children with the original retired), and stop."
+- Stay within the task pipeline: you may edit $TASK_FILE, any sub-task files you create via ./5day.sh newtask, and — for the handoff note described below — the file of the one next dependency you chain to. Do not touch anything else.
+
+═══ WHEN THE TASK READS CLEARLY — FINISH, CLOSE, CHAIN ═══
+Once the task in front of you (the Path B parent, or — for a split — its children) reads as fully defined, do these in order:
+
+1. FINISH: tell the user, and show the final state (the refined task, or the list of children with the original retired).
+${_CLOSE_LOOP_INSTR}
+
+2. FIND THE NEXT TASK TO DEFINE: read this task's '**Depends on**:' line. For each dependency number N, look for docs/tasks/blocked/N-*.md or docs/tasks/backlog/N-*.md. A dependency is UNDEFINED if that file exists and does NOT contain a line '**Status: READY**'. Among the undefined dependencies, pick the most upstream one — the dependency whose OWN '**Depends on**' has no undefined dependencies left (nothing must be defined before it); break ties by lowest number. Call it <next-id>. If there are NO undefined dependencies, the chain is complete: say so and STOP — do not spawn or recommend anything.
+
+3. HAND OFF THROUGH THE FILE: into <next-id>'s file, under its ## Notes (create the section if absent), write a short blockquote note capturing ONLY what this conversation decided that <next-id>'s author needs to know — the constraints, choices, and interface details that flow downstream. Start it exactly '> **Context from talk (task $PARENT_NUM):**' so a later run can find and replace it instead of stacking a second copy. Keep it to a few sentences; it is a seed, not a transcript.
+
+4. CHAIN: ${_CONTINUE_INSTR}"
 
 # talk is a dialogue, not a one-shot job — fiveday_run_interactive keeps the
 # CLI attached to the terminal so the user answers each question in turn. In

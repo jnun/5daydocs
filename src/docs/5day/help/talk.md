@@ -34,5 +34,15 @@ What it does:
   - Fills ## Problem, ## Success criteria, and ## Notes at a summary
     altitude — technologies and reasons, plus references to repo files and
     external docs; never code snippets
+  - Closes the loop on a blocked task: when the conversation genuinely
+    resolves one that `define` parked in blocked/, it stamps the task
+    **Status: READY**, drops the stale ## BLOCKED section, and moves it
+    back to next/ — ready to run with `./5day.sh tasks`. If a real
+    question still remains, it leaves the task in blocked/ and says so.
+  - Chains to the next undefined dependency in a *fresh* context so a long
+    definition session doesn't pile up tokens: it seeds the next task's
+    file with a short "Context from talk" note (the decisions that flow
+    downstream), then — inside an agent — spins up a new agent for it, or
+    in a plain terminal prints the `./5day.sh talk <id>` to run next.
 
 Searches: blocked/, backlog/, next/, doing/

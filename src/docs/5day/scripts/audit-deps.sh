@@ -39,33 +39,60 @@ if [ "$AI_MODE" != "emit" ] && ! command -v "$FIVEDAY_CLI" &>/dev/null; then
 fi
 
 mkdir -p "$LOG_DIR"
-RAW_LOG="$LOG_DIR/audit-deps-raw.$(date +%Y%m%d-%H%M%S).md"
+RAW_LOG="$LOG_DIR/audit-deps-raw.$(date +%Y%m%d-%H%M%S).$$.md"
 : > "$RAW_LOG"
 
 # ── Ecosystem gathering ──────────────────────────────────────────────
 DETECTED=()   # human labels, one per detected ecosystem
 
+# first_cmd CANDIDATE…  — print the first candidate found on PATH, or the first
+# candidate as a fallback label when none exist (so the skip message names a
+# real tool). Handles the pip/pip3, bundle-audit/bundler-audit naming splits.
+first_cmd() {
+  local c
+  for c in "$@"; do
+    if command -v "$c" >/dev/null 2>&1; then printf '%s' "$c"; return 0; fi
+  done
+  printf '%s' "$1"
+}
+
 # emit_block LABEL TOOL CMD…  — append one raw-output block to $RAW_LOG.
-# If TOOL isn't on PATH the block records the skip instead of failing. The
-# command's own non-zero exit (npm/composer "outdated" exit 1 when anything is
-# outdated) is expected and swallowed — we only want its text.
+# TOOL is the binary whose presence gates the run; it is deliberately separate
+# from CMD so a plugin subcommand (cargo outdated) is gated on the plugin
+# binary (cargo-outdated), turning a missing plugin into an honest "skipped"
+# instead of a cryptic "no such subcommand". The command's own non-zero exit
+# (npm/composer "outdated" exit 1 when anything is outdated) is expected and
+# swallowed — we only want its text.
 emit_block() {
   local label="$1" tool="$2"; shift 2
   {
     printf '\n### %s\n\n' "$label"
     if ! command -v "$tool" >/dev/null 2>&1; then
-      printf '_skipped — \`%s\` not installed_\n' "$tool"
+      printf '_skipped — `%s` not installed_\n' "$tool"
       return 0
     fi
     local out
     out="$(run_with_timeout "$DEPS_TIMEOUT" "$@" 2>&1)" || true
     [ -n "$out" ] || out="(no output — nothing reported)"
-    # Cap each block so a huge tree can't bloat the task file / prompt.
-    printf '```\n%s\n```\n' "$(printf '%s' "$out" | head -c 20000)"
+    # Cap each block so a huge tree can't bloat the task file / prompt. Mark the
+    # cut explicitly — a silently truncated list must never read as "complete".
+    local capped
+    capped="$(printf '%s' "$out" | head -c 20000)"
+    # Fire the marker when the cap actually shortened the text. Comparing the
+    # two lengths (rather than "${#out} > 20000") stays correct for multibyte
+    # output, where head's byte cap and ${#out}'s character count diverge.
+    if [ "${#capped}" -lt "${#out}" ]; then
+      capped="$capped
+… [truncated — re-run \`$tool\` directly for the full list]"
+    fi
+    printf '```\n%s\n```\n' "$capped"
   } >> "$RAW_LOG"
 }
 
 # Node / JavaScript — pick the package manager the repo actually uses.
+# (Note: `yarn outdated`/`yarn audit` are Yarn Classic; on Yarn Berry the block
+# will capture Berry's "use yarn npm audit" hint rather than data — still an
+# honest, actionable signal, so we don't fingerprint the Yarn major here.)
 if [ -f package.json ]; then
   PM=npm
   [ -f pnpm-lock.yaml ] && PM=pnpm
@@ -75,18 +102,20 @@ if [ -f package.json ]; then
   emit_block "Node — security audit ($PM)" "$PM" "$PM" audit
 fi
 
-# Python
+# Python — prefer pip, fall back to pip3 (many systems ship only pip3).
 if [ -f requirements.txt ] || [ -f pyproject.toml ] || [ -f Pipfile ]; then
-  DETECTED+=("Python (requirements.txt / pyproject.toml)")
-  emit_block "Python — outdated (pip)"              pip       pip list --outdated
+  DETECTED+=("Python (requirements.txt / pyproject.toml / Pipfile)")
+  PIP="$(first_cmd pip pip3)"
+  emit_block "Python — outdated ($PIP)"            "$PIP"    "$PIP" list --outdated
   emit_block "Python — security audit (pip-audit)" pip-audit pip-audit
 fi
 
-# Rust
+# Rust — gate each block on the plugin binary so a missing plugin reads as
+# "skipped", not a subcommand error (`command -v cargo` is always true).
 if [ -f Cargo.toml ]; then
   DETECTED+=("Rust (Cargo.toml)")
-  emit_block "Rust — outdated (cargo-outdated)"   cargo cargo outdated
-  emit_block "Rust — security audit (cargo-audit)" cargo cargo audit
+  emit_block "Rust — outdated (cargo-outdated)"    cargo-outdated cargo outdated
+  emit_block "Rust — security audit (cargo-audit)" cargo-audit    cargo audit
 fi
 
 # Go
@@ -103,11 +132,13 @@ if [ -f composer.json ]; then
   emit_block "PHP — security audit (composer)" composer composer audit
 fi
 
-# Ruby / Bundler
+# Ruby / Bundler — the bundler-audit gem installs as bundle-audit on most
+# systems and bundler-audit on some; accept either.
 if [ -f Gemfile ]; then
   DETECTED+=("Ruby (Gemfile)")
-  emit_block "Ruby — outdated (bundler)"                bundle       bundle outdated
-  emit_block "Ruby — vulnerabilities (bundler-audit)"   bundle-audit bundle-audit check --update
+  BA="$(first_cmd bundle-audit bundler-audit)"
+  emit_block "Ruby — outdated (bundler)"              bundle bundle outdated
+  emit_block "Ruby — vulnerabilities ($BA)"           "$BA"  "$BA" check --update
 fi
 
 if [ "${#DETECTED[@]}" -eq 0 ]; then
@@ -124,8 +155,18 @@ for e in "${DETECTED[@]}"; do echo "    - $e"; done
 echo "  Raw tool output: $RAW_LOG"
 echo ""
 
+# Soft duplicate guard — filing is still allowed (a fresh audit is a fresh
+# snapshot), but stacking silent duplicates is a smell worth flagging.
+for d in backlog next doing; do
+  for f in docs/tasks/"$d"/*-audit-dependency-updates.md; do
+    [ -e "$f" ] && echo "  ⚠ An open dependency-audit task already exists: $f"
+  done
+done 2>/dev/null
+
 # ── Create the backlog task (canonical path: ID, lock, DOC_STATE) ────
-CREATE_OUT="$(bash "$SCRIPTS_DIR/create-task.sh" "Audit dependency updates")"
+# Capture (with stderr) instead of letting set -e abort on a non-zero exit, so
+# the diagnostic below can surface create-task.sh's own error text.
+CREATE_OUT="$(bash "$SCRIPTS_DIR/create-task.sh" "Audit dependency updates" 2>&1)" || true
 TASK_FILE="$(printf '%s\n' "$CREATE_OUT" | grep -oE 'docs/tasks/backlog/[^ ]+\.md' | tail -1)"
 if [ -z "$TASK_FILE" ] || [ ! -f "$TASK_FILE" ]; then
   echo "✗ Could not create the backlog task." >&2

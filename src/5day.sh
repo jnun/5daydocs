@@ -90,6 +90,7 @@ show_help() {
     echo "  split <path>                  Split a large task into subtasks"
     echo "  triage [limit]                Interactive walk-through of task pipeline"
     echo "  audit [folder|file] [limit] [offset]  Audit tasks in next/ (or specified folder)"
+    echo "  audit-deps                    File a backlog task auditing outdated/vulnerable deps"
     echo "  review-code <file> [passes]   Run code audit on a task's changes"
     echo "  excellence <file>             Judge finished work against a higher bar; file enhancements"
     echo ""
@@ -257,6 +258,10 @@ cmd_audit() {
     run_script "audit-tasks.sh" "$@"
 }
 
+cmd_audit_deps() {
+    run_script "audit-deps.sh" "$@"
+}
+
 cmd_review_code() {
     [ -z "${1:-}" ] && { echo -e "${RED}ERROR: File path(s) required${NC}"; echo "Usage: ./5day.sh review-code <task.md> [max-passes]"; echo "       ./5day.sh review-code <file1> <file2> ... [-- max-passes]"; exit 1; }
     run_script "audit-code.sh" "$@"
@@ -319,6 +324,7 @@ case "$CMD" in
     review-sprint) shift; cmd_review_sprint "$@" ;;
     triage)        shift; cmd_triage "$@" ;;
     audit)         shift; cmd_audit "$@" ;;
+    audit-deps)    shift; cmd_audit_deps "$@" ;;
     review-code)   shift; cmd_review_code "$@" ;;
     excellence)    shift; cmd_excellence "$@" ;;
     sync)          shift; cmd_sync "$@" ;;
